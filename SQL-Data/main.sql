@@ -1,99 +1,83 @@
-CREATE DATABASE IF NOT EXISTS TMPDB;
+DROP DATABASE IF EXISTS TMPDB;
+CREATE DATABASE IF NOT EXISTS TMPDatabase;
+USE TMPDatabase;
 
-USE TMPDB;
-
-CREATE TABLE Team(
-  team_id INT NOT NULL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL
-);
-CREATE TABLE User(
-  user_id INT NOT NULL PRIMARY KEY,
-  username VARCHAR(255) NOT NULL,
-  mail VARCHAR(255) NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  profile_pic BLOB,
-  xp INT DEFAULT 0,
-  level INT DEFAULT 1,
-  team_id INT,
-  role VARCHAR(50),
-  FOREIGN KEY (team_id) REFERENCES Team(team_id)
+CREATE TABLE Team (
+    team_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE
 );
 
-CREATE TABLE Tournament(
-  tournament_id INT NOT NULL PRIMARY KEY,
+CREATE TABLE User (
+    user_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    mail VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    profile_pic BLOB,
+    xp INT DEFAULT 0,
+    level INT DEFAULT 1,
+    team_id INT,
+    role ENUM('admin', 'normal') DEFAULT 'normal',
+    FOREIGN KEY (team_id) REFERENCES Team(team_id)
+);
+
+CREATE TABLE Tournament (
+  tournament_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   time_limit INT NOT NULL
 );
-
-CREATE TABLE Leaderboard (
-    leaderboard_id INT NOT NULL PRIMARY KEY,
-    user_id INT,
-    tournament_id INT,
-    position INT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES User(user_id),
-    FOREIGN KEY (tournament_id) REFERENCES Tournament(tournament_id)
-);
-
-CREATE TABLE TournamentParticipation (
+CREATE TABLE Tournament_Participation (
     user_id INT,
     tournament_id INT,
     score INT,
-    PRIMARY KEY (user_id, tournament_id),
     FOREIGN KEY (user_id) REFERENCES User(user_id),
     FOREIGN KEY (tournament_id) REFERENCES Tournament(tournament_id)
 );
 
--- Table for Progress Reports
-CREATE TABLE ProgressReport (
-    report_id INT NOT NULL PRIMARY KEY,
-    user_id INT,  -- FK to User table
-    solved_problems TEXT,  -- FK to a problems table or just a list of solved problems
+CREATE TABLE Question(
+    question_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    content VARCHAR(255),
+    language VARCHAR(255),
+    topic VARCHAR(255),
+    difficulty VARCHAR(255),
+    tournament_id INT,
+    FOREIGN KEY (tournament_id) REFERENCES Tournament(tournament_id)
+);
+
+CREATE TABLE Leaderboard(
+    leaderboard_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    username INT,
+    tournament_id INT,
+    position INT,
+    FOREIGN KEY (user_id) REFERENCES User(user_id),
+    FOREIGN KEY (username) REFERENCES User(username),
+    FOREIGN KEY (tournament_id) REFERENCES Tournament(tournament_id)
+);
+
+CREATE TABLE Progress_Report (
+    report_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    solved_problems INT,
     average_time INT,
-    obtained_achievements TEXT,
+    obtained_achievements INT,
     FOREIGN KEY (user_id) REFERENCES User(user_id)
 );
 
--- Table for Questions
-CREATE TABLE Question (
-    question_id INT NOT NULL PRIMARY KEY,
-    content TEXT,
-    language VARCHAR(50),
-    topic VARCHAR(100),
-    difficulty VARCHAR(50),
-    tournament_id INT,  -- FK to Tournament table
-    FOREIGN KEY (tournament_id) REFERENCES Tournament(tournament_id)
+
+CREATE TABLE Achievement (
+    achievement_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255),
+    description VARCHAR(255)
 );
 
--- Table for Code Sent
-CREATE TABLE CodeSent (
-    CodeSent_id INT NOT NULL PRIMARY KEY,
-    user_id INT,  -- FK to User table
-    pregunta_id INT,  -- FK to Question table
-    tournament_id INT,  -- FK to Tournament table
-    code TEXT,
-    state VARCHAR(50),
-    score INT,
-    FOREIGN KEY (user_id) REFERENCES User(user_id),
-    FOREIGN KEY (pregunta_id) REFERENCES Question(question_id),
-    FOREIGN KEY (tournament_id) REFERENCES Tournament(tournament_id)
-);
-
--- Table for User Achievements
 CREATE TABLE User_Achievement (
-    id_desafio INT NOT NULL PRIMARY KEY,
-    descripcion TEXT,
-    fecha_inicio DATE,
-    fecha_fin DATE,
-    recompensa_xp INT
+    user_id INT,
+    achievement_id INT,
+    obtained_date TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES User(user_id),
+    FOREIGN KEY (achievement_id) REFERENCES Achievement(achievement_id)
 );
 
--- Table for Progress Report (Another version)
-CREATE TABLE ReporteProgreso (
-    id_reporte INT NOT NULL PRIMARY KEY,
-    usuario_id INT,  -- FK to User table
-    problemas_resueltos TEXT,
-    tiempo_promedio INT,
-    logros_obtenidos TEXT,
-    FOREIGN KEY (usuario_id) REFERENCES User(user_id)
-);
+
