@@ -1,6 +1,5 @@
-DROP DATABASE IF EXISTS TMPDB;
-CREATE DATABASE IF NOT EXISTS TMPDatabase;
-USE TMPDatabase;
+CREATE DATABASE IF NOT EXISTS TMPDB;
+USE TMPDB;
 
 CREATE TABLE Team (
     team_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -47,7 +46,7 @@ CREATE TABLE Question(
 CREATE TABLE Leaderboard(
     leaderboard_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
-    username INT,
+    username VARCHAR(255),
     tournament_id INT,
     position INT,
     FOREIGN KEY (user_id) REFERENCES User(user_id),
