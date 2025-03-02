@@ -16,5 +16,10 @@
   "bugs": {
     "url": "https://github.com/Denzeel/TMP/issues"
   },
-  "homepage": "https://github.com/Denzeel/TMP#readme"
+  "homepage": "https://github.com/Denzeel/TMP#readme",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.12.0"
+  }
 }
