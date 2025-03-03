@@ -4,7 +4,7 @@ const Home = () => {
   return (
     <div style={{ padding: '20px' }}>
       <h1>Welcome to the Homepage</h1>
-      <p>This is the homepage of your app. You can navigate to the login page using the navbar above.</p>
+      <p>"You should see this if ur logged in"</p>
     </div>
   );
 };
