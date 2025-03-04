@@ -43,10 +43,10 @@ const registerUser=async(req,res)=>{
     
     res.status(201).json({message: "User registered successfully!", token});
   } catch(error){
-      res.status(500).json({message: "Server error, please try again later."});
+      //res.status(500).json({message: "Server error, please try again later."});
     //forbidden shit for debugging
-    //console.log(error)
-      //  res.status(500).json({message: "Server error", error: error.message});
+    console.log(error)
+    res.status(500).json({message: "Serveer error", error: error.message});
 
   }
 };
@@ -78,7 +78,7 @@ const loginUser = async (req,res)=>{
     res.json({message: "Login successful :3", token});
   } catch(error){
     console.error("Login error:",error);
-    res.status(500).json({message: "Server error, please try again later"});
+    res.status(500).json({message: "Server error, please try again later", error: error.message});
   }
 
 };

@@ -24,7 +24,7 @@ const Register = () => {
             if (response.ok) {
                 localStorage.setItem("token", data.token);  // Save JWT
                 alert("Registration successful!");
-                window.location.href = "/dashboard"; // Redirect user
+                window.location.href = "/login"; // Redirect user
             } else {
                 alert(data.message);
             }

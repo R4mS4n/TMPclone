@@ -1,36 +1,38 @@
 import { useState } from "react";
+import {useNavigate} from "react-router-dom"
 
-export default function Login() {
+export default function Login({onLogin}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false);
-  
+  const navigate=useNavigate(); 
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);  // Set loading to true when the request starts
+    e.preventDefault();
+    setLoading(true);  // Set loading to true when the request starts
 
   try {
     const response = await fetch("http://localhost:5000/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({
-        mail: email,
-        password: password,
-      }),
+      body: JSON.stringify({mail: email, password: password,}),
       headers: { "Content-Type": "application/json" },
     });
     
     const data = await response.json();
 
     if (response.ok) {
+      localStorage.setItem("authToken",data.token);
+      onLogin();
+      navigate("/home");
       console.log("Login successful:", data);
     } else {
       setError(data.message);
     }
-
-    setLoading(false);
   } catch (err) {
-    setError("Network error. Please try again later.");
+    console.error("Error during request: ", err);
+
+    setError(`Network error. Please try again later. Details: ${err.message}`);
     setLoading(false);
   }
 }; 
