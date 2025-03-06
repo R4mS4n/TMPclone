@@ -23,10 +23,10 @@ const App = () => {
     setIsAuthenticated(true);
   };
 
-  const showNavBar=location.pathname === "/login"||location.pathname==="/register";
+  
   return (
     <div>
-      {showNavBar && <Navbar/>}
+      <Navbar/>
     <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register />} />
