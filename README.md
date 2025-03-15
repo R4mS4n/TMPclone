@@ -32,9 +32,9 @@ La arquitectura del proyecto sigue una estructura por capas, separando las respo
   - **Base de Datos:** Amazon RDS (MySQL)
   - **Hosting del Frontend:** Amazon S3
 
-### Diagrama ER
+## Diagrama ER
 
-Nuestro diagrama ER nos ayuda a definir de una manera más clara las relaciones que tendrán nuestras clases y actores en nuestro proyecto.
+El diagrama ER nos ayuda a visualizar de manera clara las relaciones entre las entidades de nuestro proyecto, mostrando cómo interactúan las clases y actores dentro del sistema.
 
 ![Arquitectura del Proyecto](./images/ERReto.png)
 
