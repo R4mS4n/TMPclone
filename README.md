@@ -8,7 +8,7 @@ La arquitectura del proyecto sigue una estructura por capas, separando las respo
 
 ### Diagrama de Arquitectura
 
-![Arquitectura del Proyecto](./Screenshot%20from%202025-03-14%2021-16-52.png)
+![Arquitectura del Proyecto](./images/Screenshot%20from%202025-03-14%2021-16-52.png)
 
 ### Descripción de las Capas
 
