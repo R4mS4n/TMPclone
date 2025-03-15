@@ -23,9 +23,6 @@ La arquitectura del proyecto sigue una estructura por capas, separando las respo
 3. **Capa de Datos**
    - **Base de Datos (AWS)**: Almacena información estructurada y no estructurada del sistema, asegurando su disponibilidad y escalabilidad en la nube de AWS.
 
-4. **Capa de Infraestructura**
-   - **IAM (Seguridad)**: Sistema de gestión de identidades y accesos (IAM) que protege los recursos, restringiendo permisos y garantizando una arquitectura segura.
-
 ## Tecnologías Utilizadas (Contempladas hasta ahora)
 - **Frontend:** React
 - **Backend:** Node.js, Express
