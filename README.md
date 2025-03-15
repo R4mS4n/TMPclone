@@ -31,3 +31,9 @@ La arquitectura del proyecto sigue una estructura por capas, separando las respo
   - **API:** AWS Lambda + API Gateway (o EC2)
   - **Base de Datos:** Amazon RDS (MySQL)
   - **Hosting del Frontend:** Amazon S3
+
+### Diagrama ER
+
+![Arquitectura del Proyecto](./images/ERReto.png)
+
+Nuestro diagrama ER nos ayuda a definir de una manera más clara las relaciones que tendrán nuestras clases y actores en nuestro proyecto.
