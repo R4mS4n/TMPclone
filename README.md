@@ -34,6 +34,8 @@ La arquitectura del proyecto sigue una estructura por capas, separando las respo
 
 ### Diagrama ER
 
+Nuestro diagrama ER nos ayuda a definir de una manera más clara las relaciones que tendrán nuestras clases y actores en nuestro proyecto.
+
 ![Arquitectura del Proyecto](./images/ERReto.png)
 
-Nuestro diagrama ER nos ayuda a definir de una manera más clara las relaciones que tendrán nuestras clases y actores en nuestro proyecto.
+
