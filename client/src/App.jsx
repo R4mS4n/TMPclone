@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register'
 import ProtectedRoute from './components/ProtectedRoute';
+import Challenges from "./pages/Challenges";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated]=useState(false);
@@ -37,6 +38,14 @@ const App = () => {
               <Home />
             </ProtectedRoute>
           }
+        />
+        <Route
+        path="/challenges"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          <Challenges/>
+          </ProtectedRoute>
+        }
         />
       </Routes>
   </div>
