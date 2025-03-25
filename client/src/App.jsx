@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register'
 import ProtectedRoute from './components/ProtectedRoute';
 import Challenges from "./pages/Challenges";
+import ChallengeDetails from "./pages/ChallengeDetails";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated]=useState(false);
@@ -47,10 +48,17 @@ const App = () => {
           </ProtectedRoute>
         }
         />
+        <Route
+          path="/challenge-details/:id"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ChallengeDetails />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
   </div>
   );
-}
+};
 
 export default App;
-
