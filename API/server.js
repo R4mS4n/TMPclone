@@ -2,6 +2,7 @@ const express=require('express');
 const cors =require('cors');
 const authRoutes=require('./routes/authRoutes');
 const tournamentRoutes=require("./routes/tournamentRoutes");
+const db=require("./config/db");
 
 const app=express();
 app.use(cors());
