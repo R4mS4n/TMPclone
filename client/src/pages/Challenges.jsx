@@ -27,20 +27,31 @@ const Challenges = () => {
   if (error) return <p>Error: {error}</p>;
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
       <h2>Available Challenges</h2>
-      <ul>
-        {challenges.map((challenge) => (
-          <li key={challenge.tournament_id}>
-            <h3>{challenge.name}</h3>
-            <p>{challenge.description}</p>
-            <p><strong>Time Limit:</strong> {challenge.time_limit} mins</p>
-          </li>
-        ))}
-      </ul>
+      {challenges.map((challenge) => (
+        <button
+          key={challenge.tournament_id}
+          style={{
+            padding: "10px",
+            backgroundColor: "#007BFF",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            textAlign: "left",
+            fontSize: "16px",
+          }}
+        >
+          <h3 style={{ margin: "0" }}>{challenge.name}</h3>
+          <p style={{ margin: "5px 0" }}>{challenge.description}</p>
+          <p style={{ margin: "5px 0" }}>
+            <strong>Time Limit:</strong> {challenge.time_limit} mins
+          </p>
+        </button>
+      ))}
     </div>
   );
 };
 
 export default Challenges;
-
