@@ -8,6 +8,8 @@ const ChallengeDetails = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();  // Initialize useNavigate
   const [userId, setUserId]=useState(null); //Store user_id :33
+  const [isEnrolled, setIsEnrolled] = useState(false);
+
 
   useEffect(() => {
     const fetchChallengeDetails = async () => {
@@ -42,6 +44,7 @@ const ChallengeDetails = () => {
           const data = await response.json();
           if (response.ok) {
             setUserId(data.user_id);
+            checkEnrollment(data.user_id);
           } else {
             setError("Failed to fetch user details");
           }
@@ -55,40 +58,79 @@ const ChallengeDetails = () => {
     fetchUserId();
   }, []); 
   
-  /*
-  const checkEnrollment = async(userId)=>{
-    try{
+  //we need to check the enrollment of the user so we know what to display
+  const checkEnrollment = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/tournaments/enrollment/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+      });
+      const data = await response.json();
+      if (data.enrolled) {
+        setIsEnrolled(true); // Set to true if the user is already enrolled
+      }
+    } catch (error) {
+      console.error("Error checking enrollment:", error);
     }
-  }
-    */
-  const handleParticipate = async () => {
+  };
+
+  const handleParticipateOrDrop = async () => {
     if (!userId) {
       alert("You must be logged in to participate");
       return;
     }
-
-    try {
-      const response = await fetch("http://localhost:5000/api/tournaments/participate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("authToken")}`,  // Send token as Bearer
-        },
-        body: JSON.stringify({
-          user_id: userId,  // Use the fetched user_id here
-          tournament_id: id,
-        }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        alert("Successfully enrolled in the challenge!");
-      } else {
-        alert(data.error);
+    console.log(isEnrolled)
+    if (isEnrolled) {
+      // Drop challenge (remove participation)
+      try {
+        const response = await fetch("http://localhost:5000/api/tournaments/quitTournament", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            tournament_id: id,
+          }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          alert("Successfully quit the challenge!");
+          setIsEnrolled(false); // Update button text after successful drop
+        } else {
+          alert(data.error);
+        }
+      } catch (error) {
+        console.error("Error quitting challenge:", error);
+        alert("Error quitting challenge");
       }
-    } catch (error) {
-      console.error("Error enrolling in tournament:", error);
-      alert("Error enrolling in tournament");
+    } else {
+      // Participate in the challenge
+      try {
+        const response = await fetch("http://localhost:5000/api/tournaments/participate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            tournament_id: id,
+          }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          alert("Successfully enrolled in the challenge!");
+          setIsEnrolled(true); // Change button text to "Drop Challenge"
+        } else {
+          alert(data.error);
+        }
+      } catch (error) {
+        console.error("Error enrolling in tournament:", error);
+        alert("Error enrolling in tournament");
+      }
     }
   };
   
@@ -102,7 +144,10 @@ const ChallengeDetails = () => {
       <p><strong>Time Limit:</strong> {challenge.time_limit} minutes</p>
 
       {/* Button to participate */}
-      <button onClick={handleParticipate}>Participate in Challenge</button>
+      <button onClick={handleParticipateOrDrop}>
+        {isEnrolled ? "Drop Challenge" : "Participate in Challenge"}
+      </button>
+
 
       {/* Button to go back to challenges page */}
       <button onClick={() => navigate('/challenges')}>Back to Challenges</button>

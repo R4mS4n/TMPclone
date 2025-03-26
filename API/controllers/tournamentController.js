@@ -29,7 +29,7 @@ const getTournamentById = async (req, res) => {
 // esta funcion nos ayudara a poder inscribir usuarios a los torneos
 const participateInTournament=async (req,res)=>{
   const {user_id,tournament_id}=req.body;
-  console.log(`User ID: ${user_id}, Tournament ID: ${tournament_id}`);
+  //console.log(`User ID: ${user_id}, Tournament ID: ${tournament_id}`);
 
   //excluimos excepciones basicas para no ensuciar la DB
   if(!user_id || !tournament_id){
@@ -49,9 +49,48 @@ const participateInTournament=async (req,res)=>{
   }
 
 };
+
+const quitTournament = async (req,res) => {
+  const {user_id,tournament_id} = req.body;
+  
+    if(!user_id || !tournament_id){
+      return res.status(400).json({error: 'Missing args'});
+    }
+    try{
+      await db.promise().query("DELETE FROM Tournament_Participation WHERE user_id = ? AND tournament_id = ?;", [user_id, tournament_id]);
+    res.status(200).json({message:"Quit challenge successfully"})
+    } catch (error){
+      console.error("Error quitting tournament", error);
+      res.status(500).json({error: "Internal server error"})
+    } 
+};
+
+
+const checkEnrollment = async (req, res) => {
+  const { id } = req.params;
+  const user_id = req.user_id;
+
+  try {
+    const [result] = await db.promise().query(
+      "SELECT * FROM Tournament_Participation WHERE user_id = ? AND tournament_id = ?",
+      [user_id, id]
+    );
+
+    if (result.length > 0) {
+      return res.json({ enrolled: true });
+    }
+
+    return res.json({ enrolled: false });
+  } catch (error) {
+    console.error("Error checking enrollment:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 module.exports = {
   getAllTournaments,
   getTournamentById,
-  participateInTournament
+  participateInTournament,
+  checkEnrollment,
+  quitTournament
 };
 
