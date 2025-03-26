@@ -3,6 +3,7 @@ const bcrypt=require('bcryptjs'); //For PW hashing
 const jwt=require('jsonwebtoken');
 require('dotenv').config(); //for env variables
 
+//Register user
 const registerUser=async(req,res)=>{
   try{
     let {username, mail, password}=req.body;
@@ -51,6 +52,7 @@ const registerUser=async(req,res)=>{
   }
 };
 
+//Login user
 const loginUser = async (req,res)=>{
   try{
     const {mail,password}=req.body;
@@ -80,7 +82,23 @@ const loginUser = async (req,res)=>{
     console.error("Login error:",error);
     res.status(500).json({message: "Server error, please try again later", error: error.message});
   }
-
 };
 
-module.exports = {registerUser,loginUser};
+const verifyToken = (req, res, next) => {
+  const token = req.cookies.token; // Assuming token is stored in cookies
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(403).json({ error: "Invalid token" });
+    req.user_id = decoded.user_id;
+    next();
+  });
+};
+
+// Get Authenticated User Details
+const getUser = (req, res) => {
+  res.json({ user_id: req.user_id });
+};
+
+
+module.exports = {registerUser,loginUser, getUser, verifyToken};
