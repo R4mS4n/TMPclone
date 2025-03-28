@@ -7,9 +7,8 @@ const ChallengeDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();  // Initialize useNavigate
-  const [userId, setUserId]=useState(null); //Store user_id :33
+  const [userId, setUserId]=useState(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
-
 
   useEffect(() => {
     const fetchChallengeDetails = async () => {
@@ -44,7 +43,9 @@ const ChallengeDetails = () => {
           const data = await response.json();
           if (response.ok) {
             setUserId(data.user_id);
-            checkEnrollment(data.user_id);
+            localStorage.setItem('userId',data.user_id);
+            console.log("User id: ", userId)
+            //checkEnrollment(data.user_id);
           } else {
             setError("Failed to fetch user details");
           }
@@ -58,29 +59,35 @@ const ChallengeDetails = () => {
     fetchUserId();
   }, []); 
   
+  
+  
   //we need to check the enrollment of the user so we know what to display
-  const checkEnrollment = async (userId) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/tournaments/enrollment/${id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-      const data = await response.json();
-      if (data.enrolled) {
-        setIsEnrolled(true); // Set to true if the user is already enrolled
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (!userId) return;  // Wait until userId is set
+
+      try {
+        const response = await fetch(`http://localhost:5000/api/tournaments/enrollment/${id}`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        });
+
+        const data = await response.json();
+        setIsEnrolled(data.enrolled);
+      } catch (error) {
+        console.error("Error checking enrollment:", error);
       }
-    } catch (error) {
-      console.error("Error checking enrollment:", error);
-    }
-  };
+    };
+
+    checkEnrollment();
+  }, [userId, id]);
 
   const handleParticipateOrDrop = async () => {
     if (!userId) {
       alert("You must be logged in to participate");
       return;
     }
-    console.log(isEnrolled)
     if (isEnrolled) {
       // Drop challenge (remove participation)
       try {

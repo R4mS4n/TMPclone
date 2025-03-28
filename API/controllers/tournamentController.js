@@ -1,5 +1,4 @@
 const db = require('../config/db');
-
 // Obtener todos los torneos
 const getAllTournaments = async (req, res) => {
   try {
@@ -70,22 +69,33 @@ const checkEnrollment = async (req, res) => {
   const { id } = req.params;
   const user_id = req.user_id;
 
+  if (!user_id) {
+    console.error("Missing user_id in checkEnrollment");
+    return res.status(400).json({ error: "Missing user_id" });
+  }
+
   try {
+    console.log(`Checking enrollment for user ${user_id} in tournament ${id}`);
+
     const [result] = await db.promise().query(
       "SELECT * FROM Tournament_Participation WHERE user_id = ? AND tournament_id = ?",
       [user_id, id]
     );
 
     if (result.length > 0) {
+      console.log("User is enrolled: true");
       return res.json({ enrolled: true });
     }
 
+    console.log("User is enrolled: false");
     return res.json({ enrolled: false });
+
   } catch (error) {
     console.error("Error checking enrollment:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 module.exports = {
   getAllTournaments,
   getTournamentById,

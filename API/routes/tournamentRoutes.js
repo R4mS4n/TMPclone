@@ -1,6 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { getAllTournaments,getTournamentById,participateInTournament, checkEnrollment, quitTournament} = require("../controllers/tournamentController");
+const { getAllTournaments,
+        getTournamentById,
+        participateInTournament, 
+        checkEnrollment, 
+        quitTournament} = require("../controllers/tournamentController");
 
 router.get("/", getAllTournaments);
 
