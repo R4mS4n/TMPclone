@@ -32,12 +32,12 @@ const registerUser=async(req,res)=>{
     const salt=await bcrypt.genSalt(10);
     const hashedPassword=await bcrypt.hash(password,salt);
     
-    await db.promise().query(
+    const [result]=await db.promise().query(
       "INSERT INTO User (username, mail, password) VALUES (?, ?, ?)",
     [username, mail, hashedPassword]
     );
     
-    res.statu(201).json({message: "User registered successfully! pls login"});
+    res.status(201).json({message: "User registered successfully! pls login"});
 
 
     
