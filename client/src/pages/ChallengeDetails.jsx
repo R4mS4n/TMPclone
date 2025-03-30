@@ -2,22 +2,40 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";  // Import useParams and useNavigate
 
 const ChallengeDetails = () => {
-  const { id } = useParams();  // Access the challenge ID from the URL
+  const { id } = useParams();  //to access challeng id from the url
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();  // Initialize useNavigate
-  const [userId, setUserId]=useState(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
-
+  
+  /*
+   Aqui abajo sacamos la info primordial para que jale chido la pagina esta, que son los datos del torneo y si el usuario esta participando o no
+  */
   useEffect(() => {
-    const fetchChallengeDetails = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/tournaments/${id}`);
-        if (!response.ok) throw new Error("Failed to fetch challenge details");
+        const challengeRes = await fetch(`http://localhost:5000/api/tournaments/${id}`);
+        if (!challengeRes.ok) throw new Error("Failed to fetch challenge");
+        const challengeData = await challengeRes.json();
 
-        const data = await response.json();
-        setChallenge(data);
+
+        if (localStorage.getItem("authToken")) {
+          const enrollmentRes = await fetch(
+            `http://localhost:5000/api/tournaments/enrollment/${id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+              },
+            }
+          );
+          const enrollmentData = await enrollmentRes.json();
+          //console.log(enrollmentData);
+          setIsEnrolled(enrollmentData.enrolled);
+          console.log(enrollmentData.enrolled)
+        }
+
+        setChallenge(challengeData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -25,119 +43,40 @@ const ChallengeDetails = () => {
       }
     };
 
-    fetchChallengeDetails();
+    fetchData();
   }, [id]);
-  
-  //user participation handling
-  
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        try {
-          const response = await fetch("http://localhost:5000/api/user/me", {
-            headers: {
-              "Authorization": `Bearer ${token}`,
-            },
-          });
-          const data = await response.json();
-          if (response.ok) {
-            setUserId(data.user_id);
-            localStorage.setItem('userId',data.user_id);
-            console.log("User id: ", userId)
-            //checkEnrollment(data.user_id);
-          } else {
-            setError("Failed to fetch user details");
-          }
-        } catch (error) {
-          console.error("Error fetching user details:", error);
-          setError("Error fetching user details");
-        }
-      }
-    };
-    
-    fetchUserId();
-  }, []); 
-  
-  
-  
-  //we need to check the enrollment of the user so we know what to display
-  useEffect(() => {
-    const checkEnrollment = async () => {
-      if (!userId) return;  // Wait until userId is set
-
-      try {
-        const response = await fetch(`http://localhost:5000/api/tournaments/enrollment/${id}`, {
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        });
-
-        const data = await response.json();
-        setIsEnrolled(data.enrolled);
-      } catch (error) {
-        console.error("Error checking enrollment:", error);
-      }
-    };
-
-    checkEnrollment();
-  }, [userId, id]);
 
   const handleParticipateOrDrop = async () => {
-    if (!userId) {
-      alert("You must be logged in to participate");
+    if (!localStorage.getItem("authToken")) {
+      alert("Please login first");
+      navigate('/login');
       return;
     }
-    if (isEnrolled) {
-      // Drop challenge (remove participation)
-      try {
-        const response = await fetch("http://localhost:5000/api/tournaments/quitTournament", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            tournament_id: id,
-          }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          alert("Successfully quit the challenge!");
-          setIsEnrolled(false); // Update button text after successful drop
-        } else {
-          alert(data.error);
-        }
-      } catch (error) {
-        console.error("Error quitting challenge:", error);
-        alert("Error quitting challenge");
+
+    const endpoint = isEnrolled 
+      ? "http://localhost:5000/api/tournaments/quitTournament" 
+      : "http://localhost:5000/api/tournaments/participateInTournament";
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+        },
+        body: JSON.stringify({ tournament_id: id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Operation failed");
       }
-    } else {
-      // Participate in the challenge
-      try {
-        const response = await fetch("http://localhost:5000/api/tournaments/participate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            tournament_id: id,
-          }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          alert("Successfully enrolled in the challenge!");
-          setIsEnrolled(true); // Change button text to "Drop Challenge"
-        } else {
-          alert(data.error);
-        }
-      } catch (error) {
-        console.error("Error enrolling in tournament:", error);
-        alert("Error enrolling in tournament");
-      }
+
+      setIsEnrolled(!isEnrolled);
+      alert(`Successfully ${isEnrolled ? "left" : "joined"} the challenge!`);
+    } catch (error) {
+      console.error("Error:", error);
+      alert(error.message);
     }
   };
   

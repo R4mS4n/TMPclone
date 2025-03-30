@@ -85,7 +85,7 @@ const loginUser = async (req,res)=>{
         code: "INVALID_CREDENTIALS"
       });
     }
-    console.log("uid: ", user.user_id)
+    console.log("login, uid: ", user.user_id)
     const token = jwt.sign(
       {
         sub: user.user_id,          // Standard JWT claim for subject
@@ -110,12 +110,25 @@ const loginUser = async (req,res)=>{
 };
 
 const verifyToken = (req, res, next) => {
-  const token = req.cookies.token; // Assuming token is stored in cookies
+  // Get token from Authorization header instead of cookies
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  
   if (!token) return res.status(401).json({ error: "Unauthorized" });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ error: "Invalid token" });
-    req.user_id = decoded.user_id;
+    
+    // Make sure decoded contains the expected data
+    console.log("Decoded token:", decoded); // Debug log
+    
+    // Attach ALL necessary user data to req.user
+    req.user = {
+      sub: decoded.sub,          // user_id
+      username: decoded.username,
+      role: decoded.role
+    };
+    
     next();
   });
 };

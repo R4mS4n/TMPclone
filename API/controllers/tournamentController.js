@@ -26,73 +26,54 @@ const getTournamentById = async (req, res) => {
 };
 
 // esta funcion nos ayudara a poder inscribir usuarios a los torneos
-const participateInTournament=async (req,res)=>{
-  const {user_id,tournament_id}=req.body;
-  //console.log(`User ID: ${user_id}, Tournament ID: ${tournament_id}`);
-
-  //excluimos excepciones basicas para no ensuciar la DB
-  if(!user_id || !tournament_id){
-    return res.status(400).json({error: 'Missing arguments'});
-  }
-  //una vez validamos que tenemos los argumentos, intentamos hacer el query
-  try{
+const participateInTournament = async (req, res) => {
+  try {
     await db.promise().query(
-      "INSERT INTO Tournament_Participation (user_id,tournament_id, score) VALUES (?,?,0);", [user_id, tournament_id]//iniciamos la participacion con valor 0
+      `INSERT INTO Tournament_Participation 
+       (user_id, tournament_id, score) 
+       VALUES (?, ?, 0)`, // Default score 0
+      [req.user.sub, req.body.tournament_id] // sub from JWT
     );
-    //Esto significa que al dropperar un challenge/torneo y volver a inscribir, tu score se va a reiniciar
-    res.status(200).json({message:"Enrollement successful :D"})
-  } catch (error){
-    console.error("Error enrolling in tournament :(", error);
-    res.status(500).json({error: "Internal server error"});
-
+    res.json({ success: true });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      res.status(400).json({ error: "Already enrolled" });
+    } else {
+      res.status(500).json({ error: "Enrollment failed" });
+    }
   }
-
 };
 
-const quitTournament = async (req,res) => {
-  const {user_id,tournament_id} = req.body;
-  
-    if(!user_id || !tournament_id){
-      return res.status(400).json({error: 'Missing args'});
-    }
-    try{
-      await db.promise().query("DELETE FROM Tournament_Participation WHERE user_id = ? AND tournament_id = ?;", [user_id, tournament_id]);
-    res.status(200).json({message:"Quit challenge successfully"})
-    } catch (error){
-      console.error("Error quitting tournament", error);
-      res.status(500).json({error: "Internal server error"})
-    } 
+const quitTournament = async (req, res) => {
+  try {
+    await db.promise().query(
+      `DELETE FROM Tournament_Participation 
+       WHERE user_id = ? AND tournament_id = ?`,
+      [req.user.sub, req.body.tournament_id] // sub from JWT
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to quit tournament" });
+  }
 };
 
 
 const checkEnrollment = async (req, res) => {
-  const { id } = req.params;
-  const user_id = req.user_id;
-
-  if (!user_id) {
-    console.error("Missing user_id in checkEnrollment");
-    return res.status(400).json({ error: "Missing user_id" });
-  }
-
-  try {
-    console.log(`Checking enrollment for user ${user_id} in tournament ${id}`);
-
-    const [result] = await db.promise().query(
-      "SELECT * FROM Tournament_Participation WHERE user_id = ? AND tournament_id = ?",
-      [user_id, id]
-    );
-
-    if (result.length > 0) {
-      console.log("User is enrolled: true");
-      return res.json({ enrolled: true });
+  try{
+    console.log("Req user", req.user);
+    if(!req.user?.sub){
+      return res.status(401).json({error: "User not authed"});
     }
-
-    console.log("User is enrolled: false");
-    return res.json({ enrolled: false });
-
-  } catch (error) {
-    console.error("Error checking enrollment:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    const [enrollment] = await db.promise().query(
+      `SELECT * FROM Tournament_Participation
+      WHERE user_id = ? AND tournament_id = ?`,
+      [req.user.sub, req.params.id] //we get this from jwt
+    );
+  
+  res.json({enrolled: enrollment.length>0});
+  } catch (error){
+    console.error("Enrollment check error: ", error);
+    res.status(500).json({error: "Failed to check enrollment"});
   }
 };
 

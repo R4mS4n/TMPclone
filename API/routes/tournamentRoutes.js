@@ -5,15 +5,16 @@ const { getAllTournaments,
         participateInTournament, 
         checkEnrollment, 
         quitTournament} = require("../controllers/tournamentController");
+const {verifyToken} = require('../controllers/authController')
 
 router.get("/", getAllTournaments);
 
 router.get("/:id",getTournamentById);
 
-router.post("/participate", participateInTournament);
+router.post("/participateInTournament",verifyToken, participateInTournament);
 
-router.get('/enrollment/:id', checkEnrollment);
+router.get('/enrollment/:id', verifyToken, checkEnrollment);
 
-router.post('/quitTournament',quitTournament)
+router.post('/quitTournament',verifyToken, quitTournament)
 module.exports = router;
 
