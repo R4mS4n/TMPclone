@@ -26,5 +26,41 @@ const getUser = async (req, res) => {
   }
 };
 
-module.exports = { getUser };
+const checkUserEnrollments = async (req, res) => {
+  try {
+    // Get user_id from JWT (already verified by middleware)
+    const userId = req.user.sub;
+
+    // Query database for enrollments
+    const [enrollments] = await db.promise().query(
+      `SELECT 
+        t.tournament_id as challenge_id,
+        t.name as challenge_name,
+        t.description,
+        tp.score
+       FROM Tournament_Participation tp
+       JOIN Tournament t ON tp.tournament_id = t.tournament_id
+       WHERE tp.user_id = ?`,
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      count: enrollments.length,
+      enrollments
+    });
+
+  } catch (error) {
+    console.error("Enrollment check error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch enrollments"
+    });
+  }
+};
+
+module.exports = { 
+  getUser, 
+  checkUserEnrollments
+};
 

@@ -7,7 +7,7 @@ const getAllTournaments = async (req, res) => {
   } catch (error) {
     console.error("Error fetching tournaments:", error);
     res.status(500).json({ error: "Internal Server Error" });
-  }
+}
 };
 
 // Obtener un torneo especifico por ID
@@ -57,7 +57,7 @@ const quitTournament = async (req, res) => {
   }
 };
 
-
+//This should check the enrollment for a specific challenge
 const checkEnrollment = async (req, res) => {
   try{
     console.log("Req user", req.user);
@@ -76,6 +76,10 @@ const checkEnrollment = async (req, res) => {
     res.status(500).json({error: "Failed to check enrollment"});
   }
 };
+
+/*
+ Esta funcion es para desplegar todos los challenges inscritos asociados a un ID, pero la verdad creo que podemos optimizarlo si cambiamos un poco el checkEnrollment, no se
+ */
 
 module.exports = {
   getAllTournaments,
