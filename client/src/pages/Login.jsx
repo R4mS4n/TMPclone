@@ -1,75 +1,92 @@
 import { useState } from "react";
 import {useNavigate} from "react-router-dom"
+import fondo from "../cimages/TechM.jpg"; 
 
-export default function Login({onLogin}) {
+export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("")
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate=useNavigate(); 
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);  // Set loading to true when the request starts
+    setLoading(true);
 
-  try {
-    const response = await fetch("http://localhost:5000/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({mail: email, password: password,}),
-      headers: { "Content-Type": "application/json" },
-    });
-    
-    const data = await response.json();
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ mail: email, password: password }),
+        headers: { "Content-Type": "application/json" },
+      });
 
-    if (response.ok) {
-      localStorage.setItem("authToken",data.token);
-      onLogin();
-      navigate("/home");
-      console.log("Login successful:", data);
-    } else {
-      setError(data.message);
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("authToken", data.token);
+        onLogin();
+        navigate("/home");
+        console.log("Login successful:", data);
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      console.error("Error during request: ", err);
+      setError(`Network error. Please try again later. Details: ${err.message}`);
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Error during request: ", err);
+  };
 
-    setError(`Network error. Please try again later. Details: ${err.message}`);
-    setLoading(false);
-  }
-}; 
-    return (
-    <div className="login-container">
-      <div className="login-form">
-        <h1>Login</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label>Email</label>
+  return (
+    <div
+      className="flex items-center justify-end min-h-screen bg-cover bg-center"
+      style={{ backgroundImage: `url(${fondo})` }}
+    >
+      <div className="absolute inset-0 bg-black opacity-40"></div>
+      <div className="flex flex-col justify-center items-center w-full lg:w-1/3 p-8 space-y-4 shadow-lg bg-red-600 text-white backdrop-blur-sm h-full min-h-screen">
+        <h2 className="text-3xl font-bold text-center mb-4">Iniciar sesión</h2>
+        <form onSubmit={handleSubmit} className="space-y-4 w-full">
+          <div>
+            <label className="label">Correo electrónico</label>
             <input
               type="email"
+              name="mail"
+              placeholder="Introduce tu correo"
+              className="input input-bordered w-full"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)} // Actualiza el correo
               required
-              placeholder="Enter your email"
             />
           </div>
-          <div className="input-group">
-            <label>Password</label>
+          <div>
+            <label className="label">Contraseña</label>
             <input
               type="password"
+              name="password"
+              placeholder="Introduce tu contraseña"
+              className="input input-bordered w-full"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)} // Actualiza la contraseña
               required
-              placeholder="Enter your password"
             />
           </div>
-          <button type="submit" className="login-button" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <input type="checkbox" id="rememberMe" className="checkbox checkbox-primary" />
+              <label htmlFor="rememberMe" className="ml-2">Recuérdame</label>
+            </div>
+            <a href="/forgot-password" className="text-white hover:underline">¿Olvidaste tu contraseña?</a>
+          </div>
+          <button type="submit" className="btn btn-neutral w-full" disabled={loading}>
+            {loading ? "Iniciando sesión..." : "Iniciar sesión"}
           </button>
         </form>
-
-        {/* Conditionally render the error message */}
-        {error && <div className="error-message">{error}</div>}
+        {error && <p className="text-red-500 text-center">{error}</p>} {/* Muestra el error si hay */}
+        <p className="text-center text-sm">
+          ¿No tienes cuenta?{" "}
+          <a href="/register" className="text-white hover:underline">Regístrate</a>
+        </p>
       </div>
     </div>
   );
 }
-
