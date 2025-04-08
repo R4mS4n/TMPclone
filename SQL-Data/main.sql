@@ -16,6 +16,9 @@ CREATE TABLE User (
     level INT DEFAULT 1,
     team_id INT,
     role ENUM('admin', 'normal') DEFAULT 'normal',
+    verification_token VARCHAR(64) NULL,
+    is_verified BOOLEAN DEFAULT FALSE,
+    token_expires_at TIMESTAMP NULL,
     FOREIGN KEY (team_id) REFERENCES Team(team_id)
 );
 

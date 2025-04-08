@@ -10,7 +10,8 @@ export default function Login({onLogin}) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);  // Set loading to true when the request starts
+    setError(false);
+    setLoading(true);
 
   try {
     const response = await fetch("http://localhost:5000/api/auth/login", {
@@ -22,6 +23,7 @@ export default function Login({onLogin}) {
     const data = await response.json();
 
     if (response.ok) {
+      const data=await response.json();
       localStorage.setItem("authToken",data.token);
       onLogin();
       navigate("/home");

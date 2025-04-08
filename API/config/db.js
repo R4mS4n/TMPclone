@@ -17,6 +17,5 @@ db.connect((err) => {
   console.log('Connected to the database!');
 });
 
-// Export the db connection so you can use it elsewhere
 module.exports = db;
 
