@@ -19,8 +19,6 @@ export default function Login({onLogin}) {
       body: JSON.stringify({mail: email, password: password,}),
       headers: { "Content-Type": "application/json" },
     });
-    
-    const data = await response.json();
 
     if (response.ok) {
       const data=await response.json();
@@ -29,12 +27,11 @@ export default function Login({onLogin}) {
       navigate("/home");
       console.log("Login successful:", data);
     } else {
-      setError(data.message);
+      setError(true);
     }
   } catch (err) {
-    console.error("Error during request: ", err);
-
-    setError(`Network error. Please try again later. Details: ${err.message}`);
+    setError(true);
+  } finally {
     setLoading(false);
   }
 }; 
@@ -63,13 +60,12 @@ export default function Login({onLogin}) {
               placeholder="Enter your password"
             />
           </div>
+      {error && <div className="error-message">Login Failed</div>}
           <button type="submit" className="login-button" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        {/* Conditionally render the error message */}
-        {error && <div className="error-message">{error}</div>}
       </div>
     </div>
   );
