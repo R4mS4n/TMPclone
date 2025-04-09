@@ -3,7 +3,9 @@ import { BrowserRouter as Router,Routes, Route, useLocation } from 'react-router
 import './styles/App.css';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Register from './pages/Register'
+import Register from './pages/Register';
+import Challenges from './pages/Challenges';
+
 import ProtectedRoute from './components/ProtectedRoute';
 
 const App = () => {
@@ -25,10 +27,9 @@ const App = () => {
 
   
   return (
-    <div data-theme="TMPlight">
     <Routes>
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route
           path="/home" element={<Home/>}
           /* element={
@@ -37,8 +38,8 @@ const App = () => {
             </ProtectedRoute>
           } */
         />
+        <Route path="/challenges" element={<Challenges/>}/>
       </Routes>
-  </div>
   );
 }
 

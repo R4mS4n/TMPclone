@@ -1,42 +1,57 @@
 @import "tailwindcss";
 @plugin "daisyui";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 
 @plugin "daisyui/theme" {
-    name: "TMPlight";
-    default: false;
-    prefersdark: false;
-    color-scheme: "light";
-    --color-base-100: oklch(100% 0 0);
-    --color-base-200: oklch(98% 0 0);
-    --color-base-300: oklch(95% 0 0);
-    --color-base-content: oklch(21% 0.006 285.885);
-    --color-primary: oklch(63% 0.237 25.331);
-    --color-primary-content: oklch(98% 0.001 106.423);
-    --color-secondary: oklch(70% 0.01 56.259);
-    --color-secondary-content: oklch(94% 0.028 342.258);
-    --color-accent: oklch(70% 0.191 22.216);
-    --color-accent-content: oklch(38% 0.063 188.416);
-    --color-neutral: oklch(14% 0.005 285.823);
-    --color-neutral-content: oklch(92% 0.004 286.32);
-    --color-info: oklch(70% 0.022 261.325);
-    --color-info-content: oklch(98% 0.003 247.858);
-    --color-success: oklch(76% 0.177 163.223);
-    --color-success-content: oklch(37% 0.077 168.94);
-    --color-warning: oklch(82% 0.189 84.429);
-    --color-warning-content: oklch(41% 0.112 45.904);
-    --color-error: oklch(71% 0.194 13.428);
-    --color-error-content: oklch(27% 0.105 12.094);
-    --radius-selector: 0.5rem;
-    --radius-field: 2rem;
-    --radius-box: 1rem;
-    --size-selector: 0.21875rem;
-    --size-field: 0.21875rem;
-    --border: 1px;
-    --depth: 1;
-    --noise: 1;
-  }
-  
+  name: "TMPlight";
+  default: true; /* Este es el tema predeterminado */
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(98% 0 0);
+  --color-base-300: oklch(95% 0 0);
+  --color-base-content: oklch(21% 0.006 285.885);
+  --color-primary: oklch(63% 0.237 25.331);
+  --color-primary-content: oklch(93% 0.034 272.788);
+  --color-secondary: oklch(70% 0.01 56.259);
+  --color-secondary-content: oklch(94% 0.028 342.258);
+  --color-accent: oklch(70% 0.191 22.216);
+  --color-accent-content: oklch(38% 0.063 188.416);
+  --color-neutral: oklch(14% 0.005 285.823);
+  --color-neutral-content: oklch(92% 0.004 286.32);
+  --color-info: oklch(70% 0.022 261.325);
+  --color-info-content: oklch(98% 0.003 247.858);
+  --color-success: oklch(76% 0.177 163.223);
+  --color-success-content: oklch(37% 0.077 168.94);
+  --color-warning: oklch(82% 0.189 84.429);
+  --color-warning-content: oklch(41% 0.112 45.904);
+  --color-error: oklch(71% 0.194 13.428);
+  --color-error-content: oklch(27% 0.105 12.094);
+}
+
+@plugin "daisyui/theme" {
+  name: "TMPdark";
+  default: false;
+  prefersdark: true; /* Este tema debe activarse en modo oscuro */
+  color-scheme: "dark";
+  --color-base-100: oklch(14% 0 0);
+  --color-base-200: oklch(20% 0 0);
+  --color-base-300: oklch(26% 0 0);
+  --color-base-content: oklch(97% 0 0);
+  --color-primary: oklch(63% 0.237 25.331);
+  --color-primary-content: oklch(98% 0.003 247.858);
+  --color-secondary: oklch(86% 0.005 56.366);
+  --color-secondary-content: oklch(43% 0 0);
+  --color-accent: oklch(70% 0.191 22.216);
+  --color-accent-content: oklch(98% 0.002 247.839);
+  --color-neutral: oklch(26% 0 0);
+  --color-neutral-content: oklch(98% 0 0);
+  --color-info: oklch(55% 0.027 264.364);
+  --color-info-content: oklch(97% 0.014 254.604);
+  --color-success: oklch(76% 0.177 163.223);
+  --color-success-content: oklch(98% 0.018 155.826);
+  --color-warning: oklch(76% 0.188 70.08);
+  --color-warning-content: oklch(98% 0.016 73.684);
+  --color-error: oklch(71% 0.194 13.428);
+  --color-error-content: oklch(97% 0.013 17.38);
+}
+
