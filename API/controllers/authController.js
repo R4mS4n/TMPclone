@@ -298,5 +298,188 @@ const getUser = (req, res) => {
   res.json({ user_id: req.user_id });
 };
 
+//esto creo que deberia ir en user pero vamos a reducir la probabilidad de errores manteniendo al mailer en un solo script
 
-module.exports = {registerUser,loginUser, getUser, verifyToken, verifyEmail};
+const forgotPassword = async (req, res) => {
+  console.log('[ForgotPassword] Request received:', {
+    body: req.body,
+    headers: req.headers
+  });
+
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      console.warn('[ForgotPassword] Missing email in request body');
+      return res.status(400).json({ 
+        message: 'Email is required',
+        code: 'MISSING_EMAIL'
+      });
+    }
+
+    console.log(`[ForgotPassword] Searching for user with email: ${email}`);
+    const [user] = await db.promise().query(
+      `SELECT user_id FROM User WHERE mail = ? LIMIT 1`,
+      [email]
+    );
+
+    console.log(`[ForgotPassword] User query results:`, user);
+    
+    if (user.length > 0) {
+      console.log(`[ForgotPassword] User found (ID: ${user[0].user_id}), generating token...`);
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const tokenExpires = new Date(Date.now() + 3600000); // 1 hour
+      console.log(`[ForgotPassword] Generated token: ${resetToken}`);
+      console.log(`[ForgotPassword] Token expires at: ${tokenExpires}`);
+
+      console.log(`[ForgotPassword] Updating user record with reset token...`);
+      const [updateResult] = await db.promise().query(
+        `UPDATE User SET reset_token=?, reset_token_expires=? WHERE user_id=?`,
+        [resetToken, tokenExpires, user[0].user_id]
+      );
+      console.log(`[ForgotPassword] Update result:`, updateResult);
+
+      const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+      console.log(`[ForgotPassword] Generated reset link: ${resetLink}`);
+
+      const mailOptions = {
+        from: `"TMP App" <${process.env.BOT_EMAIL}>`,
+        to: email,
+        subject: 'Password Reset',
+        html: `
+          <h2>Password Reset Request</h2>
+          <p>Click below to reset your password:</p>
+          <a href="${resetLink}">Reset Password</a>
+          <p><small>This link expires in 1 hour.</small></p>
+          <p>If you didn't request this, please ignore this email.</p>
+        `
+      };
+
+      console.log('[ForgotPassword] Sending email with options:', mailOptions);
+      const mailResponse = await transporter.sendMail(mailOptions);
+      console.log('[ForgotPassword] Email sent successfully:', mailResponse);
+
+    } else {
+      console.log('[ForgotPassword] No user found with this email (normal for security)');
+    }
+
+    console.log('[ForgotPassword] Request completed successfully');
+    res.json({ 
+      message: 'If this email exists in our system, a reset link was sent',
+      success: true
+    });
+
+  } catch (error) {
+    console.error('[ForgotPassword] ERROR:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+    });
+
+    res.status(500).json({ 
+      message: 'Server error processing your request',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      code: 'SERVER_ERROR'
+    });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  console.log('[ResetPassword] Request received:', {
+    body: req.body,
+    headers: req.headers
+  });
+
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      console.warn('[ResetPassword] Missing required fields:', {
+        tokenPresent: !!token,
+        passwordPresent: !!newPassword
+      });
+      return res.status(400).json({ 
+        message: 'Token and new password are required',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    console.log('[ResetPassword] Verifying token validity...');
+    const [user] = await db.promise().query(
+      `SELECT user_id FROM User 
+       WHERE reset_token = ? 
+       AND reset_token_expires > NOW()
+       LIMIT 1`,
+      [token]
+    );
+
+    console.log('[ResetPassword] Token verification result:', {
+      userFound: user.length > 0,
+      userId: user[0]?.user_id
+    });
+
+    if (user.length === 0) {
+      console.warn('[ResetPassword] Invalid or expired token provided');
+      return res.status(400).json({ 
+        message: 'Invalid or expired token. Please request a new reset link.',
+        code: 'INVALID_TOKEN'
+      });
+    }
+
+    console.log('[ResetPassword] Hashing new password...');
+    const saltRounds = 10;
+    const salt = await bcrypt.genSalt(saltRounds);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    console.log('[ResetPassword] Password hashing complete');
+
+    console.log('[ResetPassword] Updating user record...');
+    const [updateResult] = await db.promise().query(
+      `UPDATE User 
+       SET password = ?, 
+           reset_token = NULL, 
+           reset_token_expires = NULL 
+       WHERE user_id = ?`,
+      [hashedPassword, user[0].user_id]
+    );
+
+    console.log('[ResetPassword] Update result:', {
+      affectedRows: updateResult.affectedRows,
+      changedRows: updateResult.changedRows
+    });
+
+    if (updateResult.affectedRows === 0) {
+      console.error('[ResetPassword] Failed to update user record');
+      throw new Error('No rows affected during password update');
+    }
+
+    console.log('[ResetPassword] Password reset successful for user:', user[0].user_id);
+    res.json({ 
+      message: 'Password updated successfully. You can now login with your new password.',
+      success: true,
+      userId: user[0].user_id
+    });
+
+  } catch (error) {
+    console.error('[ResetPassword] ERROR:', {
+      message: error.message,
+      stack: error.stack,
+      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+    });
+
+    res.status(500).json({ 
+      message: 'Error resetting password',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      code: 'SERVER_ERROR'
+    });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser, 
+  getUser, 
+  verifyToken, 
+  verifyEmail, 
+  resetPassword, 
+  forgotPassword
+};

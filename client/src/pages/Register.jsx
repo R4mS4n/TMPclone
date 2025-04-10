@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../components/NavBar"
 
 
 const Register = () => {
@@ -56,6 +57,7 @@ const Register = () => {
 
     return (
         <div className="register-container">
+        <Navbar/>
             <h2>Create Account</h2>
             {message.text && (
                 <div className={`message ${message.isError ? "error" : "success"}`}>
