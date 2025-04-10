@@ -1,5 +1,6 @@
 import { useState } from "react";
-import {useNavigate} from "react-router-dom"
+import {useNavigate} from "react-router-dom";
+import Navbar from "../components/NavBar";
 
 export default function Login({onLogin}) {
   const [email, setEmail] = useState("");
@@ -37,6 +38,7 @@ export default function Login({onLogin}) {
 }; 
     return (
     <div className="login-container">
+      <Navbar/>
       <div className="login-form">
         <h1>Login</h1>
         <form onSubmit={handleSubmit}>
@@ -59,6 +61,10 @@ export default function Login({onLogin}) {
               required
               placeholder="Enter your password"
             />
+          </div>
+          <div className="login-footer">
+          <a href="/forgot-password" style={{ color: "#056192", textDecoration: "none" }}>
+            Forgot password? </a>
           </div>
       {error && <div className="error-message">Login Failed</div>}
           <button type="submit" className="login-button" disabled={loading}>

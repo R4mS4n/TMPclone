@@ -7,6 +7,8 @@ import Register from './pages/Register'
 import ProtectedRoute from './components/ProtectedRoute';
 import Challenges from "./pages/Challenges";
 import ChallengeDetails from "./pages/ChallengeDetails";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage"
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated]=useState(false);
@@ -25,13 +27,13 @@ const App = () => {
     setIsAuthenticated(true);
   };
 
-  
+  //const noNavBarRoutes=['/forgot-password','/reset-password'];
   return (
-    <div>
-      <Navbar/>
     <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route
           path="/home"
           element={
@@ -57,7 +59,6 @@ const App = () => {
           }
         />
       </Routes>
-  </div>
   );
 };
 

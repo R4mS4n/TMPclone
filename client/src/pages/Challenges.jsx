@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";  // Import useNavigate
+import Navbar from "../components/NavBar"
 
 const Challenges = () => {
   const [challenges, setChallenges] = useState([]);
@@ -35,6 +36,7 @@ const Challenges = () => {
 
   return (
     <div>
+    <Navbar/>
       <h2>Available Challenges</h2>
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {challenges.map((challenge) => (

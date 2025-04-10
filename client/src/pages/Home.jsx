@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import Navbar from "../components/NavBar"
 const Home = () => {
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +41,7 @@ const Home = () => {
 
   return (
     <div className="home-container">
+    <Navbar/>
       <h1>Your Enrolled Challenges</h1>
       
       {enrollments.length > 0 ? (

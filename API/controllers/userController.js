@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
-
+const bcrypt = require('bcryptjs');
 
 const getUser = async (req, res) => {
   try {
