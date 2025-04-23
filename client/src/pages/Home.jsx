@@ -6,6 +6,16 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  
+  // Example API call
+const checkAdmin = async () => {
+  const response = await fetch('/api/auth/verify-admin', {
+    headers: { 
+      Authorization: `Bearer ${localStorage.getItem('authToken')}` 
+    }
+  });
+  return await response.json(); // Directly returns true/false
+};
 
   useEffect(() => {
     const fetchEnrollments = async () => {

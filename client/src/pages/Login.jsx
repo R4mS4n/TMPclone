@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import Navbar from "../components/NavBar";
 
@@ -8,6 +8,11 @@ export default function Login({onLogin}) {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false);
   const navigate=useNavigate(); 
+
+  useEffect(()=> {
+    localStorage.removeItem('authToken');
+    //console.log('Token cleared on page load :33');
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

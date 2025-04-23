@@ -11,6 +11,7 @@ app.use(cors({
   origin: "http://localhost:5173", //cambiaremos esto upon deployment
   credentials: true
 }));
+
 app.use(express.json()); //to parse json req
 app.use("/api/auth", authRoutes); //might change this
 app.use("/api/tournaments", tournamentRoutes);
