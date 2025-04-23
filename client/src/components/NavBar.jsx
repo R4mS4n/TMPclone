@@ -6,7 +6,7 @@ const Navbar = () => {
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  // Define routes dynamically
+  
   useEffect(() => {
     const checkAdmin = async () => {
       try {
@@ -49,14 +49,27 @@ const Navbar = () => {
   }
 
   return (
-    <nav>
-      <ul>
+    <nav className="flex justify-center p-4 bg-gray-100 shadow-sm">
+      <div className="flex space-x-2">
         {linksToDisplay.map((route) => (
-          <li key={route.path}>
-            <Link to={route.path}>{route.label}</Link>
-          </li>
+          <Link
+            key={route.path}
+            to={route.path}
+            className={`
+              px-4 py-2 rounded-md transition-all
+              ${
+                location.pathname === route.path
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-white text-gray-800 hover:bg-blue-100 border border-gray-200"
+              }
+              font-medium text-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+            `}
+          >
+            {route.label}
+          </Link>
         ))}
-      </ul>
+      </div>
     </nav>
   );
 };
