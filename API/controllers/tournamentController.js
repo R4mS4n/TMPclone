@@ -156,6 +156,45 @@ const updateTournament = async (req, res) => {
     });
   }
 };
+
+const createTournament = async (req, res) => {
+  const { name, description, time_limit } = req.body;
+
+  // Validation
+  if (!name || time_limit === undefined) {
+    return res.status(400).json({ 
+      error: "Name and time limit are required",
+      received: req.body
+    });
+  }
+
+  try {
+    const [result] = await db.promise().query(
+      `INSERT INTO Tournament (name, description, time_limit)
+       VALUES (?, ?, ?)`,
+      [name, description, time_limit]
+    );
+
+    const [newTournament] = await db.promise().query(
+      'SELECT * FROM Tournament WHERE tournament_id = ?',
+      [result.insertId]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Tournament created successfully",
+      tournament: newTournament[0]
+    });
+
+  } catch (error) {
+    console.error("Create error:", error);
+    res.status(500).json({
+      error: "Create failed",
+      details: error.sqlMessage || error.message
+    });
+  }
+};
+
 module.exports = {
   getAllTournaments,
   getTournamentById,
@@ -163,6 +202,7 @@ module.exports = {
   checkEnrollment,
   quitTournament,
   deleteTournament,
-  updateTournament
+  updateTournament,
+  createTournament
 };
 

@@ -9,6 +9,14 @@ export default function Admin() {
   const [showTournaments, setShowTournaments] = useState(false);
   const [tournaments, setTournaments] = useState([]);
   const [selectedTournament, setSelectedTournament]=useState(null);
+
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newTournament, setNewTournament] = useState({
+    name: '',
+    description: '',
+    time_limit: 0
+  });
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -137,7 +145,39 @@ const handleUpdateTournament = async (tournamentId) => {
   }
 };
 
-return (
+const handleCreateTournament = async () => {
+    try {
+      // Basic validation
+      if (!newTournament.name || newTournament.time_limit < 0) {
+        alert('Name and valid time limit are required');
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/tournaments', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newTournament)
+      });
+
+      const data = await response.json();
+      console.log(data);
+      if (!response.ok) throw new Error(data.error || 'Creation failed');
+
+      await fetchTournaments();
+      setShowCreateForm(false);
+      setNewTournament({ name: '', description: '', time_limit: 0 });
+      alert('Tournament created successfully!');
+
+    } catch (error) {
+      console.error('Creation error:', error);
+      alert(`Creation failed: ${error.message}`);
+    }
+  };
+
+  return (
     <div>
       <Navbar />
       
@@ -148,80 +188,140 @@ return (
           </button>
         </div>
 
-        <div>
-          {showTournaments && (
+        {showTournaments && (
+          <div>
+            <h2>Tournaments</h2>
+            
+            {/* Moved Create Tournament button here */}
             <div>
-              <h2>Tournaments</h2>
-              <div>
-                {tournaments.map((tournament) => (
-                  <div key={tournament.tournament_id}>
+              {!showCreateForm ? (
+                <button onClick={() => setShowCreateForm(true)}>
+                  Create Tournament
+                </button>
+              ) : (
+                <div>
+                  <h3>Create New Tournament</h3>
+                  
+                  <div>
                     <div>
-                      <div>
-                        <div>{tournament.name}</div>
-                      </div>
-                      <button 
-                        onClick={() => handleEditClick(tournament)}
-                      >
-                        {editingId === tournament.tournament_id ? 'Cancel' : 'Edit'}
+                      <label>Name</label>
+                      <input
+                        type="text"
+                        value={newTournament.name}
+                        onChange={(e) => setNewTournament({...newTournament, name: e.target.value})}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label>Description</label>
+                      <textarea
+                        value={newTournament.description}
+                        onChange={(e) => setNewTournament({...newTournament, description: e.target.value})}
+                        
+                        rows={3}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label>Time Limit (hours)</label>
+                      <input
+                        type="number"
+                        value={newTournament.time_limit}
+                        onChange={(e) => setNewTournament({...newTournament, time_limit: parseInt(e.target.value) || 0})}
+                        min="0"
+                      />
+                    </div>
+                    
+                    <div>
+                      <button
+                        onClick={handleCreateTournament}
+                        >
+                        Submit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCreateForm(false);
+                          setNewTournament({ name: '', description: '', time_limit: 0 });
+                        }}
+                        >
+                        Cancel
                       </button>
                     </div>
-
-                    {editingId === tournament.tournament_id && (
-                      <div>
-                        <div>
-                          <label>Name</label>
-                          <input
-                            name="name"
-                            value={editForm.name}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        
-                        <div>
-                          <label>Description</label>
-                          <textarea
-                            name="description"
-                            value={editForm.description}
-                            onChange={handleInputChange}
-                            rows={3}
-                          />
-                        </div>
-                        
-                        <div>
-                          <label>
-                            Time Limit (hours)
-                          </label>
-                          <input
-                            type="number"
-                            name="time_limit"
-                            value={editForm.time_limit}
-                            onChange={handleInputChange}
-                            min="0"
-                            />
-                        </div>
-
-                        <div>
-                          <button
-                      //EDITAR ESTO PARA QUE BORRE EL CHALLENGE CON ID X
-                            onClick={() => handleDeleteTournament(tournament.tournament_id)}
-                          >
-                            DELETE CHALLENGE
-                          </button>
-                          <button
-                            onClick={() => handleUpdateTournament(tournament.tournament_id)}
-                            >
-                            Save Changes
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            <div>
+              {tournaments.map((tournament) => (
+                <div key={tournament.tournament_id}>
+                  <div>
+                    <div>
+                      <div>{tournament.name}</div>
+                    </div>
+                    <button 
+                      onClick={() => handleEditClick(tournament)}
+                    >
+                      {editingId === tournament.tournament_id ? 'Cancel' : 'Edit'}
+                    </button>
+                  </div>
+
+                  {editingId === tournament.tournament_id && (
+                    <div>
+                      <div>
+                        <label>Name</label>
+                        <input
+                          name="name"
+                          value={editForm.name}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label>Description</label>
+                        <textarea
+                          name="description"
+                          value={editForm.description}
+                          onChange={handleInputChange}
+                          rows={3}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label>
+                          Time Limit (hours)
+                        </label>
+                        <input
+                          type="number"
+                          name="time_limit"
+                          value={editForm.time_limit}
+                          onChange={handleInputChange}
+                          min="0"
+                          />
+                      </div>
+
+                      <div>
+                        <button
+                    
+                          onClick={() => handleDeleteTournament(tournament.tournament_id)}
+                        >
+                          DELETE CHALLENGE
+                        </button>
+                        <button
+                          onClick={() => handleUpdateTournament(tournament.tournament_id)}
+                          >
+                          Save Changes
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
+
 }
