@@ -4,8 +4,9 @@ const { getAllTournaments,
         getTournamentById,
         participateInTournament, 
         checkEnrollment, 
-        quitTournament} = require("../controllers/tournamentController");
-const {verifyToken} = require('../controllers/authController')
+        quitTournament,
+        deleteTournament} = require("../controllers/tournamentController");
+const {verifyToken, verifyAdmin} = require('../controllers/authController');
 
 router.get("/", getAllTournaments);
 
@@ -15,6 +16,9 @@ router.post("/participateInTournament",verifyToken, participateInTournament);
 
 router.get('/enrollment/:id', verifyToken, checkEnrollment);
 
-router.post('/quitTournament',verifyToken, quitTournament)
+router.post('/quitTournament',verifyToken, quitTournament);
+
+router.delete('/:id', verifyToken, verifyAdmin, deleteTournament);
+
 module.exports = router;
 

@@ -9,7 +9,8 @@ const app=express();
 //setteamos el cors para que solo se pueda comunicar con el frontend
 app.use(cors({
   origin: "http://localhost:5173", //cambiaremos esto upon deployment
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
 app.use(express.json()); //to parse json req

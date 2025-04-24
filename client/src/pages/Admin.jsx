@@ -38,6 +38,7 @@ export default function Admin() {
       const response = await fetch("http://localhost:5000/api/tournaments");
       if (!response.ok) throw new Error("Failed to fetch tournaments");
       const data = await response.json();
+      console.log(data);
       setTournaments(data);
       setShowTournaments(true);
     } catch (err) {
@@ -45,50 +46,169 @@ export default function Admin() {
     }
   };
 
-  const handleEditTournament = (tournamentId) => {
-    // Implement your edit logic here
-    console.log("Editing tournament:", tournamentId);
-    // navigate(`/edit-tournament/${tournamentId}`);
+  const [editingId, setEditingId] = useState(null); // Track which tournament is being edited
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    time_limit: ''
+  });
+
+  const handleEditClick = (tournament) => {
+    if (editingId === tournament.tournament_id) {
+      setEditingId(null);
+    } else {
+      setEditingId(tournament.tournament_id);
+      setEditForm({
+        name: tournament.name,
+        description: tournament.description || '',
+        time_limit: tournament.time_limit || ''
+      });
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: name === 'time_limit' ? parseInt(value) || 0 : value
+    }));
+  };
+
+  const handleDeleteTournament = async (tournamentId) => {
+    if (!window.confirm('Are you sure you want to delete this tournament and all its data?')) {
+    return;
+    }
+    //console.log(tournamentId);
+    try {
+      const response = await fetch(`http://localhost:5000/api/tournaments/${tournamentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      const result=await response.json();
+      console.log(result)
+
+      if(!response.ok){
+        const error = await response.json();
+        throw new Error(error.message || 'Delete failed');
+      }
+      fetchTournaments();
+      setEditingId(null);
+      alert(result.message || 'Tournament deleted successfully');
+    } catch (error) {
+      console.log(error);
+      console.error('Delete error:', error);
+      alert(error.message || 'Failed to delete tournament');
+    }
+  };
+  
+  //este todavia no jala porque no existe el endpoint
+  const handleSave = async (tournamentId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/tournaments/${tournamentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editForm)
+      });
+      
+      if (!response.ok) throw new Error('Update failed');
+      
+      setEditingId(null);
+      fetchTournaments(); // Refresh the list
+    } catch (error) {
+      console.error("Error updating tournament:", error);
+    }
   };
 
   if (isLoading) {
-    return <div className="flex justify-center p-8">Loading admin privileges...</div>;
+    return <div>Loading admin privileges...</div>;
   }
 
   if (!isAdmin) {
     return null;
-  }
+  };
 
-  return (
+return (
     <div>
       <Navbar />
       
-      <div className="flex">
-        <div className="p-2 space-y-2 border-r">
-          <button 
-            className="block w-full p-2 text-left"
-            onClick={fetchTournaments}
-          >
+      <div>
+        <div>
+          <button onClick={fetchTournaments}>
             Edit Tournaments
           </button>
-          <button className="block w-full p-2 text-left">Edit Users</button>
-          <button className="block w-full p-2 text-left">User Statistics</button>
         </div>
 
-        <div className="p-4">
+        <div>
           {showTournaments && (
             <div>
-              <h2 className="text-xl font-bold mb-4">Tournaments</h2>
-              <div className="space-y-2">
+              <h2>Tournaments</h2>
+              <div>
                 {tournaments.map((tournament) => (
-                  <div key={tournament.tournament_id} className="flex items-center justify-between p-2 border-b">
-                    <span>{tournament.name}</span>
-                    <button 
-                      onClick={() => handleEditTournament(tournament.tournament_id)}
-                      className="p-1 bg-blue-100 hover:bg-blue-200"
-                    >
-                      Edit
-                    </button>
+                  <div key={tournament.tournament_id}>
+                    <div>
+                      <div>
+                        <div>{tournament.name}</div>
+                      </div>
+                      <button 
+                        onClick={() => handleEditClick(tournament)}
+                      >
+                        {editingId === tournament.tournament_id ? 'Cancel' : 'Edit'}
+                      </button>
+                    </div>
+
+                    {editingId === tournament.tournament_id && (
+                      <div>
+                        <div>
+                          <label>Name</label>
+                          <input
+                            name="name"
+                            value={editForm.name}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                        
+                        <div>
+                          <label>Description</label>
+                          <textarea
+                            name="description"
+                            value={editForm.description}
+                            onChange={handleInputChange}
+                            rows={3}
+                          />
+                        </div>
+                        
+                        <div>
+                          <label>
+                            Time Limit (hours)
+                          </label>
+                          <input
+                            type="number"
+                            name="time_limit"
+                            value={editForm.time_limit}
+                            onChange={handleInputChange}
+                            min="0"
+                            />
+                        </div>
+
+                        <div>
+                          <button
+                      //EDITAR ESTO PARA QUE BORRE EL CHALLENGE CON ID X
+                            onClick={() => handleDeleteTournament(tournament.tournament_id)}
+                          >
+                            DELETE CHALLENGE
+                          </button>
+                          <button
+                            onClick={() => handleSave(tournament.tournament_id)}
+                            >
+                            Save Changes
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

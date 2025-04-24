@@ -77,7 +77,6 @@ CREATE TABLE User_Achievement (
     user_id INT,
     achievement_id INT,
     obtained_date TIMESTAMP,
-
     FOREIGN KEY (user_id) REFERENCES User(user_id),
     FOREIGN KEY (achievement_id) REFERENCES Achievement(achievement_id)
 );

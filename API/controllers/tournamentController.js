@@ -77,15 +77,54 @@ const checkEnrollment = async (req, res) => {
   }
 };
 
+
+
 /*
  Esta funcion es para desplegar todos los challenges inscritos asociados a un ID, pero la verdad creo que podemos optimizarlo si cambiamos un poco el checkEnrollment, no se
  */
+
+/*la funcion deleteTournament borra un torneo en especifico, tiene que poder borrar el torneo y las inscripciones asociadas al torneos
+
+por esto mismo, tenemos que:
+1. Borrar las participaciones asociadas al ID del torneo
+2. Finalmente, borrar el torneo
+
+Esto tiene que ser tratado como una transaccion, porque si algo sale mal en el primer paso, se nos jode la integridad de los datos, por eso necesitamos atomicidad
+  */
+//ESTE ENDPOINT PUEDE FALLAR SI LE MOVEMOS A LAS FKS RELACIONADAS A LA TABLA Tournament
+const deleteTournament = async (req,res) => {
+  const tournamentId = req.params.id;
+
+  try{
+    const [result] = await db.query(
+      'DELETE FROM Tournament WHERE tournament_id = ?',
+      [tournamentId]
+    );
+
+    if(result.affectedRows === 0) {
+      return res.status(404).json({error: "Tournament not found"});
+    }
+
+    res.json({
+      success: true,
+      message: "Tournament and all related data deleted successfully"
+    });
+  } catch (error){
+    console.error("Delete error: ", error);
+    res.status(500).json({
+      success: false,
+      error: "Delete failed",
+      details: error.sqlMessage || error.message
+    });
+  }
+}
 
 module.exports = {
   getAllTournaments,
   getTournamentById,
   participateInTournament,
   checkEnrollment,
-  quitTournament
+  quitTournament,
+  deleteTournament
 };
 
