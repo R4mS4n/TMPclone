@@ -119,12 +119,50 @@ const deleteTournament = async (req,res) => {
   }
 }
 
+//este nos ayuda a editar torneos
+const updateTournament = async (req, res) => {
+  const { id } = req.params;
+  const { name, description, time_limit } = req.body;
+
+  if (!name || !time_limit) {
+    return res.status(400).json({ 
+      error: "Name and time limit are required" 
+    });
+  }
+
+  try {
+    const [result] = await db.promise().query(
+      `UPDATE Tournament 
+       SET name = ?, description = ?, time_limit = ?
+       WHERE tournament_id = ?`,
+      [name, description, time_limit, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+
+    res.json({ 
+      success: true,
+      message: "Tournament updated successfully",
+      tournament: { id, name, description, time_limit }
+    });
+
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ 
+      error: "Update failed",
+      details: error.sqlMessage || error.message 
+    });
+  }
+};
 module.exports = {
   getAllTournaments,
   getTournamentById,
   participateInTournament,
   checkEnrollment,
   quitTournament,
-  deleteTournament
+  deleteTournament,
+  updateTournament
 };
 

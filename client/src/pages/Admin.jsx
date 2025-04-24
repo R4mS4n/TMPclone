@@ -103,33 +103,39 @@ export default function Admin() {
     }
   };
   
-  //este todavia no jala porque no existe el endpoint
-  const handleSave = async (tournamentId) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/tournaments/${tournamentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editForm)
-      });
-      
-      if (!response.ok) throw new Error('Update failed');
-      
-      setEditingId(null);
-      fetchTournaments(); // Refresh the list
-    } catch (error) {
-      console.error("Error updating tournament:", error);
+const handleUpdateTournament = async (tournamentId) => {
+  try {
+    // Get values from your form state (editForm in your case)
+    const updateData = {
+      name: editForm.name,
+      description: editForm.description,
+      time_limit: editForm.time_limit
+    };
+
+    const response = await fetch(`http://localhost:5000/api/tournaments/${tournamentId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updateData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Update failed');
     }
-  };
 
-  if (isLoading) {
-    return <div>Loading admin privileges...</div>;
+    // Refresh the tournaments list
+    await fetchTournaments();
+    setEditingId(null); // Close the edit form
+    alert('Tournament updated successfully!');
+
+  } catch (error) {
+    console.error('Update error:', error);
+    alert(`Update failed: ${error.message}`);
   }
-
-  if (!isAdmin) {
-    return null;
-  };
+};
 
 return (
     <div>
@@ -202,7 +208,7 @@ return (
                             DELETE CHALLENGE
                           </button>
                           <button
-                            onClick={() => handleSave(tournament.tournament_id)}
+                            onClick={() => handleUpdateTournament(tournament.tournament_id)}
                             >
                             Save Changes
                           </button>
