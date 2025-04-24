@@ -25,6 +25,26 @@ const getUser = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+const getAllUsers = async (req,res) => {
+  try{
+    const [users] = await db.promise().query(
+      `SELECT * FROM User`
+    );
+
+    res.json({
+    success: true,
+    count: users.length,
+    users
+    });    
+  } catch (error) {
+    console.error("getAllUsers error: ", error);
+    res.status(500).json({
+      success:false,
+      error: "Failed to fetch users"     
+    });
+  }
+
+};
 
 const checkUserEnrollments = async (req, res) => {
   try {
@@ -61,6 +81,7 @@ const checkUserEnrollments = async (req, res) => {
 
 module.exports = { 
   getUser, 
-  checkUserEnrollments
+  checkUserEnrollments,
+  getAllUsers
 };
 

@@ -77,15 +77,132 @@ const checkEnrollment = async (req, res) => {
   }
 };
 
+
+
 /*
  Esta funcion es para desplegar todos los challenges inscritos asociados a un ID, pero la verdad creo que podemos optimizarlo si cambiamos un poco el checkEnrollment, no se
  */
+
+/*la funcion deleteTournament borra un torneo en especifico, tiene que poder borrar el torneo y las inscripciones asociadas al torneos
+
+por esto mismo, tenemos que:
+1. Borrar las participaciones asociadas al ID del torneo
+2. Finalmente, borrar el torneo
+
+Esto tiene que ser tratado como una transaccion, porque si algo sale mal en el primer paso, se nos jode la integridad de los datos, por eso necesitamos atomicidad
+  */
+//ESTE ENDPOINT PUEDE FALLAR SI LE MOVEMOS A LAS FKS RELACIONADAS A LA TABLA Tournament
+const deleteTournament = async (req,res) => {
+  const tournamentId = req.params.id;
+
+  try{
+    const [result] = await db.promise().query(
+      'DELETE FROM Tournament WHERE tournament_id = ?',
+      [tournamentId]
+    );
+
+    if(result.affectedRows === 0) {
+      return res.status(404).json({error: "Tournament not found"});
+    }
+
+    res.json({
+      success: true,
+      message: "Tournament and all related data deleted successfully"
+    });
+  } catch (error){
+    console.error("Delete error: ", error);
+    res.status(500).json({
+      success: false,
+      error: "Delete failed",
+      details: error.sqlMessage || error.message
+    });
+  }
+}
+
+//este nos ayuda a editar torneos
+const updateTournament = async (req, res) => {
+  const { id } = req.params;
+  const { name, description, time_limit } = req.body;
+
+  if (!name || !time_limit) {
+    return res.status(400).json({ 
+      error: "Name and time limit are required" 
+    });
+  }
+
+  try {
+    const [result] = await db.promise().query(
+      `UPDATE Tournament 
+       SET name = ?, description = ?, time_limit = ?
+       WHERE tournament_id = ?`,
+      [name, description, time_limit, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Tournament not found" });
+    }
+
+    res.json({ 
+      success: true,
+      message: "Tournament updated successfully",
+      tournament: { id, name, description, time_limit }
+    });
+
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ 
+      error: "Update failed",
+      details: error.sqlMessage || error.message 
+    });
+  }
+};
+
+const createTournament = async (req, res) => {
+  const { name, description, time_limit } = req.body;
+
+  // Validation
+  if (!name || time_limit === undefined) {
+    return res.status(400).json({ 
+      error: "Name and time limit are required",
+      received: req.body
+    });
+  }
+
+  try {
+    const [result] = await db.promise().query(
+      `INSERT INTO Tournament (name, description, time_limit)
+       VALUES (?, ?, ?)`,
+      [name, description, time_limit]
+    );
+
+    const [newTournament] = await db.promise().query(
+      'SELECT * FROM Tournament WHERE tournament_id = ?',
+      [result.insertId]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Tournament created successfully",
+      tournament: newTournament[0]
+    });
+
+  } catch (error) {
+    console.error("Create error:", error);
+    res.status(500).json({
+      error: "Create failed",
+      details: error.sqlMessage || error.message
+    });
+  }
+};
 
 module.exports = {
   getAllTournaments,
   getTournamentById,
   participateInTournament,
   checkEnrollment,
-  quitTournament
+  quitTournament,
+  deleteTournament,
+  updateTournament,
+  createTournament
 };
 

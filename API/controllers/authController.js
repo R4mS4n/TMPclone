@@ -203,6 +203,8 @@ const verifyEmail = async (req, res) => {
 };
 */
 //Login user
+//en el login creamos la jwt junto al rol para asi poder determinar si deben ser redirigidos a portal de admin o a la vista normal de usuario
+
 const loginUser = async (req,res)=>{
   try{
     const {mail,password}=req.body;
@@ -229,7 +231,10 @@ const loginUser = async (req,res)=>{
         code: "INVALID_CREDENTIALS"
       });
     }
+    
     const user = userResult[0];
+    
+    console.log("role:",user.role);
     const isMatch = await bcrypt.compare(password, user.password);
 
     if(!user.is_verified){
@@ -252,7 +257,7 @@ const loginUser = async (req,res)=>{
         username: user.username,
         iss: "TMP",       // Issuer
         aud: "client_app",          // Audience
-        role: "user",               // Future-proof for roles
+        role: user.role,
         fresh: true                 // Distinguishes login from token refresh
       },
       process.env.JWT_SECRET,
@@ -261,7 +266,6 @@ const loginUser = async (req,res)=>{
         algorithm: "HS256"          // Explicit algorithm
       }
     );
-
     res.json({message: "Login successful :3", token});
   } catch(error){
     console.error("Login error:",error);
@@ -270,7 +274,6 @@ const loginUser = async (req,res)=>{
 };
 
 const verifyToken = (req, res, next) => {
-  // Get token from Authorization header instead of cookies
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
   
@@ -280,7 +283,7 @@ const verifyToken = (req, res, next) => {
     if (err) return res.status(403).json({ error: "Invalid token" });
     
     // Make sure decoded contains the expected data
-    console.log("Decoded token:", decoded);
+    //console.log("Decoded token:", decoded);
     
     // Attach ALL necessary user data to req.user
     req.user = {
@@ -473,6 +476,35 @@ const resetPassword = async (req, res) => {
     });
   }
 };
+/*
+ verifyAdmin es un checker para las paginas, limita accesos checando si el rol guardado dentro del jwt es >0. Regresa un booleano
+
+ endpointAdminFilter funciona como un middleware para filtrar llamadas a la api, por ejemplo, las API calls que borren cosas deberian casi siempre ser hechas exclusivamente por un admin
+  */
+const verifyAdmin = (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ isAdmin: false, error: "Not logged in" });
+  }
+
+  const isAdmin = Number(req.user.role) > 0;
+  console.log(isAdmin); 
+  res.json({ isAdmin });
+};
+
+const endpointAdminFilter = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+
+  const isAdmin = Number(req.user.role) > 0;
+  
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Admin privileges required" });
+  }
+
+  req.isAdmin = true; 
+  next();
+};
 
 module.exports = {
   registerUser,
@@ -481,5 +513,7 @@ module.exports = {
   verifyToken, 
   verifyEmail, 
   resetPassword, 
-  forgotPassword
+  forgotPassword,
+  verifyAdmin,
+  endpointAdminFilter
 };

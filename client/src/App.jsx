@@ -9,6 +9,7 @@ import Challenges from "./pages/Challenges";
 import ChallengeDetails from "./pages/ChallengeDetails";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage"
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import Admin from './pages/Admin';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated]=useState(false);
@@ -34,22 +35,14 @@ const App = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route
-          path="/home"
-          element={
+        <Route path="/home" element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <Home />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-        path="/challenges"
-        element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
-          <Challenges/>
-          </ProtectedRoute>
-        }
-        />
+            </ProtectedRoute>}/>
+        <Route path="/challenges" element={
+        <ProtectedRoute isAuthenticated={isAuthenticated}>
+          <Challenges/> </ProtectedRoute>}/>
+        
         <Route
           path="/challenge-details/:id"
           element={
@@ -58,6 +51,10 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+      
+      <Route path="/admin" element={
+        <Admin />
+      }/>
       </Routes>
   );
 };
