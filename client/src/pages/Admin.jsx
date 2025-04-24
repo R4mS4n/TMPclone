@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from "../components/NavBar.jsx";
 import {verifyAdminStatus} from '../utils/adminHelper.js';
 
+
 export default function Admin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showTournaments, setShowTournaments] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('tournaments');
   const [tournaments, setTournaments] = useState([]);
   const [selectedTournament, setSelectedTournament]=useState(null);
 
@@ -177,6 +180,25 @@ const handleCreateTournament = async () => {
     }
   };
 
+const getAllUsers = async () => {
+  try {
+    const response = await fetch('http://localhost:5000/api/users', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    throw error;
+  }
+};
+
   return (
     <div>
       <Navbar />
@@ -186,13 +208,19 @@ const handleCreateTournament = async () => {
           <button onClick={fetchTournaments}>
             Edit Tournaments
           </button>
+          <button onClick={getAllUsers}>
+            Edit Users
+          </button>
+          <button>
+            View User Stats
+          </button>
         </div>
 
         {showTournaments && (
           <div>
             <h2>Tournaments</h2>
             
-            {/* Moved Create Tournament button here */}
+          
             <div>
               {!showCreateForm ? (
                 <button onClick={() => setShowCreateForm(true)}>
