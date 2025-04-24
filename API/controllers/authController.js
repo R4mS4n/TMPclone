@@ -476,7 +476,11 @@ const resetPassword = async (req, res) => {
     });
   }
 };
+/*
+ verifyAdmin es un checker para las paginas, limita accesos checando si el rol guardado dentro del jwt es >0. Regresa un booleano
 
+ endpointAdminFilter funciona como un middleware para filtrar llamadas a la api, por ejemplo, las API calls que borren cosas deberian casi siempre ser hechas exclusivamente por un admin
+  */
 const verifyAdmin = (req, res) => {
   if (!req.user) {
     return res.status(401).json({ isAdmin: false, error: "Not logged in" });
@@ -487,6 +491,21 @@ const verifyAdmin = (req, res) => {
   res.json({ isAdmin });
 };
 
+const endpointAdminFilter = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+
+  const isAdmin = Number(req.user.role) > 0;
+  
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Admin privileges required" });
+  }
+
+  req.isAdmin = true; 
+  next();
+};
+
 module.exports = {
   registerUser,
   loginUser, 
@@ -495,5 +514,6 @@ module.exports = {
   verifyEmail, 
   resetPassword, 
   forgotPassword,
-  verifyAdmin
+  verifyAdmin,
+  endpointAdminFilter
 };

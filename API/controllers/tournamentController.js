@@ -96,7 +96,7 @@ const deleteTournament = async (req,res) => {
   const tournamentId = req.params.id;
 
   try{
-    const [result] = await db.query(
+    const [result] = await db.promise().query(
       'DELETE FROM Tournament WHERE tournament_id = ?',
       [tournamentId]
     );

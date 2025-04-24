@@ -1,6 +1,6 @@
 const express = require('express');
 const router=express.Router();
-const {registerUser, loginUser, getUser, verifyAdmin, verifyToken, verifyEmail, resetPassword, forgotPassword}=require('../controllers/authController');
+const {registerUser, loginUser, getUser, endpointAdminFilter, verifyAdmin, verifyToken, verifyEmail, resetPassword, forgotPassword}=require('../controllers/authController');
 
 router.get("/verify-email", verifyEmail);
 router.post("/register",registerUser);

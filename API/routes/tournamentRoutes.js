@@ -6,7 +6,7 @@ const { getAllTournaments,
         checkEnrollment, 
         quitTournament,
         deleteTournament} = require("../controllers/tournamentController");
-const {verifyToken, verifyAdmin} = require('../controllers/authController');
+const {verifyToken, verifyAdmin, endpointAdminFilter} = require('../controllers/authController');
 
 router.get("/", getAllTournaments);
 
@@ -18,7 +18,7 @@ router.get('/enrollment/:id', verifyToken, checkEnrollment);
 
 router.post('/quitTournament',verifyToken, quitTournament);
 
-router.delete('/:id', verifyToken, verifyAdmin, deleteTournament);
+router.delete('/:id', verifyToken, endpointAdminFilter, deleteTournament);
 
 module.exports = router;
 
