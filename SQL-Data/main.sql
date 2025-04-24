@@ -15,7 +15,7 @@ CREATE TABLE User (
     xp INT DEFAULT 0,
     level INT DEFAULT 1,
     team_id INT,
-    role ENUM('admin', 'normal') DEFAULT 'normal',
+    role INT NOT NULL DEFAULT 0,
     verification_token VARCHAR(64) NULL,
     is_verified BOOLEAN DEFAULT FALSE,
     token_expires_at TIMESTAMP NULL,
