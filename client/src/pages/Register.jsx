@@ -41,11 +41,11 @@ const Register = () => {
           style={{ backgroundImage: `url(${fondo})` }}
         >
           <div className="w-full max-w-md p-8 space-y-4 shadow-lg bg-base-100 bg-opacity-90 rounded-2xl backdrop-blur-sm">
-            <h2 className="text-2xl font-bold text-center text-primary">Registro</h2>
+            <h2 className="text-2xl font-bold text-center text-primary">Sign Up</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="label">
-                  <span className="label-text">Nombre de usuario</span>
+                  <span className="label-text">Username</span>
                 </label>
                 <input
                   type="text"
@@ -58,7 +58,7 @@ const Register = () => {
               </div>
               <div>
                 <label className="label">
-                  <span className="label-text">Correo electrónico</span>
+                  <span className="label-text">Email</span>
                 </label>
                 <input
                   type="email"
@@ -71,7 +71,7 @@ const Register = () => {
               </div>
               <div>
                 <label className="label">
-                  <span className="label-text">Contraseña</span>
+                  <span className="label-text">Password</span>
                 </label>
                 <input
                   type="password"
@@ -83,13 +83,13 @@ const Register = () => {
                 />
               </div>
               <button type="submit" className="btn btn-primary w-full">
-                Registrarse
+                Register
               </button>
             </form>
             <p className="text-center text-sm text-base-content">
-              ¿Ya tienes una cuenta?{" "}
+              ¿Already have an account?{" "}
               <a href="/login" className="text-primary hover:underline">
-                Inicia sesión
+                Sign In
               </a>
             </p>
           </div>

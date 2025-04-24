@@ -5,6 +5,8 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Challenges from './pages/Challenges';
+import Leaderboard from './pages/Leaderboard';
+import Blog from './pages/Blog';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -39,6 +41,8 @@ const App = () => {
           } */
         />
         <Route path="/challenges" element={<Challenges/>}/>
+        <Route path="/leaderboard" element={<Leaderboard/>}/>
+        <Route path="/blog" element={<Blog/>}/>
       </Routes>
   );
 }

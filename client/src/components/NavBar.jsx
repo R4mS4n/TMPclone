@@ -81,22 +81,20 @@ const Navbar = () => {
             tabIndex={0}
             className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
           >
-            <li><Link to="/login" className="text-white hover:text-red-400">Login</Link></li>
-            <li><Link to="/register" className="text-white hover:text-red-400">Register</Link></li>
-            <li><Link to="/home" className="text-white hover:text-red-400">Home</Link></li>
-            <li><Link to="/leaderboard" className="text-white hover:text-red-400">Leaderboard</Link></li>
-            <li><Link to="/help" className="text-white hover:text-red-400">Help</Link></li>
-          </ul>
+            <li><Link to="/Challenges" className="text-white hover:text-red-400">Challenges</Link></li>
+            <li><Link to="/Leaderboard" className="text-white hover:text-red-400">Leaderboard</Link></li>
+            <li><Link to="/Blog" className="text-white hover:text-red-400">Blog</Link></li>
+            <li><Link to="/Home" className="text-white hover:text-red-400">Profile</Link></li></ul>
         </div>
       </div>
 
       <div className="navbar-center hidden lg:flex">
         {/* Main Navigation Links */}
         <ul className="menu menu-horizontal p-0">
-          <li><Link to="/Challenges" className="text-white hover:text-red-400">Desafíos</Link></li>
+          <li><Link to="/Challenges" className="text-white hover:text-red-400">Challenges</Link></li>
           <li><Link to="/Leaderboard" className="text-white hover:text-red-400">Leaderboard</Link></li>
           <li><Link to="/Blog" className="text-white hover:text-red-400">Blog</Link></li>
-          <li><Link to="/Home" className="text-white hover:text-red-400">Perfil</Link></li>
+          <li><Link to="/Home" className="text-white hover:text-red-400">Profile</Link></li>
         </ul>
       </div>
 
@@ -121,30 +119,16 @@ const Navbar = () => {
           >
             <li
               onClick={() => setSettingsOpen(!settingsOpen)} // Toggle Settings
+              className="text-base"
             >
-              <a>Configuración</a>
+              <a>Settings</a>
             </li>
             {settingsOpen && (
               <div className="p-1 space-y-4">
-                {/* Font Size Control */}
-                <div>
-                  <label className="label p-2">Font Size</label>
-                  <select
-                    value={fontSize}
-                    onChange={handleFontSizeChange}
-                    className="select select-bordered w-full"
-                  >
-                    <option value="text-sm">Small</option>
-                    <option value="text-base">Normal</option>
-                    <option value="text-lg">Large</option>
-                    <option value="text-xl">Extra Large</option>
-                  </select>
-                </div>
-
                 {/* Dark Mode Toggle */}
-                <div className="flex items-center">
+                <div className="flex items-center text-base">
                   <label className="label">
-                    <span className="label-text p-2">Dark Mode  </span>
+                    <span className="label-text p-2 text-base">Dark Mode</span>
                   </label>
                   <input
                     type="checkbox"
@@ -155,7 +139,9 @@ const Navbar = () => {
                 </div>
               </div>
             )}
-            <li><a>Cerrar Sesión</a></li>
+            <li className="text-base hover:text-red-500">
+              <a className="text-red-500 hover:text-red-700">Log out</a>
+            </li>
           </ul>
         </div>
       </div>
