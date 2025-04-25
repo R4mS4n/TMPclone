@@ -1,11 +1,8 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
-@plugin "daisyui/theme" {
-  name: "TMPlight";
-  default: true; /* Este es el tema predeterminado */
-  prefersdark: false;
-  color-scheme: "light";
+/* Estilos para el tema claro (TMPlight) */
+[data-theme="TMPlight"] {
   --color-base-100: oklch(100% 0 0);
   --color-base-200: oklch(98% 0 0);
   --color-base-300: oklch(95% 0 0);
@@ -28,11 +25,8 @@
   --color-error-content: oklch(27% 0.105 12.094);
 }
 
-@plugin "daisyui/theme" {
-  name: "TMPdark";
-  default: false;
-  prefersdark: true; /* Este tema debe activarse en modo oscuro */
-  color-scheme: "dark";
+/* Estilos para el tema oscuro (TMPdark) */
+[data-theme="TMPdark"] {
   --color-base-100: oklch(14% 0 0);
   --color-base-200: oklch(20% 0 0);
   --color-base-300: oklch(26% 0 0);

@@ -1,70 +1,53 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import fondo from "../cimages/TMw-logo.png"; // Asegúrate de que la ruta de la imagen esté bien
+import { useTheme } from "../contexts/ThemeContext";
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "TMPdark";
 
   // State para manejar la expansión de la sección "Settings"
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // State para el tamaño de la letra
-  const [fontSize, setFontSize] = useState("text-base"); // Default text size
-
-  // State para el modo de color (light/dark)
-  const [darkMode, setDarkMode] = useState(false);
-
-  // Al cargar el componente, leemos el estado de 'darkMode' desde localStorage
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem("darkMode");
-    if (savedDarkMode === "true") {
-      setDarkMode(true);
-      document.documentElement.setAttribute("data-theme", "TMPdark");
-    } else {
-      setDarkMode(false);
-      document.documentElement.setAttribute("data-theme", "TMPlight");
-    }
-  }, []);
-
-  // Función para cambiar el tamaño de la letra
-  const handleFontSizeChange = (e) => {
-    setFontSize(e.target.value);
+  // Función para obtener la clase activa para los enlaces de navegación
+  const getActiveClass = (path) => {
+    return location.pathname === path 
+      ? "font-bold border-b-2 border-white" 
+      : "";
   };
 
-  // Función para cambiar el modo de color (light/dark)
-  const toggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-
-    // Guardar el estado del toggle en localStorage
-    localStorage.setItem("darkMode", newDarkMode ? "true" : "false");
-
-    // Cambiar el tema en el HTML
-    if (newDarkMode) {
-      document.documentElement.setAttribute("data-theme", "TMPdark");
-    } else {
-      document.documentElement.setAttribute("data-theme", "TMPlight");
-    }
+  // Función para manejar el logout
+  const handleLogout = () => {
+    // Eliminar el token de autenticación del localStorage
+    localStorage.removeItem("authToken");
+    // También eliminar otros datos relacionados con la sesión si existen
+    localStorage.removeItem("token");
+    
+    // Redireccionar al usuario a la página de login
+    navigate("/login");
   };
 
   return (
-    <div className="navbar bg-primary shadow-sm">
+    <div className={`navbar ${isDark ? 'bg-red-900' : 'bg-primary'} shadow-lg transition-colors duration-300`}>
       <div className="navbar-start">
-        {/* Image on the left */}
-        <div className="flex items-center">
+        {/* Logo en la izquierda */}
+        <div className="flex items-center ml-2">
           <img
-            src={fondo} // Usa la imagen importada como fuente
+            src={fondo}
             alt="Logo"
-            className="w-35 h-10 mr-2" // Ajusta el tamaño de la imagen
+            className="w-35 h-10 mr-2"
           />
         </div>
 
-        {/* Menu Button for Mobile */}
+        {/* Botón de menú para móvil */}
         <div className="dropdown">
           <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
+              className="h-5 w-5 text-white"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -79,32 +62,78 @@ const Navbar = () => {
           </div>
           <ul
             tabIndex={0}
-            className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
+            className={`menu menu-sm dropdown-content ${isDark ? 'bg-red-950' : 'bg-base-100'} rounded-box z-10 mt-3 w-52 p-2 shadow`}
           >
-            <li><Link to="/Challenges" className="text-white hover:text-red-400">Challenges</Link></li>
-            <li><Link to="/Leaderboard" className="text-white hover:text-red-400">Leaderboard</Link></li>
-            <li><Link to="/Blog" className="text-white hover:text-red-400">Blog</Link></li>
-            <li><Link to="/Home" className="text-white hover:text-red-400">Profile</Link></li></ul>
+            <li><Link to="/Challenges" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Challenges')}`}>Challenges</Link></li>
+            <li><Link to="/Leaderboard" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Leaderboard')}`}>Leaderboard</Link></li>
+            <li><Link to="/Blog" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Blog')}`}>Blog</Link></li>
+            <li><Link to="/Home" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Home')}`}>Profile</Link></li>
+          </ul>
         </div>
       </div>
 
       <div className="navbar-center hidden lg:flex">
-        {/* Main Navigation Links */}
-        <ul className="menu menu-horizontal p-0">
-          <li><Link to="/Challenges" className="text-white hover:text-red-400">Challenges</Link></li>
-          <li><Link to="/Leaderboard" className="text-white hover:text-red-400">Leaderboard</Link></li>
-          <li><Link to="/Blog" className="text-white hover:text-red-400">Blog</Link></li>
-          <li><Link to="/Home" className="text-white hover:text-red-400">Profile</Link></li>
+        {/* Enlaces de navegación principal */}
+        <ul className="flex space-x-4 px-2">
+          <li>
+            <Link 
+              to="/Challenges" 
+              className={`text-white hover:text-black hover:bg-white px-4 py-2 rounded-md transition-colors duration-200 ${getActiveClass('/Challenges')}`}
+            >
+              Challenges
+            </Link>
+          </li>
+          <li>
+            <Link 
+              to="/Leaderboard" 
+              className={`text-white hover:text-black hover:bg-white px-4 py-2 rounded-md transition-colors duration-200 ${getActiveClass('/Leaderboard')}`}
+            >
+              Leaderboard
+            </Link>
+          </li>
+          <li>
+            <Link 
+              to="/Blog" 
+              className={`text-white hover:text-black hover:bg-white px-4 py-2 rounded-md transition-colors duration-200 ${getActiveClass('/Blog')}`}
+            >
+              Blog
+            </Link>
+          </li>
+          <li>
+            <Link 
+              to="/Home" 
+              className={`text-white hover:text-black hover:bg-white px-4 py-2 rounded-md transition-colors duration-200 ${getActiveClass('/Home')}`}
+            >
+              Profile
+            </Link>
+          </li>
         </ul>
       </div>
 
       <div className="navbar-end">
-        {/* Avatar Profile Dropdown */}
+        {/* Toggle de tema */}
+        <button
+          onClick={toggleTheme}
+          className="btn btn-circle btn-ghost mr-2"
+          title="Toggle theme"
+        >
+          {isDark ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          )}
+        </button>
+
+        {/* Avatar y desplegable de perfil */}
         <div className="dropdown dropdown-end">
           <div
             tabIndex={0}
             role="button"
-            className="btn btn-ghost btn-circle avatar"
+            className="btn btn-ghost btn-circle avatar border-2 border-white hover:border-gray-300"
           >
             <div className="w-10 rounded-full">
               <img
@@ -115,32 +144,29 @@ const Navbar = () => {
           </div>
           <ul
             tabIndex={0}
-            className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
+            className={`menu menu-sm dropdown-content ${isDark ? 'bg-red-950 text-white' : 'bg-base-100 text-gray-800'} rounded-box z-10 mt-3 w-60 p-3 shadow-lg`}
           >
-            <li
-              onClick={() => setSettingsOpen(!settingsOpen)} // Toggle Settings
-              className="text-base"
-            >
-              <a>Settings</a>
+            <li className="font-medium text-base mb-1">
+              <a className={`${isDark ? 'hover:bg-red-800 hover:text-white' : 'hover:bg-gray-200 hover:text-black'}`}>
+                <span className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Settings
+                </span>
+              </a>
             </li>
-            {settingsOpen && (
-              <div className="p-1 space-y-4">
-                {/* Dark Mode Toggle */}
-                <div className="flex items-center text-base">
-                  <label className="label">
-                    <span className="label-text p-2 text-base">Dark Mode</span>
-                  </label>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary ml-1"
-                    checked={darkMode} // Aquí sincronizas el estado con el toggle
-                    onChange={toggleDarkMode} // Cambia el tema al hacer clic
-                  />
-                </div>
-              </div>
-            )}
-            <li className="text-base hover:text-red-500">
-              <a className="text-red-500 hover:text-red-700">Log out</a>
+            
+            <li className="font-medium text-base">
+              <a onClick={handleLogout} className="text-red-500 hover:text-white hover:bg-red-500">
+                <span className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Log out
+                </span>
+              </a>
             </li>
           </ul>
         </div>
