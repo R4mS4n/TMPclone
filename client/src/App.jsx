@@ -1,53 +1,56 @@
-import React, {useState, useEffect} from 'react';
-import { BrowserRouter as Router,Routes, Route, useLocation } from 'react-router-dom';
-import './styles/App.css';
-import './styles/theme.css';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import Challenges from './pages/Challenges';
-import Leaderboard from './pages/Leaderboard';
-import Blog from './pages/Blog';
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 
-import ProtectedRoute from './components/ProtectedRoute';
+import "./styles/App.css";
+import "./styles/theme.css";
+
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Challenges from "./pages/Challenges";
 import ChallengeDetails from "./pages/ChallengeDetails";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage"
+import Leaderboard from "./pages/Leaderboard";
+import Blog from "./pages/Blog";
+import Admin from "./pages/Admin";
+import ForgotPassword from "./pages/ForgotPassword"; // use this if it's your custom version
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-import Admin from './pages/Admin';
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated]=useState(false);
-  const location=useLocation(); //para conseguir la ruta actual
- //quite la navbar pa que no aparezca en registro ni login, la empezare a poner en cualquier otra pag
- //tmb comente el ProtectedRoute pa que lo pongas otra vez xd 
-  useEffect(()=>{
-    // Cargar estado de autenticación
-    const token=localStorage.getItem("authToken");
-    if(token){
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
       setIsAuthenticated(true);
     }
-  },[]);
-  
-  const handleLogin=()=>{
+  }, []);
+
+  const handleLogin = () => {
     setIsAuthenticated(true);
   };
 
-  //const noNavBarRoutes=['/forgot-password','/reset-password'];
   return (
     <Routes>
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route
-          path="/home" element={<Home/>}
-          /* element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <Home />
-            </ProtectedRoute>}/>
-        <Route path="/challenges" element={
-        <ProtectedRoute isAuthenticated={isAuthenticated}>
-          <Challenges/> 
+      <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<Login onLogin={handleLogin} />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      <Route
+        path="/home"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Home />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/challenges"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Challenges />
           </ProtectedRoute>
         }
       />
@@ -59,13 +62,32 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/leaderboard" element={<Leaderboard />} />
-      <Route path="/blog" element={<Blog />} />
-      <Route path="/admin" element={<Admin />} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Admin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leaderboard"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Leaderboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/blog"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Blog />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };
 
 export default App;
-
-
