@@ -1,0 +1,32 @@
+/* Estilos específicos por tema */
+
+/* Tema claro */
+[data-theme="TMPlight"] {
+  background-color: white;
+  color: black;
+}
+
+/* Tema oscuro */
+[data-theme="TMPdark"] {
+  background-color: #1a1a1a;
+  color: white;
+}
+
+/* Estilos para mejorar la visibilidad en el tema oscuro */
+[data-theme="TMPdark"] .bg-base-100 {
+  background-color: #1a1a1a;
+}
+
+[data-theme="TMPdark"] .text-base-content {
+  color: white;
+}
+
+[data-theme="TMPdark"] .btn-primary {
+  background-color: #e53e3e;
+  color: white;
+}
+
+/* Asegurar que los cambios de tema tengan una transición suave */
+html, body, * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+} 
