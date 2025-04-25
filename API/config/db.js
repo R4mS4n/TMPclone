@@ -8,6 +8,7 @@ const db = mysql.createConnection({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME
 });
+console.log(process.env.DB_HOST);
 
 db.connect((err) => {
   if (err) {
@@ -17,6 +18,5 @@ db.connect((err) => {
   console.log('Connected to the database!');
 });
 
-// Export the db connection so you can use it elsewhere
 module.exports = db;
 

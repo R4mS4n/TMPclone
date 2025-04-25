@@ -9,6 +9,11 @@ import Leaderboard from './pages/Leaderboard';
 import Blog from './pages/Blog';
 
 import ProtectedRoute from './components/ProtectedRoute';
+import Challenges from "./pages/Challenges";
+import ChallengeDetails from "./pages/ChallengeDetails";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage"
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import Admin from './pages/Admin';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated]=useState(false);
@@ -27,25 +32,39 @@ const App = () => {
     setIsAuthenticated(true);
   };
 
-  
+  //const noNavBarRoutes=['/forgot-password','/reset-password'];
   return (
     <Routes>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route
-          path="/home" element={<Home/>}
-          /* element={
+        <Route path="/register" element={<Register />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/home" element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <Home />
-            </ProtectedRoute>
-          } */
-        />
-        <Route path="/challenges" element={<Challenges/>}/>
-        <Route path="/leaderboard" element={<Leaderboard/>}/>
-        <Route path="/blog" element={<Blog/>}/>
-      </Routes>
+            </ProtectedRoute>}/>
+        <Route path="/challenges" element={
+        <ProtectedRoute isAuthenticated={isAuthenticated}>
+          <Challenges/> 
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/challenge-details/:id"
+        element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <ChallengeDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/leaderboard" element={<Leaderboard />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/admin" element={<Admin />} />
+    </Routes>
   );
-}
+};
 
 export default App;
+
 

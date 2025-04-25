@@ -1,152 +1,159 @@
 import React, { useState, useEffect } from "react";
+
 import { Link, useLocation } from "react-router-dom";
-import fondo from "../cimages/TMw-logo.png"; // Asegúrate de que la ruta de la imagen esté bien
+import { verifyAdminStatus } from "../utils/adminHelper";
+import fondo from "../cimages/TMw-logo.png"; // Logo
 
 const Navbar = () => {
   const location = useLocation();
-
-  // State para manejar la expansión de la sección "Settings"
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  // State para el tamaño de la letra
-  const [fontSize, setFontSize] = useState("text-base"); // Default text size
-
-  // State para el modo de color (light/dark)
   const [darkMode, setDarkMode] = useState(false);
 
-  // Al cargar el componente, leemos el estado de 'darkMode' desde localStorage
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const adminStatus = await verifyAdminStatus();
+        setIsAdmin(adminStatus);
+      } catch (error) {
+        console.error("Admin check failed:", error);
+        setIsAdmin(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAdmin();
+  }, [location.pathname]);
+
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");
-    if (savedDarkMode === "true") {
-      setDarkMode(true);
-      document.documentElement.setAttribute("data-theme", "TMPdark");
-    } else {
-      setDarkMode(false);
-      document.documentElement.setAttribute("data-theme", "TMPlight");
-    }
+    const isDark = savedDarkMode === "true";
+    setDarkMode(isDark);
+    document.documentElement.setAttribute("data-theme", isDark ? "TMPdark" : "TMPlight");
   }, []);
 
-  // Función para cambiar el tamaño de la letra
-  const handleFontSizeChange = (e) => {
-    setFontSize(e.target.value);
-  };
-
-  // Función para cambiar el modo de color (light/dark)
   const toggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-
-    // Guardar el estado del toggle en localStorage
-    localStorage.setItem("darkMode", newDarkMode ? "true" : "false");
-
-    // Cambiar el tema en el HTML
-    if (newDarkMode) {
-      document.documentElement.setAttribute("data-theme", "TMPdark");
-    } else {
-      document.documentElement.setAttribute("data-theme", "TMPlight");
-    }
+    const newDark = !darkMode;
+    setDarkMode(newDark);
+    localStorage.setItem("darkMode", newDark ? "true" : "false");
+    document.documentElement.setAttribute("data-theme", newDark ? "TMPdark" : "TMPlight");
   };
+
+  const routes = {
+    auth: [
+      { path: "/login", label: "Login" },
+      { path: "/register", label: "Register" },
+    ],
+    main: [
+      { path: "/home", label: "Home" },
+      { path: "/leaderboard", label: "Leaderboard" },
+      { path: "/blog", label: "Blog" },
+      { path: "/challenges", label: "Challenges" },
+      ...(isAdmin ? [{ path: "/admin", label: "Admin" }] : []),
+    ],
+  };
+
+  const isAuthPage = ["/login", "/register"].includes(location.pathname);
+  const linksToDisplay = isAuthPage ? routes.auth : routes.main;
+
+  if (isLoading) {
+    return (
+      <nav className="navbar bg-base-100 p-4 shadow">
+        <span className="text-sm">Loading navigation...</span>
+      </nav>
+    );
+  }
 
   return (
-    <div className="navbar bg-primary shadow-sm">
+    <div className="navbar bg-primary text-white shadow-md">
+      {/* Logo y menú */}
       <div className="navbar-start">
-        {/* Image on the left */}
-        <div className="flex items-center">
-          <img
-            src={fondo} // Usa la imagen importada como fuente
-            alt="Logo"
-            className="w-35 h-10 mr-2" // Ajusta el tamaño de la imagen
-          />
-        </div>
-
-        {/* Menu Button for Mobile */}
-        <div className="dropdown">
-          <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h8m-8 6h16"
-              />
-            </svg>
-          </div>
-          <ul
-            tabIndex={0}
-            className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
-          >
-            <li><Link to="/Challenges" className="text-white hover:text-red-400">Challenges</Link></li>
-            <li><Link to="/Leaderboard" className="text-white hover:text-red-400">Leaderboard</Link></li>
-            <li><Link to="/Blog" className="text-white hover:text-red-400">Blog</Link></li>
-            <li><Link to="/Home" className="text-white hover:text-red-400">Profile</Link></li></ul>
-        </div>
-      </div>
-
-      <div className="navbar-center hidden lg:flex">
-        {/* Main Navigation Links */}
-        <ul className="menu menu-horizontal p-0">
-          <li><Link to="/Challenges" className="text-white hover:text-red-400">Challenges</Link></li>
-          <li><Link to="/Leaderboard" className="text-white hover:text-red-400">Leaderboard</Link></li>
-          <li><Link to="/Blog" className="text-white hover:text-red-400">Blog</Link></li>
-          <li><Link to="/Home" className="text-white hover:text-red-400">Profile</Link></li>
-        </ul>
-      </div>
-
-      <div className="navbar-end">
-        {/* Avatar Profile Dropdown */}
-        <div className="dropdown dropdown-end">
-          <div
-            tabIndex={0}
-            role="button"
-            className="btn btn-ghost btn-circle avatar"
-          >
-            <div className="w-10 rounded-full">
-              <img
-                alt="Profile"
-                src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-              />
+        <img src={fondo} alt="Logo" className="w-36 h-auto mr-4" />
+  
+        {/* Dropdown */}
+        {!isAuthPage && (
+          <div className="dropdown">
+            <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h8m-8 6h16" />
+              </svg>
             </div>
+            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-10 p-2 shadow bg-base-100 rounded-box w-52 text-black">
+              {routes.main.map(route => (
+                <li key={route.path}>
+                  <Link to={route.path}>{route.label}</Link>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul
-            tabIndex={0}
-            className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
-          >
-            <li
-              onClick={() => setSettingsOpen(!settingsOpen)} // Toggle Settings
-              className="text-base"
-            >
-              <a>Settings</a>
-            </li>
-            {settingsOpen && (
-              <div className="p-1 space-y-4">
-                {/* Dark Mode Toggle */}
-                <div className="flex items-center text-base">
-                  <label className="label">
-                    <span className="label-text p-2 text-base">Dark Mode</span>
-                  </label>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary ml-1"
-                    checked={darkMode} // Aquí sincronizas el estado con el toggle
-                    onChange={toggleDarkMode} // Cambia el tema al hacer clic
-                  />
-                </div>
-              </div>
-            )}
-            <li className="text-base hover:text-red-500">
-              <a className="text-red-500 hover:text-red-700">Log out</a>
-            </li>
+        )}
+      </div>
+  
+      {/* Main nav for desktop */}
+      {!isAuthPage && (
+        <div className="navbar-center hidden lg:flex">
+          <ul className="menu menu-horizontal px-1">
+            {routes.main.map(route => (
+              <li key={route.path}>
+                <Link
+                  to={route.path}
+                  className={`${
+                    location.pathname === route.path ? "bg-white text-primary font-semibold" : "hover:text-red-400"
+                  }`}
+                >
+                  {route.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
+      )}
+  
+      {/* Avatar y settings */}
+      <div className="navbar-end space-x-4">
+        {!isAuthPage && (
+          <div className="dropdown dropdown-end">
+            <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
+              <div className="w-10 rounded-full">
+                <img
+                  alt="Profile"
+                  src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+                />
+              </div>
+            </div>
+            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-10 p-2 shadow bg-base-100 rounded-box w-52">
+              <li onClick={() => setSettingsOpen(!settingsOpen)}>
+                <a>Settings</a>
+              </li>
+              {settingsOpen && (
+                <div className="px-2 py-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Dark Mode</span>
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-primary"
+                      checked={darkMode}
+                      onChange={toggleDarkMode}
+                    />
+                  </div>
+                </div>
+              )}
+              <li className="text-red-500 hover:text-red-700">
+                <a>Log out</a>
+              </li>
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
 export default Navbar;
