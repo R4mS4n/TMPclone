@@ -1,21 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from "../components/NavBar"
+import Navbar from "../components/NavBar";
+
 const Home = () => {
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  
-  // Example API call
-const checkAdmin = async () => {
-  const response = await fetch('/api/auth/verify-admin', {
-    headers: { 
-      Authorization: `Bearer ${localStorage.getItem('authToken')}` 
-    }
-  });
-  return await response.json(); // Directly returns true/false
-};
 
   useEffect(() => {
     const fetchEnrollments = async () => {
@@ -33,7 +24,7 @@ const checkAdmin = async () => {
         });
 
         if (!response.ok) throw new Error('Failed to fetch enrollments');
-        
+
         const data = await response.json();
         setEnrollments(data.enrollments || []);
       } catch (err) {
@@ -46,45 +37,76 @@ const checkAdmin = async () => {
     fetchEnrollments();
   }, [navigate]);
 
-  if (loading) return <div className="loading">Loading your challenges...</div>;
-  if (error) return <div className="error">Error: {error}</div>;
-
   return (
-    <div className="home-container">
-    <Navbar/>
-      <h1>Your Enrolled Challenges</h1>
-      
-      {enrollments.length > 0 ? (
-        <div className="challenges-list">
-          {enrollments.map((challenge) => (
-            <button
-              key={challenge.challenge_id}
-              className="challenge-button"
-              onClick={() => navigate(`/challenges/${challenge.challenge_id}`)}
-            >
-              <div className="button-content">
-                <span className="challenge-name">{challenge.challenge_name}</span>
-            <br/>
-                <span className="challenge-meta">
-                      Score: {challenge.score}
-                </span>
+    <div className="min-h-screen">
+      <Navbar />
+      <div className="p-4">
+        {loading && <div className="text-center text-sm">Loading your challenges...</div>}
+        {error && <div className="text-error text-center">Error: {error}</div>}
+  
+        {!loading && !error && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-4rem)]">
+  
+            {/* Card 1 - Badges */}
+            <div className="bg-base-200 p-6 rounded-lg shadow-lg row-span-2 h-full">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 bg-gray-300 rounded-lg" />
               </div>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="empty-state">
-          <p>You haven't enrolled in any challenges yet.</p>
-          <button 
-            onClick={() => navigate('/challenges')}
-            className="browse-button"
-          >
-            Browse Challenges
-          </button>
-        </div>
-      )}
+              <h2 className="text-xl font-bold text-center">Badges</h2>
+              <p className="text-center text-gray-600">Badges 53</p>
+            </div>
+  
+            {/* Right Top Row */}
+            <div className="col-span-2 grid grid-cols-3 gap-6 h-1/2">
+              {/* Enrolled Challenges */}
+              <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-2">
+                <h2 className="text-xl font-bold text-center">Your Challenges</h2>
+                {enrollments.length > 0 ? (
+                  <div className="space-y-3 mt-4">
+                    {enrollments.map((challenge) => (
+                      <button
+                        key={challenge.challenge_id}
+                        className="w-full bg-white hover:bg-gray-100 border border-gray-200 text-left px-4 py-2 rounded-md shadow-sm"
+                        onClick={() => navigate(`/challenges/${challenge.challenge_id}`)}
+                      >
+                        <span className="font-semibold">{challenge.challenge_name}</span>
+                        <br />
+                        <span className="text-sm text-gray-500">Score: {challenge.score}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-sm mt-4">
+                    You haven't enrolled in any challenges yet.
+                    <br />
+                    <button
+                      onClick={() => navigate('/challenges')}
+                      className="btn btn-sm btn-primary mt-2"
+                    >
+                      Browse Challenges
+                    </button>
+                  </div>
+                )}
+              </div>
+  
+              {/* Leaderboard */}
+              <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-1">
+                <h2 className="text-xl font-bold text-center">Leaderboard</h2>
+                <p className="text-center text-gray-600">Coming soon</p>
+              </div>
+            </div>
+  
+            {/* Daily Challenge */}
+            <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-2 h-1/2">
+              <h2 className="text-xl font-bold text-center">Daily Challenge</h2>
+              <p className="text-center text-gray-600">Coming soon</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
+  
 };
 
 export default Home;
