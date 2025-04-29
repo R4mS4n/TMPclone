@@ -41,49 +41,49 @@ const App = () => {
       <Route
         path="/home"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          //<ProtectedRoute isAuthenticated={isAuthenticated}>
             <Home />
-          </ProtectedRoute>
+          //</ProtectedRoute>
         }
       />
       <Route
         path="/challenges"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          //<ProtectedRoute isAuthenticated={isAuthenticated}>
             <Challenges />
-          </ProtectedRoute>
+          //</ProtectedRoute>
         }
       />
       <Route
         path="/challenge-details/:id"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          //<ProtectedRoute isAuthenticated={isAuthenticated}>
             <ChallengeDetails />
-          </ProtectedRoute>
+          //</ProtectedRoute>
         }
       />
       <Route
         path="/admin"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          //<ProtectedRoute isAuthenticated={isAuthenticated}>
             <Admin />
-          </ProtectedRoute>
+          //</ProtectedRoute>
         }
       />
       <Route
         path="/leaderboard"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          //<ProtectedRoute isAuthenticated={isAuthenticated}>
             <Leaderboard />
-          </ProtectedRoute>
+          //</ProtectedRoute>
         }
       />
       <Route
         path="/blog"
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          //<ProtectedRoute isAuthenticated={isAuthenticated}>
             <Blog />
-          </ProtectedRoute>
+          //</ProtectedRoute>/ProtectedRoute>
         }
       />
     </Routes>
