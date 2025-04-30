@@ -9,10 +9,11 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Challenges from "./pages/Challenges";
 import ChallengeDetails from "./pages/ChallengeDetails";
+import ChallengeQuestion from "./pages/ChallengeQuestion";
 import Leaderboard from "./pages/Leaderboard";
 import Blog from "./pages/Blog";
 import Admin from "./pages/Admin";
-import ForgotPassword from "./pages/ForgotPassword"; // use this if it's your custom version
+import ForgotPassword from "./pages/ForgotPassword";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -85,6 +86,7 @@ const App = () => {
         <Route path="/home" element={<Home />} />
         <Route path="/challenges" element={<Challenges />} />
         <Route path="/challenge-details/:id" element={<ChallengeDetails />} />
+        <Route path="/challenges/:challengeId/:questionId" element={<ChallengeQuestion />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/blog" element={<Blog />} />
         <Route
@@ -97,6 +99,7 @@ const App = () => {
         />
       </Route>
 
+      {/* Redirect root to /home */}
       <Route path="/" element={<Navigate to="/home" replace />} />
     </Routes>
   );
