@@ -1,9 +1,7 @@
 const db = require('../config/db');
 
-// GET /api/questions?challenge_id=8
+// GET all questions that belong to a specific tournament id
 const getQuestions = async (req, res) => {
-  console.log('--- [GET /api/questions] Incoming Request ---');
-
   try {
     const { challenge_id } = req.query;
 
