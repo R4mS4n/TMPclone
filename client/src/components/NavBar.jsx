@@ -83,7 +83,7 @@ const Navbar = () => {
             <li><Link to="/Blog" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Blog')}`}>Blog</Link></li>
             <li><Link to="/Home" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Home')}`}>Profile</Link></li>
             {isAdmin && (
-              <li><Link to="/Admin" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Admin')}`}>Admin</Link></li>
+              <li><Link to="/admin/tournaments" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/admin/tournaments')}`}>Admin</Link></li>
             )}
           </ul>
         </div>
@@ -127,8 +127,8 @@ const Navbar = () => {
           {isAdmin && (
             <li>
               <Link 
-                to="/Admin" 
-                className={`text-white hover:text-black hover:bg-white px-4 py-2 rounded-md transition-colors duration-200 ${getActiveClass('/Admin')}`}
+                to="/admin/tournaments" 
+                className={`text-white hover:text-black hover:bg-white px-4 py-2 rounded-md transition-colors duration-200 ${getActiveClass('/admin/tournaments')}`}
               >
                 Admin
               </Link>

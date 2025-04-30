@@ -50,7 +50,7 @@ const ForgotPassword = () => {
     >
       <ThemeToggle />
 
-      <div className={`w-full max-w-md p-8 space-y-4 shadow-lg rounded-2xl backdrop-blur-sm 
+      <div className={`w-full max-w-md p-8 space-y-4 shadow-lg rounded-md backdrop-blur-sm 
         ${theme === 'TMPdark' 
           ? 'bg-base-100 text-base-content' 
           : 'bg-red-600 text-white'}`}>
@@ -74,7 +74,7 @@ const ForgotPassword = () => {
               type="text"
               name="username"
               placeholder="Username"
-              className={`input input-bordered w-full ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
+              className={`input w-full rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
               onChange={handleChange}
               required
             />
@@ -90,7 +90,7 @@ const ForgotPassword = () => {
               type="email"
               name="mail"
               placeholder="Email"
-              className={`input input-bordered w-full ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
+              className={`input w-full rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
               onChange={handleChange}
               required
             />
@@ -98,7 +98,9 @@ const ForgotPassword = () => {
 
           <button 
             type="submit" 
-            className={`btn w-full ${theme === 'TMPdark' ? 'btn-primary' : 'bg-black text-white hover:bg-neutral'} ${loading ? "loading" : ""}`}
+            className={`w-full py-2.5 rounded-md transition-colors duration-200 ${theme === 'TMPdark' 
+              ? 'bg-primary text-white hover:bg-primary/90' 
+              : 'bg-black text-white hover:bg-neutral'} ${loading ? "opacity-75" : ""}`}
             disabled={loading}
           >
             {loading ? "Sending..." : "Reset Password"}

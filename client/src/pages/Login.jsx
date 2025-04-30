@@ -83,7 +83,7 @@ export default function Login({ onLogin }) {
                 type="email"
                 name="mail"
                 placeholder="Input your e-mail address"
-                className={`input input-bordered w-full ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
+                className={`input w-full rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -101,7 +101,7 @@ export default function Login({ onLogin }) {
                   type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Input your password"
-                  className={`input input-bordered w-full ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
+                  className={`input w-full rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -129,7 +129,7 @@ export default function Login({ onLogin }) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input 
                   type="checkbox" 
-                  className={`checkbox appearance-none h-5 w-5 border rounded ${theme === 'TMPdark' 
+                  className={`checkbox appearance-none h-5 w-5 rounded-sm ${theme === 'TMPdark' 
                     ? 'border-red-600 bg-transparent checked:bg-red-600' 
                     : 'border-2 border-black bg-transparent checked:bg-black checked:text-white'}`} 
                 />
@@ -144,7 +144,9 @@ export default function Login({ onLogin }) {
 
             <button
               type="submit"
-              className={`btn w-full ${theme === 'TMPdark' ? 'btn-primary' : 'bg-black text-white hover:bg-neutral'} ${loading ? "loading" : ""}`}
+              className={`w-full py-2.5 rounded-md transition-colors duration-200 ${theme === 'TMPdark' 
+                ? 'bg-primary text-white hover:bg-primary/90' 
+                : 'bg-black text-white hover:bg-neutral'} ${loading ? "opacity-75" : ""}`}
               disabled={loading}
             >
               {loading ? "Signing in..." : "Sign in"}

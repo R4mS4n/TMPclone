@@ -39,6 +39,29 @@ const TournamentManagement = () => {
     setShowTournamentModal(true);
   };
 
+  const handleDelete = async (tournamentId) => {
+    if (confirm("Are you sure you want to delete this tournament?")) {
+      try {
+        const response = await fetch(`http://localhost:5000/api/tournaments/${tournamentId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete tournament');
+        }
+
+        alert('Tournament deleted successfully!');
+        await fetchTournaments(); // Refresh the list
+      } catch (error) {
+        console.error('Error deleting tournament:', error);
+        alert(`Error: ${error.message}`);
+      }
+    }
+  };
+
   const handleCreate = () => {
     setIsEditing(false);
     setCurrentTournament({
@@ -210,12 +233,20 @@ const TournamentManagement = () => {
               <p className="text-base-content/60 text-sm mb-4">{tournament.description}</p>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-base-content/60">Time limit: {tournament.time_limit}h</span>
-                <button
-                  onClick={() => handleEdit(tournament)}
-                  className="text-primary hover:text-primary-focus transition-colors"
-                >
-                  Edit
-                </button>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => handleEdit(tournament)}
+                    className="text-red-600 hover:text-red-700 transition-colors font-bold"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(tournament.tournament_id)}
+                    className="text-red-600 hover:text-red-700 transition-colors font-bold"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))

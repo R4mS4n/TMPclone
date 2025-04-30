@@ -2,8 +2,14 @@ import React from 'react';
 import { Link, useLocation, NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const AdminSidebar = ({ isOpen, onToggle }) => {
+const AdminSidebar = ({ isOpen, onToggle, onNavigation }) => {
   const location = useLocation();
+
+  const handleNavLinkClick = () => {
+    if (onNavigation) {
+      onNavigation();
+    }
+  };
 
   return (
     <>
@@ -71,6 +77,7 @@ const AdminSidebar = ({ isOpen, onToggle }) => {
                         : 'text-base-content/60 hover:bg-base-200'
                     }`
                   }
+                  onClick={handleNavLinkClick}
                 >
                   <span>Tournaments</span>
                 </NavLink>
@@ -83,6 +90,7 @@ const AdminSidebar = ({ isOpen, onToggle }) => {
                         : 'text-base-content/60 hover:bg-base-200'
                     }`
                   }
+                  onClick={handleNavLinkClick}
                 >
                   <span>Users</span>
                 </NavLink>
@@ -95,6 +103,7 @@ const AdminSidebar = ({ isOpen, onToggle }) => {
                         : 'text-base-content/60 hover:bg-base-200'
                     }`
                   }
+                  onClick={handleNavLinkClick}
                 >
                   <span>User Stats</span>
                 </NavLink>
@@ -107,6 +116,7 @@ const AdminSidebar = ({ isOpen, onToggle }) => {
                         : 'text-base-content/60 hover:bg-base-200'
                     }`
                   }
+                  onClick={handleNavLinkClick}
                 >
                   <span>Notifications</span>
                 </NavLink>
@@ -119,6 +129,7 @@ const AdminSidebar = ({ isOpen, onToggle }) => {
                         : 'text-base-content/60 hover:bg-base-200'
                     }`
                   }
+                  onClick={handleNavLinkClick}
                 >
                   <span>Settings</span>
                 </NavLink>

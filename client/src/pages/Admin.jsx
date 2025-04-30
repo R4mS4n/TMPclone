@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
+import { useNavigate, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import AdminSidebar from "../components/AdminSidebar";
 import TournamentManagement from "../components/TournamentManagement";
 import { verifyAdminStatus } from '../utils/adminHelper';
@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -48,7 +48,11 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-base-100">
-      <AdminSidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <AdminSidebar 
+        isOpen={isSidebarOpen} 
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
+        onNavigation={() => setIsSidebarOpen(false)} 
+      />
       <motion.main
         className="min-h-[calc(100vh-4rem)]"
       >
@@ -62,7 +66,7 @@ const Admin = () => {
             className="p-6 text-base-content"
           >
             <Routes>
-              <Route path="/" element={<TournamentManagement />} />
+              <Route path="/" element={<Navigate to="/admin/tournaments" replace />} />
               <Route path="/tournaments" element={<TournamentManagement />} />
               <Route path="/users" element={<div className="text-base-content/60">Users management coming soon...</div>} />
               <Route path="/stats" element={<div className="text-base-content/60">User stats coming soon...</div>} />

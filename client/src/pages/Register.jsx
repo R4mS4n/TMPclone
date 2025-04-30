@@ -63,7 +63,7 @@ const Register = () => {
       className="flex items-center justify-center min-h-screen bg-base-200 bg-cover bg-center"
       style={{ backgroundImage: `url(${fondo})` }}
     >
-      <div className="w-full max-w-md p-8 space-y-4 shadow-lg bg-base-100 bg-opacity-90 rounded-2xl backdrop-blur-sm">
+      <div className="w-full max-w-md p-8 space-y-4 shadow-lg bg-base-100 bg-opacity-90 rounded-md backdrop-blur-sm">
         <h2 className="text-2xl font-bold text-center text-primary">Sign Up</h2>
 
         {message.text && (
@@ -81,7 +81,7 @@ const Register = () => {
               type="text"
               name="username"
               placeholder="Username"
-              className="input input-bordered w-full"
+              className="input w-full rounded-md"
               onChange={handleChange}
               value={formData.username}
               required
@@ -95,7 +95,7 @@ const Register = () => {
               type="email"
               name="mail"
               placeholder="Email (must end with @techmahindra.com)"
-              className="input input-bordered w-full"
+              className="input w-full rounded-md"
               onChange={handleChange}
               value={formData.mail}
               required
@@ -109,7 +109,7 @@ const Register = () => {
               type="password"
               name="password"
               placeholder="Password (min 8 characters)"
-              className="input input-bordered w-full"
+              className="input w-full rounded-md"
               onChange={handleChange}
               value={formData.password}
               required
@@ -118,7 +118,7 @@ const Register = () => {
           </div>
           <button
             type="submit"
-            className="btn btn-primary w-full"
+            className="w-full py-2.5 rounded-md transition-colors duration-200 bg-primary text-white hover:bg-primary/90"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Registering..." : "Register"}
