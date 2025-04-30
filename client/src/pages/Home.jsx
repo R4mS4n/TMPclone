@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from "../components/NavBar";
 import ThemeTest from "../components/ThemeTest"
 
 const Home = () => {
@@ -50,38 +49,7 @@ const Home = () => {
   }, [navigate]);
 
   return (
-    <>{/* Local CSS */}
-    <style>
-      {`
-        .scroll-hidden::-webkit-scrollbar {
-          display: none;
-        }
-        .scroll-hidden {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-
-        @keyframes slide-text {
-          0% {
-            transform: translateX(0%);
-          }
-          100% {
-            transform: translateX(-100%);
-          }
-        }
-
-        .animate-slide {
-          display: inline-block;
-          animation: slide-text 4s linear infinite;
-        }
-
-        .truncate:hover {
-          animation-play-state: running;
-        }
-      `}
-    </style>
     <div className="min-h-screen">
-      <Navbar />
       <ThemeTest />
       <div className="p-4">
         {/* Mostrar "Loading" mientras loading sea true */}
@@ -334,7 +302,6 @@ const Home = () => {
         )}
       </div>
     </div>
-    </>
   );
 };
 

@@ -2,15 +2,29 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import fondo from "../cimages/TMw-logo.png"; // Asegúrate de que la ruta de la imagen esté bien
 import { useTheme } from "../contexts/ThemeContext";
+import { verifyAdminStatus } from "../utils/adminHelper";
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "TMPdark";
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // State para manejar la expansión de la sección "Settings"
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const { isAdmin } = await verifyAdminStatus();
+        setIsAdmin(isAdmin);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+      }
+    };
+    checkAdminStatus();
+  }, []);
 
   // Función para obtener la clase activa para los enlaces de navegación
   const getActiveClass = (path) => {
@@ -68,6 +82,9 @@ const Navbar = () => {
             <li><Link to="/Leaderboard" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Leaderboard')}`}>Leaderboard</Link></li>
             <li><Link to="/Blog" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Blog')}`}>Blog</Link></li>
             <li><Link to="/Home" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Home')}`}>Profile</Link></li>
+            {isAdmin && (
+              <li><Link to="/Admin" className={`${isDark ? 'text-white hover:bg-red-800' : 'text-primary hover:bg-gray-100'} py-2 px-3 rounded-md transition-colors ${getActiveClass('/Admin')}`}>Admin</Link></li>
+            )}
           </ul>
         </div>
       </div>
@@ -107,6 +124,16 @@ const Navbar = () => {
               Profile
             </Link>
           </li>
+          {isAdmin && (
+            <li>
+              <Link 
+                to="/Admin" 
+                className={`text-white hover:text-black hover:bg-white px-4 py-2 rounded-md transition-colors duration-200 ${getActiveClass('/Admin')}`}
+              >
+                Admin
+              </Link>
+            </li>
+          )}
         </ul>
       </div>
 
@@ -133,13 +160,15 @@ const Navbar = () => {
           <div
             tabIndex={0}
             role="button"
-            className="btn btn-ghost btn-circle avatar border-2 border-white hover:border-gray-300"
+            className="btn btn-ghost btn-circle border-2 border-white hover:border-gray-300"
           >
-            <div className="w-10 rounded-full">
-              <img
-                alt="Profile"
-                src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-              />
+            <div className="avatar">
+              <div className="w-10 rounded-full">
+                <img
+                  alt="Profile"
+                  src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+                />
+              </div>
             </div>
           </div>
           <ul
