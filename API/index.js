@@ -6,6 +6,7 @@ const db = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const tournamentRoutes = require('./routes/tournamentRoutes');
 const userRoutes = require('./routes/userRoutes');
+const questionRoutes = require('./routes/questionRoutes'); // ✅ Traído del otro branch
 const achievementRoutes = require('./routes/achievementRoutes');
 const devRoutes = require('./routes/devRoutes'); // Ruta temporal para test
 
@@ -24,6 +25,7 @@ app.use(express.json()); // Body parser JSON
 app.use("/api/auth", authRoutes);
 app.use("/api/tournaments", tournamentRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/questions", questionRoutes); // ✅ Añadida
 app.use("/api/achievements", achievementRoutes);
 app.use("/api/dev", devRoutes); // Solo para pruebas temporales
 

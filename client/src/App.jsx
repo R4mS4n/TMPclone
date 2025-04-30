@@ -12,7 +12,8 @@ import ChallengeDetails from "./pages/ChallengeDetails";
 import Leaderboard from "./pages/Leaderboard";
 import Blog from "./pages/Blog";
 import Admin from "./pages/Admin";
-import ForgotPassword from "./pages/ForgotPassword"; // use this if it's your custom version
+import ChallengeQuestion from "./pages/ChallengeQuestion.jsx";
+import ForgotPassword from "./pages/ForgotPassword";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -87,6 +88,7 @@ const App = () => {
         <Route path="/challenge-details/:id" element={<ChallengeDetails />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/blog" element={<Blog />} />
+        <Route path="/challenges/:challengeId/:questionId" element={<ChallengeQuestion />} />
         <Route
           path="/admin/*"
           element={
