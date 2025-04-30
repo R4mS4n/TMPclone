@@ -63,6 +63,14 @@ const App = () => {
     }
   }, []);
 
+  // Add theme transition class after initial mount
+  useEffect(() => {
+    document.documentElement.classList.add('theme-transition');
+    return () => {
+      document.documentElement.classList.remove('theme-transition');
+    };
+  }, []);
+
   const handleLogin = () => {
     setIsAuthenticated(true);
   };

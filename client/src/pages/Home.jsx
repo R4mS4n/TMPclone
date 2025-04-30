@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ThemeTest from "../components/ThemeTest";
+import { useNotification } from '../contexts/NotificationContext';
+import NotificationTest from '../components/NotificationTest';
 
 const Home = () => {
   const [enrollments, setEnrollments] = useState([]);
@@ -8,6 +10,7 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [isBadgesModalOpen, setBadgesModalOpen] = useState(false);
   const navigate = useNavigate();
+  const { notifyError } = useNotification();
 
   const openBadgesModal = () => setBadgesModalOpen(true);
   const closeBadgesModal = () => setBadgesModalOpen(false);
@@ -51,18 +54,25 @@ const Home = () => {
         const firstQuestionId = data[0].question_id;
         navigate(`/challenges/${challengeId}/${firstQuestionId}`);
       } else {
-        alert('No questions found for this challenge.');
+        notifyError('No questions found for this challenge.');
       }
     } catch (err) {
       console.error('Failed to fetch questions:', err);
-      alert('Error loading challenge.');
+      notifyError('Error loading challenge.');
     }
   };
+
+  // Common button styles with consistent shape
+  const baseButtonStyle = "px-4 py-2 rounded-md transition-colors";
+  const primaryButtonStyle = `${baseButtonStyle} bg-primary hover:bg-primary-focus text-primary-content`;
+  const smallPrimaryButtonStyle = `${primaryButtonStyle} text-sm py-1`;
 
   return (
     <div className="min-h-screen">
       <ThemeTest />
       <div className="p-4">
+        <NotificationTest />
+
         {loading && <div className="text-center text-sm">Loading your challenges...</div>}
         {error && <div className="text-error text-center">Error: {error}</div>}
 
@@ -76,7 +86,7 @@ const Home = () => {
               <h2 className="text-xl font-bold text-center">Badges</h2>
               <p className="text-center text-gray-600">Badges 53</p>
               <div className="text-center mt-4">
-                <button onClick={openBadgesModal} className="btn btn-sm btn-primary">See Badges</button>
+                <button onClick={openBadgesModal} className={smallPrimaryButtonStyle}>See Badges</button>
               </div>
             </div>
 
@@ -95,7 +105,7 @@ const Home = () => {
                   <div className="flex justify-end mt-4">
                     <button
                       onClick={closeBadgesModal}
-                      className="bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary/80"
+                      className={primaryButtonStyle}
                     >
                       Close
                     </button>
@@ -129,7 +139,7 @@ const Home = () => {
                     <br />
                     <button
                       onClick={() => navigate('/challenges')}
-                      className="btn btn-sm btn-primary mt-2"
+                      className={smallPrimaryButtonStyle + " mt-2"}
                     >
                       Browse Challenges
                     </button>

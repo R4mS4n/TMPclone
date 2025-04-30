@@ -1,12 +1,21 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 
+// Get the initial theme and set it on the document element immediately
+const getInitialTheme = () => {
+  const savedTheme = localStorage.getItem('theme');
+  const theme = savedTheme || 'TMPlight';
+  // Set the theme on the document element immediately
+  document.documentElement.setAttribute('data-theme', theme);
+  return theme;
+};
+
 // Crear el contexto
 const ThemeContext = createContext();
 
 // Proveedor del contexto
 export const ThemeProvider = ({ children }) => {
-  // Estado para almacenar el tema actual
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'TMPlight');
+  // Estado para almacenar el tema actual, usando el tema ya establecido
+  const [theme, setTheme] = useState(getInitialTheme);
 
   // Efecto para actualizar el atributo data-theme en el HTML cuando cambia el tema
   useEffect(() => {

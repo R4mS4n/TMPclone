@@ -27,6 +27,17 @@
 }
 
 /* Asegurar que los cambios de tema tengan una transición suave */
-html, body, * {
+.theme-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Aplicar transiciones solo a elementos específicos */
+.btn,
+.navbar,
+.input,
+.card,
+.modal,
+[class*="bg-"],
+[class*="text-"] {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 } 

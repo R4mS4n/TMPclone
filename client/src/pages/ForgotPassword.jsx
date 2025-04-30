@@ -50,16 +50,16 @@ const ForgotPassword = () => {
     >
       <ThemeToggle />
 
-      <div className={`w-full max-w-md p-8 space-y-4 shadow-lg rounded-md backdrop-blur-sm 
-        ${theme === 'TMPdark' 
-          ? 'bg-base-100 text-base-content' 
-          : 'bg-red-600 text-white'}`}>
+      <div className={`w-full max-w-md mx-auto rounded-lg shadow-xl p-8 ${
+        theme === 'TMPdark' 
+        ? 'bg-base-100 text-base-content' 
+        : 'bg-[#E31321] text-white'}`}>
         
-        <h2 className={`text-2xl font-bold text-center ${theme === 'TMPdark' ? 'text-primary' : 'text-white'}`}>
+        <h2 className={`text-2xl font-bold text-center ${theme === 'TMPdark' ? 'text-primary' : 'text-black'}`}>
           Forgot Password
         </h2>
 
-        <p className={`text-center ${theme === 'TMPdark' ? 'text-base-content' : 'text-white'}`}>
+        <p className={`text-center mt-2 mb-6 ${theme === 'TMPdark' ? 'text-base-content' : 'text-white'}`}>
           Enter your username and email to receive password reset instructions
         </p>
 
@@ -74,7 +74,7 @@ const ForgotPassword = () => {
               type="text"
               name="username"
               placeholder="Username"
-              className={`input w-full rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
+              className={`input w-full h-12 rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
               onChange={handleChange}
               required
             />
@@ -90,7 +90,7 @@ const ForgotPassword = () => {
               type="email"
               name="mail"
               placeholder="Email"
-              className={`input w-full rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
+              className={`input w-full h-12 rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
               onChange={handleChange}
               required
             />
@@ -113,13 +113,11 @@ const ForgotPassword = () => {
           )}
         </form>
 
-        <p className={`text-center text-sm ${theme === 'TMPdark' ? 'text-base-content' : 'text-white'}`}>
+        <p className={`text-center text-sm mt-6 ${theme === 'TMPdark' ? 'text-base-content' : 'text-white'}`}>
           Mistaken?{" "}
           <a 
             href="/login" 
-            className={`font-medium ${theme === 'TMPdark' 
-              ? 'text-primary hover:underline' 
-              : 'text-black hover:underline'}`}
+            style={theme === 'TMPdark' ? undefined : { color: 'black', fontWeight: 'bold', textDecoration: 'underline' }}
           >
             Login
           </a>
