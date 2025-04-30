@@ -36,6 +36,25 @@ const Home = () => {
 
     fetchEnrollments();
   }, [navigate]);
+  
+  const handleChallengeClick = async (challengeId) => {
+  try {
+    console.log(challengeId);
+    const res = await fetch(`http://localhost:5000/api/questions/getAllQuestions?challenge_id=${challengeId}`);
+    const data = await res.json();
+
+    if (data.length > 0) {
+      const firstQuestionId = data[0].question_id;
+      // Redirect to the first question
+      window.location.href = `/challenges/${challengeId}/${firstQuestionId}`;
+    } else {
+      alert('No questions found for this challenge.');
+    }
+  } catch (err) {
+    console.error('Failed to fetch questions:', err);
+    alert('Error loading challenge.');
+  }
+};
 
   return (
     <div className="min-h-screen">
@@ -67,7 +86,7 @@ const Home = () => {
                       <button
                         key={challenge.challenge_id}
                         className="w-full bg-white hover:bg-gray-100 border border-gray-200 text-left px-4 py-2 rounded-md shadow-sm"
-                        onClick={() => navigate(`/challenges/${challenge.challenge_id}`)}
+                        onClick={() => handleChallengeClick(challenge.challenge_id)}
                       >
                         <span className="font-semibold">{challenge.challenge_name}</span>
                         <br />

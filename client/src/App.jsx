@@ -12,6 +12,7 @@ import ChallengeDetails from "./pages/ChallengeDetails";
 import Leaderboard from "./pages/Leaderboard";
 import Blog from "./pages/Blog";
 import Admin from "./pages/Admin";
+import ChallengeQuestion from "./pages/ChallengeQuestion.jsx";
 import ForgotPassword from "./pages/ForgotPassword"; // use this if it's your custom version
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -30,7 +31,7 @@ const App = () => {
   const handleLogin = () => {
     setIsAuthenticated(true);
   };
-
+  
   return (
     <Routes>
       <Route path="/register" element={<Register />} />
@@ -86,6 +87,8 @@ const App = () => {
           </ProtectedRoute>
         }
       />
+    <Route path="/challenges/:challengeId/:questionId" element={<ChallengeQuestion />} />
+
     </Routes>
   );
 };
