@@ -13,7 +13,8 @@ const Home = () => {
   const closeBadgesModal = () => setBadgesModalOpen(false);
 
   useEffect(() => {
-
+    // Puedes descomentar esta lógica cuando actives el backend
+    /*
     const fetchEnrollments = async () => {
       try {
         const token = localStorage.getItem('authToken');
@@ -29,7 +30,6 @@ const Home = () => {
         });
 
         if (!response.ok) throw new Error('Failed to fetch enrollments');
-
         const data = await response.json();
         setEnrollments(data.enrollments || []);
       } catch (err) {
@@ -40,6 +40,8 @@ const Home = () => {
     };
 
     fetchEnrollments();
+    */
+    setTimeout(() => setLoading(false), 500);
   }, [navigate]);
 
   const handleChallengeClick = async (challengeId) => {
@@ -68,19 +70,69 @@ const Home = () => {
 
         {!loading && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-4rem)]">
-            {/* CARD 1 - Badges */}
-            <div className="bg-base-200 p-6 rounded-lg shadow-lg row-span-2 h-full">
+            {/* LEFT - Profile & Info */}
+            <div className="bg-base-200 p-6 rounded-lg shadow-lg row-span-2 h-full flex flex-col items-center">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-gray-300 rounded-lg" />
               </div>
-              <h2 className="text-xl font-bold text-center">Badges</h2>
-              <p className="text-center text-gray-600">Badges 53</p>
-              <div className="text-center mt-4">
-                <button onClick={openBadgesModal} className="btn btn-sm btn-primary">See Badges</button>
+              <h2 className="text-2xl font-bold text-center mb-2">Jane Doe</h2>
+
+              <div className="bg-base-100 p-4 rounded-lg shadow w-full mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-xs font-bold">
+                    2
+                  </div>
+                  <div>
+                    <div className="font-semibold">Level 2</div>
+                    <div className="text-xs text-gray-500">500 Points to next level</div>
+                  </div>
+                </div>
+                <div className="relative h-4 bg-yellow-100 rounded-full overflow-hidden mt-2">
+                  <div
+                    className="absolute top-0 left-0 h-full bg-yellow-400 flex items-center justify-center text-xs text-yellow-800 font-semibold"
+                    style={{ width: "86%" }}
+                  >
+                    ⭐ 5200/6000
+                  </div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>2</span>
+                  <span>3</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 w-full mb-4">
+                <div className="bg-base-100 rounded-lg p-3 shadow flex flex-col items-center justify-center">
+                  <div className="text-2xl">⚡</div>
+                  <div className="font-semibold">55</div>
+                  <div className="text-xs text-gray-500">Challenges</div>
+                </div>
+                <div className="bg-base-100 rounded-lg p-3 shadow flex flex-col items-center justify-center">
+                  <div className="text-2xl">📈</div>
+                  <div className="font-semibold">#17</div>
+                  <div className="text-xs text-gray-500">Leaderboard</div>
+                </div>
+              </div>
+
+              <div className="w-full">
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-xl font-bold text-gray-400">Badges 53</h2>
+                  <button
+                    onClick={openBadgesModal}
+                    className="text-primary hover:underline text-sm font-semibold"
+                  >
+                    Badges &gt;
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-base-100 rounded-lg h-30"></div>
+                  <div className="bg-base-100 rounded-lg h-30"></div>
+                  <div className="bg-base-100 rounded-lg h-30"></div>
+                </div>
               </div>
             </div>
 
-            {/* Modal for Badges */}
+            {/* MODAL: Badges */}
             {isBadgesModalOpen && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                 <div className="bg-base-100 p-6 rounded-lg shadow-lg max-w-md w-full">
@@ -104,10 +156,9 @@ const Home = () => {
               </div>
             )}
 
-            {/* Right Top Row */}
-            <div className="col-span-2 grid grid-cols-3 gap-6 h-1/2">
-              {/* Enrolled Challenges */}
-              <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-2">
+            {/* RIGHT SIDE */}
+            <div className="col-span-2 grid grid-cols-3 gap-6 h-3/5">
+              <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-2 h-3/5">
                 <h2 className="text-xl font-bold text-center">Your Challenges</h2>
                 {enrollments.length > 0 ? (
                   <div className="space-y-3 mt-4">
@@ -137,14 +188,14 @@ const Home = () => {
                 )}
               </div>
 
-              {/* Leaderboard */}
+              {/* Right Side Card - Daily Challenge */}
               <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-1">
-                <h2 className="text-xl font-bold text-center">Leaderboard</h2>
-                <p className="text-center text-gray-600">Coming soon</p>
+                <h2 className="text-xl font-bold text-center">Daily Challenge</h2>
+                <p className="text-center text-gray-600">Coming soon...</p>
               </div>
             </div>
 
-            {/* Daily Challenge */}
+            {/* Bottom Full Row - Daily Challenge Placeholder */}
             <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-3 h-1/2">
               <h2 className="text-xl font-bold text-center">Daily Challenge</h2>
               <p className="text-center text-gray-600">Coming soon</p>
