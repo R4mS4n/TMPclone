@@ -1,0 +1,73 @@
+/* Blog page specific styles */
+.blog-container {
+  min-height: calc(100vh - 80px); /* Adjust based on your navbar height */
+}
+
+/* Post card styles */
+.post-card {
+  transition: transform 0.15s ease;
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Sidebar boxes */
+.sidebar-box {
+  transition: all 0.3s ease;
+  border: 1px solid rgba(var(--b3), 0.1);
+}
+
+.sidebar-box:hover {
+  border-color: rgba(var(--p), 0.3); /* Subtle primary color border on hover */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Honor badges */
+.honor-badge {
+  width: 32px;
+  height: 32px;
+  min-width: 32px; /* Ensure minimum width */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.honor-badge-gold {
+  background: linear-gradient(145deg, #fbbf24, #f59e0b);
+}
+
+.honor-badge-silver {
+  background: linear-gradient(145deg, #94a3b8, #64748b);
+}
+
+.honor-badge-bronze {
+  background: linear-gradient(145deg, #d97706, #b45309);
+}
+
+.honor-badge-default {
+  background: linear-gradient(145deg, #3b82f6, #2563eb);
+}
+
+/* Leaderboard styles */
+.flex-1.min-w-0 span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+@media (max-width: 1023px) {
+  /* Mobile/tablet styles */
+  .sidebar-box {
+    margin-top: 1rem;
+  }
+}
+
+/* Loading spinner */
+.loading-spinner {
+  border-width: 3px;
+} 

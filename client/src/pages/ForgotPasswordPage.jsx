@@ -43,20 +43,23 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>Reset Password</h2>
-        <p>Enter your email to receive a reset link</p>
+    <div className="flex items-center justify-center min-h-screen bg-base-200">
+      <div className="w-full max-w-md p-8 space-y-4 shadow-lg bg-base-100 rounded-md">
+        <h2 className="text-2xl font-bold text-center text-primary">Reset Password</h2>
+        <p className="text-center text-base-content">Enter your email to receive a reset link</p>
         
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label htmlFor="email">Email</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">
+              <span className="label-text">Email</span>
+            </label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
+              className="input w-full rounded-md"
               required
               autoFocus
             />
@@ -64,12 +67,13 @@ export default function ForgotPasswordPage() {
 
           <button 
             type="submit" 
-            className="auth-button"
+            className="w-full py-2.5 rounded-md transition-colors duration-200 bg-primary text-white hover:bg-primary/90"
             disabled={loading}
           >
             {loading ? (
               <>
-                <span className="spinner"></span> Sending...
+                <span className="inline-block w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></span> 
+                Sending...
               </>
             ) : (
               'Send Reset Link'
@@ -78,13 +82,13 @@ export default function ForgotPasswordPage() {
         </form>
 
         {message.text && (
-          <p className={`auth-message ${message.isError ? 'error' : 'success'}`}>
+          <p className={`text-sm text-center ${message.isError ? 'text-error' : 'text-success'}`}>
             {message.text}
           </p>
         )}
 
-        <div className="auth-footer">
-          <Link to="/login" className="auth-link">
+        <div className="text-center mt-4">
+          <Link to="/login" className="text-primary hover:underline">
             ← Back to Login
           </Link>
         </div>

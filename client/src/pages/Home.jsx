@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import ThemeTest from "../components/ThemeTest";
+import NotificationTest from '../components/NotificationTest';
+import { useNotification } from '../contexts/NotificationContext';
 
 const Home = () => {
   const [enrollments, setEnrollments] = useState([]);
@@ -8,13 +10,12 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [isBadgesModalOpen, setBadgesModalOpen] = useState(false);
   const navigate = useNavigate();
+  const { notifyError } = useNotification();
 
   const openBadgesModal = () => setBadgesModalOpen(true);
   const closeBadgesModal = () => setBadgesModalOpen(false);
 
   useEffect(() => {
-    // Puedes descomentar esta lógica cuando actives el backend
-    
     const fetchEnrollments = async () => {
       try {
         const token = localStorage.getItem('authToken');
@@ -24,9 +25,7 @@ const Home = () => {
         }
 
         const response = await fetch('http://localhost:5000/api/user/enrollments', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (!response.ok) throw new Error('Failed to fetch enrollments');
@@ -40,7 +39,6 @@ const Home = () => {
     };
 
     fetchEnrollments();
-    
     setTimeout(() => setLoading(false), 500);
   }, [navigate]);
 
@@ -53,51 +51,43 @@ const Home = () => {
         const firstQuestionId = data[0].question_id;
         navigate(`/challenges/${challengeId}/${firstQuestionId}`);
       } else {
-        alert('No questions found for this challenge.');
+        notifyError('No questions found for this challenge.');
       }
     } catch (err) {
       console.error('Failed to fetch questions:', err);
-      alert('Error loading challenge.');
+      notifyError('Error loading challenge.');
     }
   };
 
   return (
     <div className="min-h-screen">
-      <ThemeTest />
       <div className="p-4">
+        <NotificationTest />
+
         {loading && <div className="text-center text-sm">Loading your challenges...</div>}
         {error && <div className="text-error text-center">Error: {error}</div>}
 
         {!loading && !error && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-4rem)]">
-            {/* LEFT - Profile & Info */}
+            {/* Profile Card */}
             <div className="bg-base-200 p-6 rounded-lg shadow-lg row-span-2 h-full flex flex-col items-center">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-gray-300 rounded-lg" />
+              <div className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden mb-4">
+                <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" alt="Profile" className="object-cover w-full h-full" />
               </div>
               <h2 className="text-2xl font-bold text-center mb-2">Jane Doe</h2>
 
               <div className="bg-base-100 p-4 rounded-lg shadow w-full mb-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-xs font-bold">
-                    2
-                  </div>
+                  <div className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-xs font-bold">2</div>
                   <div>
                     <div className="font-semibold">Level 2</div>
                     <div className="text-xs text-gray-500">500 Points to next level</div>
                   </div>
                 </div>
                 <div className="relative h-4 bg-yellow-100 rounded-full overflow-hidden mt-2">
-                  <div
-                    className="absolute top-0 left-0 h-full bg-yellow-400 flex items-center justify-center text-xs text-yellow-800 font-semibold"
-                    style={{ width: "86%" }}
-                  >
+                  <div className="absolute top-0 left-0 h-full bg-yellow-400 flex items-center justify-center text-xs text-yellow-800 font-semibold" style={{ width: "86%" }}>
                     ⭐ 5200/6000
                   </div>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>2</span>
-                  <span>3</span>
                 </div>
               </div>
 
@@ -116,23 +106,18 @@ const Home = () => {
 
               <div className="w-full">
                 <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-xl font-bold text-gray-400">Badges 53</h2>
-                  <button
-                    onClick={openBadgesModal}
-                    className="text-primary hover:underline text-sm font-semibold"
-                  >
-                    Badges &gt;
-                  </button>
+                  <h2 className="text-xl font-bold text-gray-400">My Badges</h2>
+                  <button onClick={openBadgesModal} className="text-primary hover:underline text-sm font-semibold">More &gt;</button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-base-100 rounded-lg h-30"></div>
-                  <div className="bg-base-100 rounded-lg h-30"></div>
-                  <div className="bg-base-100 rounded-lg h-30"></div>
+                  <div className="bg-base-100 rounded-lg h-16"></div>
+                  <div className="bg-base-100 rounded-lg h-16"></div>
+                  <div className="bg-base-100 rounded-lg h-16"></div>
                 </div>
               </div>
             </div>
 
-            {/* MODAL: Badges */}
+            {/* Badges Modal */}
             {isBadgesModalOpen && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                 <div className="bg-base-100 p-6 rounded-lg shadow-lg max-w-md w-full">
@@ -145,60 +130,54 @@ const Home = () => {
                     ))}
                   </div>
                   <div className="flex justify-end mt-4">
-                    <button
-                      onClick={closeBadgesModal}
-                      className="bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary/80"
-                    >
-                      Close
-                    </button>
+                    <button onClick={closeBadgesModal} className="bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary/80">Close</button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* RIGHT SIDE */}
-            <div className="col-span-2 grid grid-cols-3 gap-6 h-3/5">
-              <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-2 h-3/5">
-                <h2 className="text-xl font-bold text-center">Your Challenges</h2>
-                {enrollments.length > 0 ? (
-                  <div className="space-y-3 mt-4">
-                    {enrollments.map((challenge) => (
-                      <button
-                        key={challenge.challenge_id}
-                        className="w-full bg-white hover:bg-gray-100 border border-gray-200 text-left px-4 py-2 rounded-md shadow-sm"
-                        onClick={() => handleChallengeClick(challenge.challenge_id)}
-                      >
-                        <span className="font-semibold">{challenge.challenge_name}</span>
-                        <br />
-                        <span className="text-sm text-gray-500">Score: {challenge.score}</span>
-                      </button>
-                    ))}
+            {/* Right Side */}
+            <div className="col-span-2 grid grid-cols-3 gap-6">
+              {/* Done Recently */}
+              <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-2 flex flex-col gap-4 h-[20rem]">
+                <h2 className="text-xl font-bold">Done Recently...</h2>
+                {enrollments.slice(0, 5).map((challenge, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm font-semibold mb-1">
+                    <span>{challenge.challenge_name}</span>
+                    <Link to="/challenges" className="text-primary hover:underline">continue &gt;</Link>
                   </div>
-                ) : (
-                  <div className="text-center text-sm mt-4">
-                    You haven't enrolled in any challenges yet.
-                    <br />
-                    <button
-                      onClick={() => navigate('/challenges')}
-                      className="btn btn-sm btn-primary mt-2"
-                    >
-                      Browse Challenges
-                    </button>
+                ))}
+                {enrollments.length > 5 && (
+                  <div className="text-sm text-center">
+                    <Link to="/challenges" className="text-primary hover:underline font-semibold">...</Link>
                   </div>
                 )}
               </div>
 
-              {/* Right Side Card - Daily Challenge */}
-              <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-1">
-                <h2 className="text-xl font-bold text-center">Daily Challenge</h2>
-                <p className="text-center text-gray-600">Coming soon...</p>
+              {/* Leaderboard */}
+              <div className="bg-base-200 p-4 rounded-2xl shadow-lg flex flex-col h-[20rem]">
+                <h2 className="text-xl font-bold text-center mb-4 bg-primary text-base-200 py-2 rounded-md">Leaderboard</h2>
+                {/* Leaderboard items go here — same as in your original */}
               </div>
-            </div>
 
-            {/* Bottom Full Row - Daily Challenge Placeholder */}
-            <div className="bg-base-200 p-6 rounded-lg shadow-lg col-span-3 h-1/2">
-              <h2 className="text-xl font-bold text-center">Daily Challenge</h2>
-              <p className="text-center text-gray-600">Coming soon</p>
+              {/* Daily Challenge */}
+              <div className="col-span-3 bg-base-200 p-6 rounded-lg shadow-lg flex flex-col items-center gap-4 min-h-[16rem]">
+                <h2 className="text-xl font-bold">Daily Challenge</h2>
+                <div className="grid grid-cols-3 gap-4 w-full">
+                  {[
+                    { day: "Today", status: "Completed" },
+                    { day: "Yesterday", status: "Incomplete" },
+                    { day: "Monday", status: "Completed" },
+                  ].map((item, idx) => (
+                    <div key={idx} className="bg-base-100 rounded-lg p-4 flex flex-col items-center justify-center">
+                      <div className="font-semibold">{item.day}</div>
+                      <div className={`text-xs mt-1 ${item.status === "Completed" ? "text-green-500" : "text-red-500"}`}>
+                        {item.status}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}

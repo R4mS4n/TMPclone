@@ -58,40 +58,48 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>Set New Password</h2>
+    <div className="flex items-center justify-center min-h-screen bg-base-200">
+      <div className="w-full max-w-md p-8 space-y-4 shadow-lg bg-base-100 rounded-md">
+        <h2 className="text-2xl font-bold text-center text-primary">Set New Password</h2>
         
         {!token ? (
           <>
-            <p className="auth-message error">Invalid reset link</p>
-            <a href="/forgot-password" className="auth-link">
-              Request new reset link
-            </a>
+            <p className="text-sm text-center text-error">Invalid reset link</p>
+            <div className="text-center mt-4">
+              <a href="/forgot-password" className="text-primary hover:underline">
+                Request new reset link
+              </a>
+            </div>
           </>
         ) : (
           <>
-            <form onSubmit={handleSubmit}>
-              <div className="input-group">
-                <label>New Password</label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="label">
+                  <span className="label-text">New Password</span>
+                </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  className="input w-full rounded-md"
                   required
                   minLength="8"
                   autoFocus
                 />
               </div>
 
-              <div className="input-group">
-                <label>Confirm Password</label>
+              <div>
+                <label className="label">
+                  <span className="label-text">Confirm Password</span>
+                </label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
+                  className="input w-full rounded-md"
                   required
                   minLength="8"
                 />
@@ -99,7 +107,7 @@ export default function ResetPasswordPage() {
 
               <button 
                 type="submit" 
-                className="auth-button"
+                className="w-full py-2.5 rounded-md transition-colors duration-200 bg-primary text-white hover:bg-primary/90"
                 disabled={loading}
               >
                 {loading ? 'Resetting...' : 'Reset Password'}
@@ -107,7 +115,7 @@ export default function ResetPasswordPage() {
             </form>
 
             {message.text && (
-              <p className={`auth-message ${message.isError ? 'error' : 'success'}`}>
+              <p className={`text-sm text-center ${message.isError ? 'text-error' : 'text-success'}`}>
                 {message.text}
               </p>
             )}

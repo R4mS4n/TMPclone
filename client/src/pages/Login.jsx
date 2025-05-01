@@ -66,7 +66,7 @@ export default function Login({ onLogin }) {
           shadow-lg px-8 py-12 space-y-6 flex flex-col justify-center 
           ${theme === 'TMPdark' 
             ? 'bg-base-100 text-base-content' 
-            : 'bg-red-600 text-white'}`}
+            : 'bg-[#E31321] text-white'}`}
         >
           <h2 className={`text-3xl font-bold text-center ${theme === 'TMPdark' ? 'text-primary' : 'text-white'}`}>
             Sign in
@@ -83,7 +83,7 @@ export default function Login({ onLogin }) {
                 type="email"
                 name="mail"
                 placeholder="Input your e-mail address"
-                className={`input input-bordered w-full ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
+                className={`input w-full h-12 rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -101,7 +101,7 @@ export default function Login({ onLogin }) {
                   type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Input your password"
-                  className={`input input-bordered w-full ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
+                  className={`input w-full h-12 rounded-md ${theme === 'TMPdark' ? 'bg-base-200' : 'bg-white text-black'}`}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -125,26 +125,28 @@ export default function Login({ onLogin }) {
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input 
                   type="checkbox" 
-                  className={`checkbox appearance-none h-5 w-5 border rounded ${theme === 'TMPdark' 
+                  className={`checkbox appearance-none h-5 w-5 rounded-sm ${theme === 'TMPdark' 
                     ? 'border-red-600 bg-transparent checked:bg-red-600' 
-                    : 'border-2 border-black bg-transparent checked:bg-black checked:text-white'}`} 
+                    : 'border-2 border-white bg-transparent checked:bg-white checked:text-[#E31321]'}`} 
                 />
-                <span className={`label-text ${theme === 'TMPdark' ? 'text-base-content' : 'text-white font-medium'}`}>
+                <span className={`label-text font-medium ${theme === 'TMPdark' ? 'text-base-content' : 'text-white'}`}>
                   Remember me
                 </span>
               </label>
-              <a href="/forgot-password" className={`font-medium ${theme === 'TMPdark' ? 'link link-error' : 'text-black hover:underline'}`}>
+              <a href="/forgot-password" className={`font-medium underline ${theme === 'TMPdark' ? 'link link-error' : 'text-white hover:text-white'}`}>
                 Have you forgotten your password?
               </a>
             </div>
 
             <button
               type="submit"
-              className={`btn w-full ${theme === 'TMPdark' ? 'btn-primary' : 'bg-black text-white hover:bg-neutral'} ${loading ? "loading" : ""}`}
+              className={`w-full py-2.5 rounded-md transition-colors duration-200 ${theme === 'TMPdark' 
+                ? 'bg-primary text-white hover:bg-primary/90' 
+                : 'bg-black text-white hover:bg-neutral'} ${loading ? "opacity-75" : ""}`}
               disabled={loading}
             >
               {loading ? "Signing in..." : "Sign in"}

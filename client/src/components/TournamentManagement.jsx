@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNotification } from '../contexts/NotificationContext';
 
 const TournamentManagement = () => {
   const [tournaments, setTournaments] = useState([]);
@@ -11,6 +12,13 @@ const TournamentManagement = () => {
     time_limit: ''
   });
   const [loading, setLoading] = useState(true);
+  const { notify, notifySuccess, notifyError, confirm } = useNotification();
+
+  // Common button styles with consistent shape
+  const baseButtonStyle = "px-4 py-2 rounded-md transition-colors";
+  const primaryButtonStyle = `${baseButtonStyle} bg-primary hover:bg-primary-focus text-primary-content`;
+  const secondaryButtonStyle = `${baseButtonStyle} bg-base-300 hover:bg-base-200 text-base-content`;
+  const linkButtonStyle = "text-red-600 hover:text-red-700 transition-colors font-bold";
 
   useEffect(() => {
     fetchTournaments();
@@ -37,6 +45,31 @@ const TournamentManagement = () => {
     setIsEditing(true);
     setCurrentTournament(tournament);
     setShowTournamentModal(true);
+  };
+
+  const handleDelete = async (tournamentId) => {
+    confirm(
+      'Are you sure you want to delete this tournament?', 
+      async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/tournaments/${tournamentId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to delete tournament');
+          }
+
+          await fetchTournaments();
+        } catch (error) {
+          console.error('Error deleting tournament:', error);
+          notifyError(error.message);
+        }
+      }
+    );
   };
 
   const handleCreate = () => {
@@ -87,14 +120,14 @@ const TournamentManagement = () => {
       
       // Successfully saved, now update the UI
       console.log('Tournament saved successfully');
-      alert(isEditing ? 'Tournament updated successfully!' : 'Tournament created successfully!');
+      notifySuccess(isEditing ? 'Tournament updated successfully!' : 'Tournament created successfully!');
       await fetchTournaments();
       console.log('Tournaments refreshed');
       setShowTournamentModal(false);
       setCurrentTournament({ name: '', description: '', time_limit: '' });
     } catch (error) {
       console.error('Error submitting tournament:', error);
-      alert(`Error: ${error.message}`);
+      notifyError(error.message);
     }
   };
 
@@ -104,7 +137,7 @@ const TournamentManagement = () => {
         <h1 className="text-2xl font-bold">Tournaments</h1>
         <button
           onClick={handleCreate}
-          className="bg-primary hover:bg-primary-focus text-primary-content px-4 py-2 rounded-lg transition-colors"
+          className={primaryButtonStyle}
         >
           Create New Tournament
         </button>
@@ -177,7 +210,7 @@ const TournamentManagement = () => {
               <div className="flex space-x-3">
                 <button
                   type="button"
-                  className="bg-primary hover:bg-primary-focus text-primary-content px-4 py-2 rounded-lg transition-colors flex-1"
+                  className={primaryButtonStyle + " flex-1"}
                   onClick={handleSubmit}
                 >
                   Submit
@@ -185,7 +218,7 @@ const TournamentManagement = () => {
                 <button
                   type="button"
                   onClick={() => setShowTournamentModal(false)}
-                  className="bg-base-300 hover:bg-base-200 text-base-content px-4 py-2 rounded-lg transition-colors flex-1"
+                  className={secondaryButtonStyle + " flex-1"}
                 >
                   Cancel
                 </button>
@@ -210,12 +243,20 @@ const TournamentManagement = () => {
               <p className="text-base-content/60 text-sm mb-4">{tournament.description}</p>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-base-content/60">Time limit: {tournament.time_limit}h</span>
-                <button
-                  onClick={() => handleEdit(tournament)}
-                  className="text-primary hover:text-primary-focus transition-colors"
-                >
-                  Edit
-                </button>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => handleEdit(tournament)}
+                    className={linkButtonStyle}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(tournament.tournament_id)}
+                    className={linkButtonStyle}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))
