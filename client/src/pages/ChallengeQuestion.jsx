@@ -65,7 +65,6 @@ export default function ChallengeQuestion() {
   
   return (
     <div>
-      <Navbar/>
       <h1>
         {challengeInfo?.name || "Loading..."}
       </h1>

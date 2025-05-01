@@ -14,7 +14,7 @@ const Home = () => {
 
   useEffect(() => {
     // Puedes descomentar esta lógica cuando actives el backend
-    /*
+    
     const fetchEnrollments = async () => {
       try {
         const token = localStorage.getItem('authToken');
@@ -40,7 +40,7 @@ const Home = () => {
     };
 
     fetchEnrollments();
-    */
+    
     setTimeout(() => setLoading(false), 500);
   }, [navigate]);
 
