@@ -1,4 +1,5 @@
 const db = require('../config/db');
+require('dotenv').config({path: '../.env'});
 
 // GET all questions that belong to a specific tournament id
 const getQuestions = async (req, res) => {
@@ -51,8 +52,66 @@ const getChallengeById = async (req, res) => {
   }
 };
 
+//esta funcion nos va a servir para:
+//1. Recibir el codigo y datos asociados
+//2. Mandar el codigo a la API de judge0
+//3. Recibir la respuesta de la API de judge0 y 
+//regresar al usuario la respuesta, asi como modificar datos en la DB dependiendo del resultado obtenido
+
+const reviewQuestionSubmission = async (req, res) => {
+  try {
+    const { questionId, code, languageId } = req.body;
+
+    console.log('[REVIEW] Question ID:', questionId);
+    console.log('[REVIEW] Language ID:', languageId);
+    console.log('[REVIEW] Submitted Code:\n', code);
+
+    // 1. Fetch inputs and expected outputs from DB
+    const [results] = await db.promise().query(
+      'SELECT test_inputs, expected_outputs FROM Question WHERE question_id = ?',
+      [questionId]
+    );
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    const { test_inputs, expected_outputs } = results[0];
+
+    // 2. Call Judge0 API
+    const judge0Response = await fetch(
+      'https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com',
+          'X-RapidAPI-Key': process.env.RAPIDAPI_TOKEN,
+        },
+        body: JSON.stringify({
+          source_code: code,
+          language_id: languageId,
+          stdin: test_inputs,
+          expected_output: expected_outputs,
+        }),
+      }
+    );
+
+    const resultData = await judge0Response.json();
+
+    console.log('[JUDGE0] Response:', resultData);
+    res.status(200).json(resultData);
+
+  } catch (error) {
+    console.error('[REVIEW ERROR]', error);
+    res.status(500).json({ error: 'Failed to review submission' });
+  }
+};
+
+
 module.exports = {
   getQuestions,
-  getChallengeById
+  getChallengeById,
+  reviewQuestionSubmission
 };
 

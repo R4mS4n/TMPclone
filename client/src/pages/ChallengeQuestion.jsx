@@ -1,13 +1,18 @@
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import {useNavigate} from 'react-router-dom';
 import Navbar from "../components/NavBar.jsx";
 import CodeForm from '../components/CodeForm.jsx'
+import languages from '../utils/languages';
+
 export default function ChallengeQuestion() {
   const { challengeId, questionId } = useParams();
   //const [questions, setQuestions] = useState([]);
   const [question, setQuestion] = useState(null);
   const [challengeInfo, setChallengeInfo] = useState(null); // this holds the name, desc, etc.
   const [questionIds, setQuestionIds] = useState([]);
+  const [selectedLanguageId, setSelectedLanguageId] = useState(null);
+  const navigate = useNavigate();
 
   // First, get the challenge info (with tournament name)
   useEffect(() => {
@@ -28,6 +33,7 @@ export default function ChallengeQuestion() {
       fetch(`http://localhost:5000/api/questions/${questionId}`)
         .then(res => res.json())
         .then(data => {
+          console.log("Question data:", data);
           setQuestion(data);
         })
         .catch(err => {
@@ -73,7 +79,7 @@ export default function ChallengeQuestion() {
       {questionIds.map((id) => (
       <button
           key={id}
-          onClick={() => window.location.href = `/challenges/${challengeId}/${id}`}
+          onClick={() => navigate(`/challenges/${challengeId}/${id}`)}
           >
             {id}
           </button>
@@ -83,12 +89,44 @@ export default function ChallengeQuestion() {
       {question ? (
         <div>
           <h4>Question Content:</h4>
-          <p><strong>ID:</strong> {question.question_id}</p>
           <p><strong>Content:</strong> {question.content}</p>
           <p><strong>Language:</strong> {question.language}</p>
           <p><strong>Topic:</strong> {question.topic}</p>
           <p><strong>Difficulty:</strong> {question.difficulty}</p>
-        <CodeForm/>
+
+        <div>
+      {question.test_inputs && (
+  <div className="my-2">
+    <p><strong>Test Inputs:</strong></p>
+    <pre>{question.test_inputs}</pre>
+  </div>
+    )}
+
+      {question.expected_outputs && (
+  <div className="my-2">
+    <p><strong>Expected Outputs:</strong></p>
+    <pre>{question.expected_outputs}</pre>
+  </div>
+    )}
+
+      <label>Select Language:</label>
+    <select
+      value={selectedLanguageId || ""}
+      onChange={(e) => setSelectedLanguageId(Number(e.target.value))}
+  >
+      <option value="" disabled>Select a language</option>
+      {languages.map((lang) => (
+        <option key={lang.id} value={lang.id}>
+          {lang.name}
+        </option>
+        ))}
+      </select>
+    </div>
+
+        <CodeForm
+          questionId={question.question_id}
+          languageId={selectedLanguageId}
+        />
         </div>
       ) : (
         <p>Loading question info...</p>

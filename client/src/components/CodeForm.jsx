@@ -1,28 +1,45 @@
 import { useState } from 'react';
 
-export default function CodeForm() {
+export default function CodeForm({ questionId, languageId }) {
   const [code, setCode] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Code submitted:", code);
-    // Add fetch/axios POST to backend here
+
+    try {
+      const response = await fetch('http://localhost:5000/api/questions/review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          questionId,
+          code,
+          languageId,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('[RESPONSE]', data);
+      alert('Code submitted!');
+    } catch (err) {
+      console.error('[ERROR] Failed to submit code:', err);
+      alert('Error submitting code');
+    }
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <label>
-        Enter Code:
-        <br />
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          rows={20}
-          cols={80}
-        />
-      </label>
+      <textarea
+        rows="15"
+        cols="80"
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        placeholder="Write your code here..."
+        style={{ fontFamily: 'monospace', whiteSpace: 'pre', tabSize: 2 }}
+      />
       <br />
-      <button type="submit">Submit</button>
+      <button type="submit">Submit Code</button>
     </form>
   );
 }
