@@ -1,4 +1,6 @@
 const db = require('../config/db');
+const { checkAchievements } = require('./achievementController'); // 👈 Importación clave
+
 // Obtener todos los torneos
 const getAllTournaments = async (req, res) => {
   try {
@@ -7,7 +9,7 @@ const getAllTournaments = async (req, res) => {
   } catch (error) {
     console.error("Error fetching tournaments:", error);
     res.status(500).json({ error: "Internal Server Error" });
-}
+  }
 };
 
 // Obtener un torneo especifico por ID
@@ -18,38 +20,47 @@ const getTournamentById = async (req, res) => {
     if (results.length === 0) {
       return res.status(404).json({ error: "Tournament not found" });
     }
-    res.json(results[0]); // Send the specific tournament object
+    res.json(results[0]);
   } catch (error) {
     console.error("Error fetching tournament:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// esta funcion nos ayudara a poder inscribir usuarios a los torneos
+// Inscribir usuario a torneo
 const participateInTournament = async (req, res) => {
   try {
+    const userId = req.user.sub;
+    const tournamentId = req.body.tournament_id;
+
     await db.promise().query(
       `INSERT INTO Tournament_Participation 
        (user_id, tournament_id, score) 
-       VALUES (?, ?, 0)`, // Default score 0
-      [req.user.sub, req.body.tournament_id] // sub from JWT
+       VALUES (?, ?, 0)`,
+      [userId, tournamentId]
     );
+
+    // ✅ Verificar logros automáticamente
+    await checkAchievements(userId);
+
     res.json({ success: true });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
       res.status(400).json({ error: "Already enrolled" });
     } else {
+      console.error("Error during tournament enrollment:", error);
       res.status(500).json({ error: "Enrollment failed" });
     }
   }
 };
 
+// Cancelar inscripción a torneo
 const quitTournament = async (req, res) => {
   try {
     await db.promise().query(
       `DELETE FROM Tournament_Participation 
        WHERE user_id = ? AND tournament_id = ?`,
-      [req.user.sub, req.body.tournament_id] // sub from JWT
+      [req.user.sub, req.body.tournament_id]
     );
     res.json({ success: true });
   } catch (error) {
@@ -57,59 +68,44 @@ const quitTournament = async (req, res) => {
   }
 };
 
-//This should check the enrollment for a specific challenge
+// Verificar si está inscrito en torneo
 const checkEnrollment = async (req, res) => {
-  try{
-    console.log("Req user", req.user);
-    if(!req.user?.sub){
-      return res.status(401).json({error: "User not authed"});
+  try {
+    if (!req.user?.sub) {
+      return res.status(401).json({ error: "User not authed" });
     }
     const [enrollment] = await db.promise().query(
       `SELECT * FROM Tournament_Participation
-      WHERE user_id = ? AND tournament_id = ?`,
-      [req.user.sub, req.params.id] //we get this from jwt
+       WHERE user_id = ? AND tournament_id = ?`,
+      [req.user.sub, req.params.id]
     );
-  
-  res.json({enrolled: enrollment.length>0});
-  } catch (error){
+
+    res.json({ enrolled: enrollment.length > 0 });
+  } catch (error) {
     console.error("Enrollment check error: ", error);
-    res.status(500).json({error: "Failed to check enrollment"});
+    res.status(500).json({ error: "Failed to check enrollment" });
   }
 };
 
-
-
-/*
- Esta funcion es para desplegar todos los challenges inscritos asociados a un ID, pero la verdad creo que podemos optimizarlo si cambiamos un poco el checkEnrollment, no se
- */
-
-/*la funcion deleteTournament borra un torneo en especifico, tiene que poder borrar el torneo y las inscripciones asociadas al torneos
-
-por esto mismo, tenemos que:
-1. Borrar las participaciones asociadas al ID del torneo
-2. Finalmente, borrar el torneo
-
-Esto tiene que ser tratado como una transaccion, porque si algo sale mal en el primer paso, se nos jode la integridad de los datos, por eso necesitamos atomicidad
-  */
-//ESTE ENDPOINT PUEDE FALLAR SI LE MOVEMOS A LAS FKS RELACIONADAS A LA TABLA Tournament
-const deleteTournament = async (req,res) => {
+// Eliminar torneo y participaciones asociadas
+const deleteTournament = async (req, res) => {
   const tournamentId = req.params.id;
 
-  try{
+  try {
     const [result] = await db.promise().query(
       'DELETE FROM Tournament WHERE tournament_id = ?',
       [tournamentId]
     );
 
-    if(result.affectedRows === 0) {
-      return res.status(404).json({error: "Tournament not found"});
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Tournament not found" });
     }
 
     res.json({
       success: true,
       message: "Tournament and all related data deleted successfully"
     });
-  } catch (error){
+  } catch (error) {
     console.error("Delete error: ", error);
     res.status(500).json({
       success: false,
@@ -117,16 +113,16 @@ const deleteTournament = async (req,res) => {
       details: error.sqlMessage || error.message
     });
   }
-}
+};
 
-//este nos ayuda a editar torneos
+// Editar torneo
 const updateTournament = async (req, res) => {
   const { id } = req.params;
   const { name, description, time_limit } = req.body;
 
-  if (!name || !time_limit) {
-    return res.status(400).json({ 
-      error: "Name and time limit are required" 
+  if (!name || time_limit === undefined) {
+    return res.status(400).json({
+      error: "Name and time limit are required"
     });
   }
 
@@ -142,7 +138,7 @@ const updateTournament = async (req, res) => {
       return res.status(404).json({ error: "Tournament not found" });
     }
 
-    res.json({ 
+    res.json({
       success: true,
       message: "Tournament updated successfully",
       tournament: { id, name, description, time_limit }
@@ -150,19 +146,19 @@ const updateTournament = async (req, res) => {
 
   } catch (error) {
     console.error("Update error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Update failed",
-      details: error.sqlMessage || error.message 
+      details: error.sqlMessage || error.message
     });
   }
 };
 
+// Crear torneo
 const createTournament = async (req, res) => {
   const { name, description, time_limit } = req.body;
 
-  // Validation
   if (!name || time_limit === undefined) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: "Name and time limit are required",
       received: req.body
     });
@@ -205,4 +201,3 @@ module.exports = {
   updateTournament,
   createTournament
 };
-

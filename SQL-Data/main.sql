@@ -81,4 +81,10 @@ CREATE TABLE User_Achievement (
     FOREIGN KEY (achievement_id) REFERENCES Achievement(achievement_id)
 );
 
+INSERT INTO Achievement (name, description) VALUES
+('First Tournament', 'Participate in your first tournament'),
+('First Challenge Completed', 'Complete your first challenge'),
+('Level 5 Reached', 'Reach level 5'),
+('Top 5 Achiever', 'Be in the top 5 of the leaderboard'),
+('Team Tournament', 'Participate in a team tournament');
 

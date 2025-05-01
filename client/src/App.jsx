@@ -89,6 +89,7 @@ const App = () => {
         <Route path="/challenges/:challengeId/:questionId" element={<ChallengeQuestion />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/blog" element={<Blog />} />
+        <Route path="/challenges/:challengeId/:questionId" element={<ChallengeQuestion />} />
         <Route
           path="/admin/*"
           element={
