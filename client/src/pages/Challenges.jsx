@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../contexts/ThemeContext";
 
 const Challenges = () => {
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const fetchChallenges = async () => {
@@ -30,27 +32,67 @@ const Challenges = () => {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4 text-primary">Available Challenges</h1>
-      <p className="mb-4 text-base-content">You should see this if you're logged in</p>
+    <div className="p-4 md:p-6 lg:p-8 container mx-auto max-w-7xl">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-primary mb-2">Available Challenges</h1>
+          <p className="text-base-content opacity-80">Browse and participate in coding challenges</p>
+        </div>
+        <div className="stats shadow mt-4 md:mt-0 bg-base-200 w-full md:w-auto">
+          <div className="stat px-6">
+            <div className="stat-title">Total Challenges</div>
+            <div className="stat-value text-primary">{challenges.length}</div>
+          </div>
+        </div>
+      </div>
 
-      {loading && <p className="text-sm">Loading challenges...</p>}
-      {error && <p className="text-error">Error: {error}</p>}
+      {loading && (
+        <div className="flex justify-center my-12">
+          <span className="loading loading-spinner loading-lg text-primary"></span>
+        </div>
+      )}
+      
+      {error && (
+        <div className="alert alert-error rounded-md my-6">
+          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span>{error}</span>
+        </div>
+      )}
 
-      {!loading && !error && (
-        <div className="space-y-4">
+      {!loading && !error && challenges.length === 0 && (
+        <div className="alert alert-info rounded-md">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>No challenges available at the moment. Check back later!</span>
+        </div>
+      )}
+
+      {!loading && !error && challenges.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {challenges.map((challenge) => (
             <div
               key={challenge.tournament_id}
-              className="p-4 bg-base-100 shadow rounded-lg"
+              className="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden h-full"
             >
-              <h2 className="font-semibold">{challenge.name}</h2>
-              <button
-                onClick={() => handleButtonClick(challenge.tournament_id)}
-                className="btn btn-sm btn-primary mt-2"
-              >
-                View Challenge
-              </button>
+              <div className="card-body p-6">
+                <div className="card-actions justify-end">
+                  <div className="badge badge-primary">Challenge</div>
+                </div>
+                <h2 className="card-title text-base-content">{challenge.name}</h2>
+                <p className="text-base-content opacity-70 line-clamp-2">
+                  {challenge.description || "Test your skills with this exciting challenge!"}
+                </p>
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="badge badge-outline">Time: {challenge.time_limit || "3"} min</div>
+                </div>
+                <div className="card-actions justify-end mt-4">
+                  <button
+                    onClick={() => handleButtonClick(challenge.tournament_id)}
+                    className="btn btn-primary rounded-md w-full md:w-auto min-w-[140px] font-normal h-10"
+                  >
+                    View Challenge
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>
