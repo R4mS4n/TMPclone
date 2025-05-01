@@ -116,7 +116,7 @@ export default function ChallengeQuestion() {
     }
   }, [challengeId]);
 
-  const handleCodeSubmit = async (code) => {
+  const handleCodeSubmit = async (code, language) => {
     // Show feedback status as we process
     setFeedback({
       status: 'info',
@@ -135,7 +135,7 @@ export default function ChallengeQuestion() {
       //   body: JSON.stringify({
       //     question_id: questionId,
       //     code: code,
-      //     language: question.language
+      //     language: language // Use the selected language from the dropdown
       //   })
       // });
       
@@ -286,7 +286,7 @@ export default function ChallengeQuestion() {
               <div className="card-body p-6">
                 <h2 className="card-title text-xl mb-4">Code Editor</h2>
                 <CodeForm 
-                  language={null}
+                  language={question.language}
                   initialCode={template}
                   onSubmit={handleCodeSubmit}
                 />
