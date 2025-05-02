@@ -114,6 +114,12 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
 
   const handleHonor = async (commentId) => {
     try {
+      // Check if post is closed
+      if (post.status === 'closed') {
+        setError('Cannot give honor to comments in closed posts');
+        return;
+      }
+
       const token = localStorage.getItem('authToken');
       if (!token) {
         setError('You must be logged in to give honor');
@@ -160,6 +166,41 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       console.error('Error in handleHonor:', error);
       setError(error.message || 'Failed to give honor. Please try again.');
     }
+  };
+
+  // Render the comment section based on post status
+  const renderCommentSection = () => {
+    if (post.status === 'closed') {
+      return (
+        <div className="mb-6 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-md">
+          This post is closed. New comments are not allowed.
+        </div>
+      );
+    }
+
+    return (
+      <form onSubmit={handleSubmitComment} className="mb-6">
+        <div className="mb-4">
+          <textarea
+            placeholder="Add a comment..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            rows="3"
+            required
+          ></textarea>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50"
+          >
+            {submitting ? 'Posting...' : 'Post Comment'}
+          </button>
+        </div>
+      </form>
+    );
   };
 
   if (!isOpen) return null;
@@ -256,27 +297,7 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                 {post.comments && post.comments.length} Comment{post.comments && post.comments.length !== 1 ? 's' : ''}
               </h3>
               
-              <form onSubmit={handleSubmitComment} className="mb-6">
-                <div className="mb-4">
-                  <textarea
-                    placeholder="Add a comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    rows="3"
-                    required
-                  ></textarea>
-                </div>
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50"
-                  >
-                    {submitting ? 'Posting...' : 'Post Comment'}
-                  </button>
-                </div>
-              </form>
+              {renderCommentSection()}
               
               <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
                 {post.comments && post.comments.map((comment) => (
@@ -303,12 +324,17 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                     <div className="flex justify-between items-center pl-12">
                       <button
                         onClick={() => handleHonor(comment.comment_id)}
-                        className="text-sm flex items-center text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+                        disabled={post.status === 'closed'}
+                        className={`text-sm flex items-center ${
+                          post.status === 'closed'
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400'
+                        }`}
                       >
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        Give Honor
+                        {post.status === 'closed' ? 'Honor Disabled' : 'Give Honor'}
                       </button>
                       <span className="text-sm text-gray-500 dark:text-gray-400">
                         {comment.honor_count} Honor

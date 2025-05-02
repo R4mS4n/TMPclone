@@ -30,13 +30,52 @@ const Blog = () => {
       try {
         setLoading(true);
         console.log('Fetching posts with status:', activeTab);
-        const response = await fetch(`${API_BASE_URL}/api/posts?status=${activeTab}`);
+        
+        let endpoint = `${API_BASE_URL}/api/posts`;
+        
+        // Add sorting criteria based on activeTab
+        switch(activeTab) {
+          case 'new':
+            endpoint += '?sort=created_at';
+            break;
+          case 'top':
+            endpoint += '?sort=likes';
+            break;
+          case 'hot':
+            endpoint += '?sort=views';
+            break;
+          case 'closed':
+            endpoint += '?status=closed';
+            break;
+          default:
+            endpoint += '?sort=created_at';
+        }
+
+        const response = await fetch(endpoint);
         if (!response.ok) {
           throw new Error('Failed to fetch posts');
         }
         const data = await response.json();
-        console.log('API response:', data);
-        setPosts(data);
+        
+        // Sort the posts based on the activeTab criteria
+        let sortedPosts = [...data];
+        switch(activeTab) {
+          case 'new':
+            sortedPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            break;
+          case 'top':
+            sortedPosts.sort((a, b) => b.interactions.likes - a.interactions.likes);
+            break;
+          case 'hot':
+            sortedPosts.sort((a, b) => b.interactions.views - a.interactions.views);
+            break;
+          // For closed posts, maintain server-side sorting
+          default:
+            break;
+        }
+
+        console.log('Sorted posts:', sortedPosts);
+        setPosts(sortedPosts);
         setError(null);
       } catch (err) {
         console.error('Error fetching posts:', err);
@@ -143,6 +182,13 @@ const Blog = () => {
   const handleLikePost = async (postId, e) => {
     e.stopPropagation(); // Prevent opening the post detail modal
     
+    // Find the post to check its status
+    const post = posts.find(p => p.post_id === postId);
+    if (post?.status === 'closed') {
+      setError('Cannot like closed posts');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
@@ -159,7 +205,8 @@ const Blog = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to like post');
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to like post');
       }
 
       const data = await response.json();
@@ -185,6 +232,7 @@ const Blog = () => {
       );
     } catch (err) {
       console.error('Error liking post:', err);
+      setError(err.message || 'Failed to like post');
     }
   };
 
@@ -375,8 +423,13 @@ const Blog = () => {
                           <span>{post.interactions.views}</span>
                         </div>
                         <div 
-                          className="flex items-center cursor-pointer hover:text-primary transition-colors duration-200"
+                          className={`flex items-center ${
+                            post.status === 'closed' 
+                              ? 'cursor-not-allowed text-gray-400' 
+                              : 'cursor-pointer hover:text-primary transition-colors duration-200'
+                          }`}
                           onClick={(e) => handleLikePost(post.post_id, e)}
+                          title={post.status === 'closed' ? 'Cannot like closed posts' : ''}
                         >
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
