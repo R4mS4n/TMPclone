@@ -312,24 +312,36 @@ const interactWithPost = async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
     
-    // Para likes, verificar si el usuario ya dio like
-    if (type === 'like') {
-      const [existingLikes] = await db.promise().query(
-        'SELECT * FROM Post_Interaction WHERE post_id = ? AND user_id = ? AND interaction_type = ?',
+    // Para likes y views, verificar si el usuario ya interactuó
+    const [existingInteractions] = await db.promise().query(
+      'SELECT * FROM Post_Interaction WHERE post_id = ? AND user_id = ? AND interaction_type = ?',
+      [id, user_id, type]
+    );
+    
+    // Si es un like y ya existe, eliminar el like (toggle)
+    if (type === 'like' && existingInteractions.length > 0) {
+      await db.promise().query(
+        'DELETE FROM Post_Interaction WHERE post_id = ? AND user_id = ? AND interaction_type = ?',
         [id, user_id, 'like']
       );
-      
-      if (existingLikes.length > 0) {
-        // Si ya dio like, eliminarlo (toggle)
-        await db.promise().query(
-          'DELETE FROM Post_Interaction WHERE post_id = ? AND user_id = ? AND interaction_type = ?',
-          [id, user_id, 'like']
-        );
-        return res.status(200).json({ message: 'Like removed' });
-      }
+      return res.status(200).json({ message: 'Like removed' });
     }
     
-    // Registrar la interacción
+    // Si es una vista y ya existe, no hacer nada pero devolver éxito
+    if (type === 'view' && existingInteractions.length > 0) {
+      // Get current count for this interaction type
+      const [interactions] = await db.promise().query(
+        'SELECT COUNT(*) as count FROM Post_Interaction WHERE post_id = ? AND interaction_type = ?',
+        [id, type]
+      );
+      
+      return res.status(200).json({ 
+        message: 'View already recorded',
+        count: interactions[0].count
+      });
+    }
+    
+    // Registrar la interacción solo si no existe
     await db.promise().query(
       'INSERT INTO Post_Interaction (post_id, user_id, interaction_type) VALUES (?, ?, ?)',
       [id, user_id, type]

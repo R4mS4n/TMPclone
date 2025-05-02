@@ -11,6 +11,8 @@ const Leaderboard = () => {
   const [tournaments, setTournaments] = useState([]);
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [participants, setParticipants] = useState(0);
+  const [honorLeaderboard, setHonorLeaderboard] = useState([]);
+  const [honorLeaderboardLoading, setHonorLeaderboardLoading] = useState(true);
 
   useEffect(() => {
     // Fetch tournaments first
@@ -93,8 +95,68 @@ const Leaderboard = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch honor leaderboard data
+  useEffect(() => {
+    if (selectedTab === 'honor') {
+      fetchHonorLeaderboard();
+    } else if (selectedTab === 'all' || selectedTab === 'teams') {
+      // When switching to non-honor tabs, make sure to fetch data if we have a selected tournament
+      if (selectedTournament) {
+        fetchLeaderboardData(selectedTournament);
+      }
+    }
+  }, [selectedTab]);
+
+  const fetchHonorLeaderboard = async () => {
+    try {
+      setHonorLeaderboardLoading(true);
+      // Also set the regular loading state to false to avoid loading spinner conflicts
+      setLoading(false);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:5000/api/user/honor-leaderboard', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch honor leaderboard');
+      }
+      
+      const data = await response.json();
+      console.log('Honor leaderboard data:', data);
+      
+      if (data.success && data.leaderboard) {
+        // Transform the data to match the leaderboard format
+        const formattedData = data.leaderboard.map((user, index) => ({
+          user_id: user.user_id,
+          username: user.username,
+          profile_pic: user.profile_pic,
+          score: user.honor_points, // Use honor_points as the score
+          position: index + 1,
+          // Add default values for other fields
+          level: 1,
+          xp: 0,
+          achievements: 0
+        }));
+        
+        setHonorLeaderboard(formattedData);
+        setParticipants(formattedData.length);
+      } else {
+        setHonorLeaderboard([]);
+      }
+    } catch (err) {
+      console.error('Error fetching honor leaderboard:', err);
+      setError('Failed to fetch honor leaderboard');
+    } finally {
+      setHonorLeaderboardLoading(false);
+    }
+  };
+
   const fetchLeaderboardData = async (tournamentId) => {
     setLoading(true);
+    // Also reset the honor loading state to avoid conflicts
+    setHonorLeaderboardLoading(false);
     try {
       const token = localStorage.getItem('authToken');
       
@@ -235,10 +297,18 @@ const Leaderboard = () => {
     fetchLeaderboardData(tournamentId);
   };
 
+  // Add a dedicated tab changing handler
+  const handleTabChange = (tab) => {
+    // Set the selected tab
+    setSelectedTab(tab);
+    
+    // The useEffect will handle the data loading based on selected tab
+  };
+
   const filterLeaderboardData = () => {
     // Filter data based on selected tab
     if (selectedTab === 'honor') {
-      return leaderboardData;
+      return honorLeaderboardLoading ? [] : honorLeaderboard;
     } else if (selectedTab === 'teams') {
       // Group by team_id and sum scores
       const teamScores = new Map();
@@ -338,6 +408,8 @@ const Leaderboard = () => {
 
   // Get filtered and processed data to display
   const displayData = filterLeaderboardData();
+  const isHonorTab = selectedTab === 'honor';
+  const isLoading = isHonorTab ? honorLeaderboardLoading : loading;
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -348,7 +420,7 @@ const Leaderboard = () => {
             <div>
               <h2 className="card-title text-2xl md:text-3xl font-bold text-primary">Leaderboard</h2>
               
-              {tournaments.length > 0 && (
+              {!isHonorTab && tournaments.length > 0 && (
                 <div className="mt-2">
                   <div className="relative">
                     <select 
@@ -380,7 +452,7 @@ const Leaderboard = () => {
                 <span className="font-bold text-lg text-primary">{participants}</span>
               </div>
               
-              {timeRemaining && (
+              {timeRemaining && !isHonorTab && (
                 <div className="flex flex-col items-center">
                   <span className="text-sm text-gray-500">Time Remaining</span>
                   <span className="text-xl md:text-2xl font-bold text-primary">{timeRemaining}</span>
@@ -389,7 +461,7 @@ const Leaderboard = () => {
             </div>
           </div>
           
-          {/* Prizes section */}
+          {/* Prizes section - show for all tabs */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="flex flex-col items-center">
               <div className="text-sm text-gray-500">1st Prize</div>
@@ -410,19 +482,19 @@ const Leaderboard = () => {
             <div className="bg-base-300 rounded-lg p-1 inline-flex">
               <button 
                 className={`px-4 py-2 rounded-md transition-colors ${selectedTab === 'honor' ? 'bg-primary text-white' : 'hover:bg-base-200'}`}
-                onClick={() => setSelectedTab('honor')}
+                onClick={() => handleTabChange('honor')}
               >
                 Honor
               </button>
               <button 
                 className={`px-4 py-2 rounded-md transition-colors ${selectedTab === 'all' ? 'bg-primary text-white' : 'hover:bg-base-200'}`}
-                onClick={() => setSelectedTab('all')}
+                onClick={() => handleTabChange('all')}
               >
                 All
               </button>
               <button 
                 className={`px-4 py-2 rounded-md transition-colors ${selectedTab === 'teams' ? 'bg-primary text-white' : 'hover:bg-base-200'}`}
-                onClick={() => setSelectedTab('teams')}
+                onClick={() => handleTabChange('teams')}
               >
                 Teams
               </button>
@@ -430,15 +502,15 @@ const Leaderboard = () => {
           </div>
 
           {/* No data message */}
-          {!loading && !error && displayData.length === 0 && (
+          {!isLoading && !error && displayData.length === 0 && (
             <div className="alert alert-info">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <span>No participants found for this tournament yet.</span>
+              <span>{isHonorTab ? 'No honor data available yet.' : 'No participants found for this tournament yet.'}</span>
             </div>
           )}
 
           {/* Leaderboard table */}
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center items-center h-40">
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
@@ -455,31 +527,43 @@ const Leaderboard = () => {
                     <th className="text-center">Position</th>
                     <th className="text-center">Avatar</th>
                     <th>{selectedTab === 'teams' ? 'Team' : 'Username'}</th>
-                    <th>Level</th>
-                    <th>Achievements</th>
-                    <th className="text-right">Score</th>
+                    <th>{isHonorTab ? 'Honor Points' : 'Level'}</th>
+                    {!isHonorTab && <th>Achievements</th>}
+                    <th className="text-right">{isHonorTab ? 'Honor' : 'Score'}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayData.map((entry) => (
                     <tr 
-                      key={selectedTab === 'teams' ? `team-${entry.team_id}` : `user-${entry.user_id}-${entry.tournament_id}`} 
+                      key={selectedTab === 'teams' ? `team-${entry.team_id}` : `user-${entry.user_id}-${entry.tournament_id || 'honor'}`} 
                       className={`${entry.position <= 3 ? 'font-semibold' : ''}`}
                     >
                       <td className="text-center">{renderRank(entry.position)}</td>
                       <td className="text-center">
                         <div className="avatar">
-                          <div className="w-8 h-8 rounded-full bg-gray-300">
-                            {/* User/Team avatar would go here */}
+                          <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden">
+                            {entry.profile_pic ? (
+                              <img src={entry.profile_pic} alt={entry.username} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                {entry.username.charAt(0).toUpperCase()}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
                       <td>{entry.username}</td>
                       <td>
-                        {selectedTab !== 'teams' && entry.level && renderLevel(entry.level, entry.xp)}
-                        {selectedTab === 'teams' && <span className="badge badge-secondary">{entry.members} members</span>}
+                        {isHonorTab ? (
+                          <span className="font-semibold">{entry.score} points</span>
+                        ) : (
+                          <>
+                            {selectedTab !== 'teams' && entry.level && renderLevel(entry.level, entry.xp)}
+                            {selectedTab === 'teams' && <span className="badge badge-secondary">{entry.members} members</span>}
+                          </>
+                        )}
                       </td>
-                      <td>{renderAchievements(entry.achievements || 0)}</td>
+                      {!isHonorTab && <td>{renderAchievements(entry.achievements || 0)}</td>}
                       <td className="text-right font-bold text-primary">{entry.score}</td>
                     </tr>
                   ))}

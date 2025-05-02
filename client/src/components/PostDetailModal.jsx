@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { formatTimeAgo } from '../utils/timeUtils';
 
-// Set base URL for API requests if not already set
-if (!axios.defaults.baseURL) {
-  axios.defaults.baseURL = 'http://localhost:5000';
-}
+const API_BASE_URL = 'http://localhost:5000';
 
 const PostDetailModal = ({ isOpen, onClose, postId }) => {
   const [post, setPost] = useState(null);
@@ -12,12 +9,38 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [timeRefresh, setTimeRefresh] = useState(0);
 
   useEffect(() => {
     if (isOpen && postId) {
       fetchPostDetails();
+      
+      // Set up periodic data refresh while modal is open
+      const refreshDataInterval = setInterval(() => {
+        fetchPostDetails();
+      }, 60000 * 5); // Refresh post data every 5 minutes
+      
+      return () => clearInterval(refreshDataInterval);
     }
   }, [isOpen, postId]);
+
+  // Set up automatic refreshing of timestamps
+  useEffect(() => {
+    let timeInterval;
+    
+    if (isOpen) {
+      // Update timestamps every minute
+      timeInterval = setInterval(() => {
+        setTimeRefresh(prev => prev + 1);
+      }, 60000);
+    }
+    
+    return () => {
+      if (timeInterval) {
+        clearInterval(timeInterval);
+      }
+    };
+  }, [isOpen]);
 
   const fetchPostDetails = async () => {
     try {
@@ -25,17 +48,13 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       setError(null);
       console.log('Fetching post details for post ID:', postId);
       
-      // Obtener post y comentarios
-      try {
-        const response = await axios.get(`/api/posts/${postId}`);
-        
-        console.log('Post details:', response.data);
-        
-        setPost(response.data);
-      } catch (err) {
-        console.error('API request failed:', err);
-        setError('Failed to load post details. Please try again later.');
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch post details');
       }
+      const data = await response.json();
+      console.log('Post details:', data);
+      setPost(data);
     } catch (error) {
       console.error('Error in fetchPostDetails:', error);
       setError('Failed to load post details. Please try again later.');
@@ -52,120 +71,94 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
     setError(null);
     
     try {
-      console.log('Posting comment to post ID:', postId);
-      console.log('Comment content:', newComment);
-      
-      // Obtener token de autenticación del localStorage
       const token = localStorage.getItem('authToken');
-      
       if (!token) {
         setError('You must be logged in to post a comment');
-        setSubmitting(false);
         return;
       }
       
-      // Configurar el encabezado de autorización
-      const config = {
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/comments`, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      };
-      
-      // Try to post comment via API
-      try {
-        const response = await axios.post(`/api/posts/${postId}/comments`, {
-          content: newComment
-        }, config);
-        
-        console.log('Comment posted successfully:', response.data);
-        
-        // Actualizar el post con el nuevo comentario
-        setPost({
-          ...post,
-          comments: [...post.comments, response.data],
-          interactions: {
-            ...post.interactions,
-            comments: post.interactions.comments + 1
-          }
-        });
-        
-        setNewComment('');
-      } catch (err) {
-        console.error('API request failed:', err);
-        
-        if (err.response?.status === 401) {
-          setError('Your session has expired. Please log in again.');
-        } else {
-          setError(err.response?.data?.message || 'Failed to post your comment. Please try again.');
-        }
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content: newComment })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to post comment');
       }
+
+      const data = await response.json();
+      
+      // Update the post with the new comment
+      setPost({
+        ...post,
+        comments: [...post.comments, data],
+        interactions: {
+          ...post.interactions,
+          comments: post.interactions.comments + 1
+        }
+      });
+      
+      setNewComment('');
     } catch (error) {
       console.error('Error in handleSubmitComment:', error);
-      setError('Failed to post your comment. Please try again.');
+      setError(error.message || 'Failed to post your comment. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const formatTimeAgo = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} min ago`;
-    } else if (diffInMinutes < 24 * 60) {
-      return `${Math.floor(diffInMinutes / 60)} hours ago`;
-    } else {
-      return `${Math.floor(diffInMinutes / (60 * 24))} days ago`;
-    }
-  };
-
   const handleHonor = async (commentId) => {
     try {
-      console.log('Giving honor to comment ID:', commentId);
-      
-      // Obtener token de autenticación del localStorage
       const token = localStorage.getItem('authToken');
-      
       if (!token) {
         setError('You must be logged in to give honor');
         return;
       }
       
-      // Configurar el encabezado de autorización
-      const config = {
+      const response = await fetch(`${API_BASE_URL}/api/posts/comments/${commentId}/honor`, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      };
-      
-      // Try to give honor via API
-      try {
-        await axios.post(`/api/posts/comments/${commentId}/honor`, {}, config);
-        console.log('Honor given successfully');
-        
-        // Actualizar el honor count en la UI
-        setPost({
-          ...post,
-          comments: post.comments.map(comment => 
-            comment.comment_id === commentId
-              ? { ...comment, honor_count: comment.honor_count + 1 }
-              : comment
-          )
-        });
-      } catch (err) {
-        console.error('API request failed:', err);
-        
-        if (err.response?.status === 401) {
-          setError('Your session has expired. Please log in again.');
-        } else {
-          setError(err.response?.data?.message || 'Failed to give honor. Please try again.');
-        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to give honor');
       }
+
+      const data = await response.json();
+      
+      // Check if honor was added or removed
+      const isHonorRemoved = data.message === 'Honor removed';
+      
+      // Update the honor count in the UI
+      setPost({
+        ...post,
+        comments: post.comments.map(comment => 
+          comment.comment_id === commentId
+            ? { 
+                ...comment, 
+                honor_count: isHonorRemoved
+                  ? comment.honor_count - 1
+                  : comment.honor_count + 1
+              }
+            : comment
+        )
+      });
+      
+      // Refresh the honor leaderboard
+      window.dispatchEvent(new CustomEvent('honor-update'));
+      
     } catch (error) {
       console.error('Error in handleHonor:', error);
-      setError('Failed to give honor. Please try again.');
+      setError(error.message || 'Failed to give honor. Please try again.');
     }
   };
 

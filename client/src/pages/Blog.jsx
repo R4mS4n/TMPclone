@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import CreatePostModal from '../components/CreatePostModal';
 import PostDetailModal from '../components/PostDetailModal';
 import '../styles/blog.css';
 import { useTheme } from '../contexts/ThemeContext';
+import { formatTimeAgo } from '../utils/timeUtils';
 
-// Set base URL for API requests
-axios.defaults.baseURL = 'http://localhost:5000';
+const API_BASE_URL = 'http://localhost:5000';
 
 const Blog = () => {
   console.log('Blog component rendering');
@@ -19,8 +18,10 @@ const Blog = () => {
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [isPostDetailModalOpen, setIsPostDetailModalOpen] = useState(false);
   const [error, setError] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [timeRefresh, setTimeRefresh] = useState(0);
   
-  // Llamamos a useTheme pero no usamos sus valores ahora
   useTheme();
 
   // Fetch posts from API
@@ -29,11 +30,13 @@ const Blog = () => {
       try {
         setLoading(true);
         console.log('Fetching posts with status:', activeTab);
-        const response = await axios.get('/api/posts', {
-          params: { status: activeTab }
-        });
-        console.log('API response:', response.data);
-        setPosts(response.data);
+        const response = await fetch(`${API_BASE_URL}/api/posts?status=${activeTab}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts');
+        }
+        const data = await response.json();
+        console.log('API response:', data);
+        setPosts(data);
         setError(null);
       } catch (err) {
         console.error('Error fetching posts:', err);
@@ -44,7 +47,58 @@ const Blog = () => {
     };
 
     fetchPosts();
+    
+    // Set up periodic data refresh
+    const refreshInterval = setInterval(() => {
+      fetchPosts();
+    }, 60000 * 5); // Refresh every 5 minutes
+    
+    return () => clearInterval(refreshInterval);
   }, [activeTab]);
+
+  // Set up automatic refreshing of timestamps
+  useEffect(() => {
+    // Update timestamps every minute
+    const timeInterval = setInterval(() => {
+      setTimeRefresh(prev => prev + 1);
+    }, 60000);
+    
+    return () => clearInterval(timeInterval);
+  }, []);
+
+  // Fetch honor leaderboard data
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        setLeaderboardLoading(true);
+        const response = await fetch(`${API_BASE_URL}/api/user/honor-leaderboard`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch leaderboard');
+        }
+        const data = await response.json();
+        console.log('Leaderboard data:', data);
+        setLeaderboard(data.leaderboard || []);
+      } catch (err) {
+        console.error('Error fetching honor leaderboard:', err);
+      } finally {
+        setLeaderboardLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+
+    // Add event listener for honor updates
+    const handleHonorUpdate = () => {
+      console.log('Honor update detected, refreshing leaderboard');
+      fetchLeaderboard();
+    };
+
+    window.addEventListener('honor-update', handleHonorUpdate);
+
+    return () => {
+      window.removeEventListener('honor-update', handleHonorUpdate);
+    };
+  }, []);
 
   // Filter posts based on search query
   const filteredPosts = posts.filter(post => 
@@ -55,50 +109,63 @@ const Blog = () => {
 
   console.log('Filtered posts:', filteredPosts);
 
-  const formatTimeAgo = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} min ago`;
-    } else if (diffInMinutes < 24 * 60) {
-      return `${Math.floor(diffInMinutes / 60)} hours ago`;
-    } else {
-      return `${Math.floor(diffInMinutes / (60 * 24))} days ago`;
-    }
-  };
-
   const handlePostCreated = (newPost) => {
     setPosts([newPost, ...posts]);
   };
 
-  const openPostDetail = (postId) => {
+  const openPostDetail = async (postId) => {
     setSelectedPostId(postId);
     setIsPostDetailModalOpen(true);
     
-    // Increment view count (would normally be handled by the API)
-    setPosts(
-      posts.map(post => 
-        post.post_id === postId
-          ? { 
-              ...post, 
-              interactions: { 
-                ...post.interactions, 
-                views: post.interactions.views + 1 
-              } 
-            }
-          : post
-      )
-    );
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('Authentication required to track views');
+        return;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/view`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to record view');
+      }
+    } catch (err) {
+      console.error('Error recording view:', err);
+    }
   };
 
   const handleLikePost = async (postId, e) => {
     e.stopPropagation(); // Prevent opening the post detail modal
     
     try {
-      // Make an API call to like the post
-      await axios.post(`/api/posts/${postId}/like`);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('Authentication required to like posts');
+        return;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/like`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like post');
+      }
+
+      const data = await response.json();
+      
+      // Check if like was added or removed based on response
+      const isLikeRemoved = data.message === 'Like removed';
       
       // Update local state
       setPosts(
@@ -108,7 +175,9 @@ const Blog = () => {
                 ...post, 
                 interactions: { 
                   ...post.interactions, 
-                  likes: post.interactions.likes + 1 
+                  likes: isLikeRemoved 
+                    ? post.interactions.likes - 1 
+                    : post.interactions.likes + 1 
                 } 
               }
             : post
@@ -116,6 +185,62 @@ const Blog = () => {
       );
     } catch (err) {
       console.error('Error liking post:', err);
+    }
+  };
+
+  // Create a function to close the post detail modal and refresh posts
+  const handleClosePostDetail = () => {
+    setIsPostDetailModalOpen(false);
+    
+    // Refresh the posts to get updated view counts
+    const fetchPosts = async () => {
+      try {
+        console.log('Fetching posts with status:', activeTab);
+        const response = await fetch(`${API_BASE_URL}/api/posts?status=${activeTab}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts');
+        }
+        const data = await response.json();
+        setPosts(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching posts:', err);
+      }
+    };
+    
+    fetchPosts();
+  };
+
+  // Get the first initial of a username for the avatar
+  const getUserInitial = (username) => {
+    return username && username.length > 0 ? username.charAt(0).toUpperCase() : '?';
+  };
+
+  // Render badge rank for leaderboard
+  const renderRankBadge = (index) => {
+    switch(index) {
+      case 0:
+        return <div className="text-yellow-500 mr-2 w-6 text-center">🏆</div>;
+      case 1:
+        return <div className="text-gray-400 mr-2 w-6 text-center">🥈</div>;
+      case 2:
+        return <div className="text-amber-700 mr-2 w-6 text-center">🥉</div>;
+      default:
+        return <div className="text-gray-300 mr-2 w-6 text-center">{index + 1}</div>;
+    }
+  };
+
+  // Render honor badge class based on rank
+  const getHonorBadgeClass = (index) => {
+    switch(index) {
+      case 0:
+        return "honor-badge honor-badge-gold";
+      case 1: 
+        return "honor-badge honor-badge-silver";
+      case 2:
+        return "honor-badge honor-badge-bronze";
+      default:
+        return "honor-badge honor-badge-default";
     }
   };
 
@@ -211,7 +336,7 @@ const Blog = () => {
                           </div>
                           <div>
                             <h3 className="font-medium text-base-content">{post.user.username}</h3>
-                            <p className="text-sm text-base-content opacity-60">{formatTimeAgo(post.created_at)}</p>
+                            <span>{formatTimeAgo(post.created_at)}</span>
                           </div>
                         </div>
                         <button 
@@ -295,43 +420,34 @@ const Blog = () => {
             <div className="card-body p-4">
               <h3 className="card-title text-base-content mb-4">Highest Honor Leaderboard</h3>
               
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <div className="text-yellow-500 mr-2 w-6 text-center">🏆</div>
-                  <div className="honor-badge honor-badge-gold mr-2">P</div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-base-content truncate block">Paul C. Romes</span>
-                  </div>
-                  <span className="font-semibold text-base-content ml-2">5075</span>
+              {leaderboardLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className="loading loading-spinner text-primary"></div>
                 </div>
-                
-                <div className="flex items-center">
-                  <div className="text-gray-400 mr-2 w-6 text-center">🥈</div>
-                  <div className="honor-badge honor-badge-silver mr-2">M</div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-base-content truncate block">Michael K. Ch.</span>
-                  </div>
-                  <span className="font-semibold text-base-content ml-2">3500</span>
+              ) : leaderboard.length > 0 ? (
+                <div className="space-y-3">
+                  {leaderboard.map((user, index) => (
+                    <div key={user.user_id} className="flex items-center">
+                      {renderRankBadge(index)}
+                      <div className={`${getHonorBadgeClass(index)} mr-2`}>
+                        {user.profile_pic ? (
+                          <img src={user.profile_pic} alt={user.username} className="w-full h-full object-cover" />
+                        ) : (
+                          getUserInitial(user.username)
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-base-content truncate block">{user.username}</span>
+                      </div>
+                      <span className="font-semibold text-base-content ml-2">{user.honor_points}</span>
+                    </div>
+                  ))}
                 </div>
-                
-                <div className="flex items-center">
-                  <div className="text-amber-700 mr-2 w-6 text-center">🥉</div>
-                  <div className="honor-badge honor-badge-bronze mr-2">J</div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-base-content truncate block">Jennifer A. J.</span>
-                  </div>
-                  <span className="font-semibold text-base-content ml-2">1100</span>
+              ) : (
+                <div className="text-center py-4 text-base-content opacity-60">
+                  No honor data available yet
                 </div>
-                
-                <div className="flex items-center">
-                  <div className="text-gray-300 mr-2 w-6 text-center">4</div>
-                  <div className="honor-badge honor-badge-default mr-2">J</div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-base-content truncate block">Jeremy Fritz...</span>
-                  </div>
-                  <span className="font-semibold text-base-content ml-2">996</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -390,7 +506,7 @@ const Blog = () => {
       {/* Post Detail Modal */}
       <PostDetailModal
         isOpen={isPostDetailModalOpen}
-        onClose={() => setIsPostDetailModalOpen(false)}
+        onClose={handleClosePostDetail}
         postId={selectedPostId}
       />
     </div>
