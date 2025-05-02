@@ -15,17 +15,22 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId }) =
   // Set selectedLanguage if "language" prop is passed
   useEffect(() => {
     if (language) {
+      console.log('[CODE FORM] Setting language from prop:', language);
       const languageObj = languages.find(lang =>
         lang.name.toLowerCase().includes(language.toLowerCase())
       );
       if (languageObj) {
+        console.log('[CODE FORM] Found matching language:', languageObj.name, '(ID:', languageObj.id, ')');
         setSelectedLanguage(languageObj);
+      } else {
+        console.warn('[CODE FORM] No matching language found for:', language);
       }
     }
   }, [language]);
 
   useEffect(() => {
     if (selectedLanguage) {
+      console.log('[CODE FORM] Updating Monaco editor language to:', selectedLanguage.name);
       const monacoLang = getMonacoLanguage(selectedLanguage.name);
       setEditorLanguage(monacoLang);
     }
@@ -33,19 +38,25 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId }) =
 
   useEffect(() => {
     if (initialCode) {
+      console.log('[CODE FORM] Using initial code template (length:', initialCode.length, 'chars)');
       setCode(initialCode);
     } else if (selectedLanguage) {
+      console.log('[CODE FORM] No initial code provided, using template for:', selectedLanguage.name);
       setCode(getCodeTemplate(selectedLanguage.name));
     }
   }, [initialCode, selectedLanguage]);
 
   const handleLanguageChange = (e) => {
     const langId = parseInt(e.target.value);
+    console.log('[CODE FORM] Language changed to ID:', langId);
     const newLanguage = languages.find(lang => lang.id === langId);
     if (newLanguage) {
+      console.log('[CODE FORM] Setting language to:', newLanguage.name);
       setSelectedLanguage(newLanguage);
       if (!initialCode) {
-        setCode(getCodeTemplate(newLanguage.name));
+        const template = getCodeTemplate(newLanguage.name);
+        console.log('[CODE FORM] Setting new template for language (length:', template.length, 'chars)');
+        setCode(template);
       }
     }
   };
@@ -55,6 +66,7 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId }) =
   };
 
   const handleEditorDidMount = (editor) => {
+    console.log('[CODE FORM] Monaco editor mounted');
     editor.updateOptions({
       automaticLayout: true,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
@@ -67,20 +79,27 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId }) =
     });
     editor.focus();
     setIsEditorReady(true);
+    console.log('[CODE FORM] Editor ready for use');
   };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!isEditorReady || isSubmitting) return;
 
+    console.log('[CODE FORM] Submitting code, language:', selectedLanguage.name, 'ID:', selectedLanguage.id);
+    console.log('[CODE FORM] Code length:', code.length, 'characters');
     setIsSubmitting(true);
 
     try {
       if (onSubmit) {
-        // Delegate submission logic
-        await onSubmit(code, selectedLanguage.name);
-      } else if (questionId && languageId) {
+        // Delegate submission logic to parent component
+        console.log('[CODE FORM] Using parent component submission handler');
+        await onSubmit(code, selectedLanguage.name, selectedLanguage.id);
+      } else if (questionId) {
         // Default API submission logic
+        console.log('[CODE FORM] Using default API submission logic');
+        console.log('[CODE FORM] Submitting to /api/questions/review with questionId:', questionId);
+        
         const response = await fetch('http://localhost:5000/api/questions/review', {
           method: 'POST',
           headers: {
@@ -89,18 +108,32 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId }) =
           body: JSON.stringify({
             questionId,
             code,
-            languageId,
+            languageId: selectedLanguage.id,
           }),
         });
 
+        if (!response.ok) {
+          console.error('[CODE FORM] API error:', response.status, response.statusText);
+          throw new Error(`API Error: ${response.status}`);
+        }
+
         const data = await response.json();
-        console.log('[RESPONSE]', data);
-        alert('Code submitted!');
+        console.log('[CODE FORM] Response from API:', data);
+        
+        // Show appropriate message based on Judge0 response
+        if (data.status && data.status.id === 3) {
+          console.log('[CODE FORM] Code submission successful!');
+          alert('Code submitted successfully! All tests passed.');
+        } else {
+          console.warn('[CODE FORM] Code submission error:', data.status?.description || 'Unknown error');
+          alert(`Code submission error: ${data.status?.description || 'Unknown error'}`);
+        }
       }
     } catch (error) {
-      console.error('Error submitting code:', error);
-      alert('Error submitting code');
+      console.error('[CODE FORM] Error submitting code:', error);
+      alert(`Error submitting code: ${error.message}`);
     } finally {
+      console.log('[CODE FORM] Submission process completed');
       setIsSubmitting(false);
     }
   };

@@ -102,7 +102,12 @@ export default function ChallengeQuestion() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleCodeSubmit = async (code, language) => {
+  const handleCodeSubmit = async (code, language, languageId) => {
+    console.log('[CODE SUBMISSION] Starting submission process');
+    console.log('[CODE SUBMISSION] Language:', language);
+    console.log('[CODE SUBMISSION] Language ID:', languageId);
+    console.log('[CODE SUBMISSION] Question ID:', questionId);
+    
     setFeedback({
       status: 'info',
       message: 'Processing submission...',
@@ -110,22 +115,238 @@ export default function ChallengeQuestion() {
     });
 
     try {
-      // Simulate evaluation
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setFeedback({
-        status: 'success',
-        message: 'All tests passed successfully!',
-        details: [
-          { test: 'Test case 1', passed: true, output: 'Expected output matched' },
-          { test: 'Test case 2', passed: true, output: 'Expected output matched' },
-          { test: 'Performance', passed: true, output: 'Execution time: 0.021s' }
-        ]
+      // Use the provided languageId instead of looking it up
+      if (!languageId) {
+        console.log('[CODE SUBMISSION] Language ID not provided, looking up by name');
+        const languageObj = languages.find(lang => lang.name === language);
+        if (!languageObj) {
+          console.error('[CODE SUBMISSION] Unsupported language:', language);
+          throw new Error(`Unsupported language: ${language}`);
+        }
+        languageId = languageObj.id;
+        console.log('[CODE SUBMISSION] Found language ID:', languageId);
+      }
+
+      // Call the backend API to evaluate with Judge0
+      console.log('[CODE SUBMISSION] Sending request to backend');
+      const response = await fetch('http://localhost:5000/api/questions/review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          questionId,
+          code,
+          languageId,
+        }),
       });
+
+      if (!response.ok) {
+        console.error('[CODE SUBMISSION] API Error:', response.status);
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('[CODE SUBMISSION] Received response from backend:', result);
+      
+      // Process Judge0 response
+      if (result.status && result.status.id) {
+        console.log('[CODE SUBMISSION] Judge0 status:', result.status.id, result.status.description);
+        
+        // For Python submissions, check for the case where the function is correct but no print statements were included
+        if (result.status.id === 4 && 
+            (language.toLowerCase().includes('python') || languageId === 71) && 
+            !code.includes('print(')) {
+          console.log('[CODE SUBMISSION] Python code without print statements - likely a correct solution without output');
+          
+          // Try to extract function name for better feedback
+          const functionMatch = code.match(/def\s+([a-zA-Z0-9_]+)\s*\(/);
+          const functionName = functionMatch && functionMatch[1] ? functionMatch[1] : "solution";
+          
+          setFeedback({
+            status: 'warning',
+            message: 'Your solution may be correct, but you need to add print statements',
+            details: [
+              { 
+                test: 'Execution', 
+                passed: false, 
+                output: 'Your function executed but did not print any output for evaluation' 
+              },
+              {
+                test: 'Example',
+                passed: false,
+                output: `Add: print(${functionName}(5)) at the end of your code`
+              },
+              {
+                test: 'Tip',
+                passed: false,
+                output: 'Judge0 needs to see printed output to compare with expected results'
+              }
+            ]
+          });
+          return;
+        }
+        
+        // Special case: function is included in Judge0 output message
+        if (result.status.id === 4 && result.status.description === 'Wrong Answer' && 
+            result.stdout && !result.stderr && !result.compile_output) {
+          console.log('[CODE SUBMISSION] Output produced but not matching expected output');
+          setFeedback({
+            status: 'error',
+            message: 'Wrong Answer - Output Format',
+            details: [
+              { 
+                test: 'Output', 
+                passed: false, 
+                output: 'Your code ran successfully but produced incorrect output' 
+              },
+              {
+                test: 'Your Output',
+                passed: false,
+                output: result.stdout || 'No output'
+              },
+              {
+                test: 'Hint',
+                passed: false,
+                output: 'Check your output format and make sure it exactly matches what is expected'
+              }
+            ]
+          });
+          return;
+        }
+        
+        // Handle the case where the Judge0 status is "Accepted" after normalization
+        if (result.status.description && result.status.description.includes('after normalization')) {
+          console.log('[CODE SUBMISSION] Solution accepted after normalization');
+          setFeedback({
+            status: 'success',
+            message: 'All tests passed successfully!',
+            details: [
+              { 
+                test: 'Test cases', 
+                passed: true, 
+                output: 'Expected output matched (after whitespace normalization)' 
+              },
+              { 
+                test: 'Performance', 
+                passed: true, 
+                output: `Memory: ${result.memory || 0}KB, Time: ${result.time || 0}s` 
+              }
+            ]
+          });
+          return;
+        }
+
+        switch (result.status.id) {
+          // Accepted
+          case 3:
+            console.log('[CODE SUBMISSION] All tests passed successfully');
+            setFeedback({
+              status: 'success',
+              message: 'All tests passed successfully!',
+              details: [
+                { 
+                  test: 'Test cases', 
+                  passed: true, 
+                  output: result.stdout || 'Expected output matched' 
+                },
+                { 
+                  test: 'Performance', 
+                  passed: true, 
+                  output: `Memory: ${result.memory || 0}KB, Time: ${result.time || 0}s` 
+                }
+              ]
+            });
+            break;
+          
+          // Compilation Error
+          case 6:
+            console.log('[CODE SUBMISSION] Compilation error:', result.compile_output);
+            setFeedback({
+              status: 'error',
+              message: 'Compilation Error',
+              details: [{ 
+                test: 'Compilation', 
+                passed: false, 
+                output: result.compile_output || 'Failed to compile your code'
+              }]
+            });
+            break;
+          
+          // Runtime Error
+          case 7:
+          case 8:
+          case 9:
+          case 10:
+          case 11:
+          case 12:
+          case 13:
+          case 14:
+            console.log('[CODE SUBMISSION] Runtime error:', result.stderr);
+            setFeedback({
+              status: 'error',
+              message: 'Runtime Error',
+              details: [{ 
+                test: 'Execution', 
+                passed: false, 
+                output: result.stderr || 'Your code crashed during execution'
+              }]
+            });
+            break;
+          
+          // Wrong Answer
+          case 4:
+            console.log('[CODE SUBMISSION] Wrong answer');
+            console.log('[CODE SUBMISSION] Expected:', result.expected_output);
+            console.log('[CODE SUBMISSION] Actual:', result.stdout);
+            setFeedback({
+              status: 'error',
+              message: 'Wrong Answer',
+              details: [{ 
+                test: 'Test cases', 
+                passed: false, 
+                output: 'Your output does not match the expected output'
+              }]
+            });
+            break;
+          
+          // Time Limit Exceeded
+          case 5:
+            console.log('[CODE SUBMISSION] Time limit exceeded:', result.time);
+            setFeedback({
+              status: 'error',
+              message: 'Time Limit Exceeded',
+              details: [{ 
+                test: 'Performance', 
+                passed: false, 
+                output: 'Your code took too long to execute'
+              }]
+            });
+            break;
+          
+          // Other cases
+          default:
+            console.log('[CODE SUBMISSION] Other status:', result.status);
+            setFeedback({
+              status: 'error',
+              message: `Code execution status: ${result.status.description}`,
+              details: [{ 
+                test: 'Judge0', 
+                passed: false, 
+                output: result.status.description || 'Unknown error'
+              }]
+            });
+        }
+      } else {
+        console.error('[CODE SUBMISSION] Invalid Judge0 response:', result);
+        throw new Error('Invalid response from Judge0');
+      }
     } catch (error) {
+      console.error('[CODE SUBMISSION] Error:', error);
       setFeedback({
         status: 'error',
         message: 'Error submitting code',
-        details: [{ test: 'Error', passed: false, output: error.message }]
+        details: [{ test: 'System Error', passed: false, output: error.message }]
       });
     }
   };
@@ -237,7 +458,6 @@ export default function ChallengeQuestion() {
                   initialCode={template}
                   onSubmit={handleCodeSubmit}
                   questionId={question.question_id}
-                  languageId={languages.find(lang => lang.name === question.language)?.id}
                 />
               </div>
             </div>
