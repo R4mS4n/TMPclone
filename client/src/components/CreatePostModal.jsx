@@ -33,7 +33,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
       console.log('Creating new post:', { title, content, tags: tagArray });
       
       // Obtener token de autenticación del localStorage
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       
       if (!token) {
         setError('You must be logged in to create a post');

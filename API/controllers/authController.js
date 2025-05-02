@@ -298,7 +298,7 @@ const verifyToken = (req, res, next) => {
 
 // Get Authenticated User Details
 const getUser = (req, res) => {
-  res.json({ user_id: req.user_id });
+  res.json({ user_id: req.user.sub });
 };
 
 //esto creo que deberia ir en user pero vamos a reducir la probabilidad de errores manteniendo al mailer en un solo script

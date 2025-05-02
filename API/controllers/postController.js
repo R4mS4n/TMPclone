@@ -192,7 +192,7 @@ const getPostById = async (req, res) => {
 const createPost = async (req, res) => {
   try {
     const { title, content, tags } = req.body;
-    const user_id = req.user.id; // Asumiendo que el middleware de autenticación agrega req.user
+    const user_id = req.user.sub; // Using sub from JWT claims
     
     if (!title || !content) {
       return res.status(400).json({ message: 'Title and content are required' });
@@ -296,7 +296,7 @@ const interactWithPost = async (req, res) => {
   try {
     const { id } = req.params;
     const { type } = req.params; // 'like' o 'view'
-    const user_id = req.user.id; // Asumiendo que el middleware de autenticación agrega req.user
+    const user_id = req.user.sub; // Using sub from JWT claims
     
     if (!['like', 'view'].includes(type)) {
       return res.status(400).json({ message: 'Invalid interaction type' });
@@ -356,7 +356,7 @@ const addComment = async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body;
-    const user_id = req.user.id; // Asumiendo que el middleware de autenticación agrega req.user
+    const user_id = req.user.sub; // Using sub from JWT claims
     
     if (!content) {
       return res.status(400).json({ message: 'Comment content is required' });
@@ -423,7 +423,7 @@ const addComment = async (req, res) => {
 const giveHonorToComment = async (req, res) => {
   try {
     const { commentId } = req.params;
-    const user_id = req.user.id; // Asumiendo que el middleware de autenticación agrega req.user
+    const user_id = req.user.sub; // Using sub from JWT claims
     
     // Verificar si el comentario existe
     const [comments] = await db.promise().query(

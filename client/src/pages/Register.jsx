@@ -35,7 +35,7 @@ const Register = () => {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("authToken", data.token);
         setMessage({
           text: "Registration successful! Redirecting...",
           isError: false,

@@ -4,18 +4,12 @@ const bcrypt = require('bcryptjs');
 
 const getUser = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];  // Assuming bearer token is in the "Authorization" header
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
+    const user_id = req.user.sub;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user_id = decoded.user_id;
-
-    // You can then get user info from the database if needed
+    // Get user info from the database
     const [user] = await db.promise().query('SELECT * FROM User WHERE user_id = ?', [user_id]);
 
-    if (!user) {
+    if (!user || user.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -25,6 +19,7 @@ const getUser = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
 const getAllUsers = async (req,res) => {
   try{
     const [users] = await db.promise().query(

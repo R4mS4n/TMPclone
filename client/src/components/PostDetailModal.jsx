@@ -56,7 +56,7 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       console.log('Comment content:', newComment);
       
       // Obtener token de autenticación del localStorage
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       
       if (!token) {
         setError('You must be logged in to post a comment');
@@ -126,7 +126,7 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       console.log('Giving honor to comment ID:', commentId);
       
       // Obtener token de autenticación del localStorage
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       
       if (!token) {
         setError('You must be logged in to give honor');
