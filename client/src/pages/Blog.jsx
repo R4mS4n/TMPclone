@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { format } from 'date-fns';
 import CreatePostModal from '../components/CreatePostModal';
 import PostDetailModal from '../components/PostDetailModal';
 import '../styles/blog.css';
 import { useTheme } from '../contexts/ThemeContext';
 
 // Set base URL for API requests
-axios.defaults.baseURL = 'http://localhost:3000';
+axios.defaults.baseURL = 'http://localhost:5000';
 
 const Blog = () => {
   console.log('Blog component rendering');
@@ -20,7 +19,9 @@ const Blog = () => {
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [isPostDetailModalOpen, setIsPostDetailModalOpen] = useState(false);
   const [error, setError] = useState(null);
-  const { theme, isDark } = useTheme();
+  
+  // Llamamos a useTheme pero no usamos sus valores ahora
+  useTheme();
 
   // Fetch posts from API
   useEffect(() => {

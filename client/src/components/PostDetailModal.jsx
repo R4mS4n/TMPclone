@@ -3,12 +3,11 @@ import axios from 'axios';
 
 // Set base URL for API requests if not already set
 if (!axios.defaults.baseURL) {
-  axios.defaults.baseURL = 'http://localhost:3000';
+  axios.defaults.baseURL = 'http://localhost:5000';
 }
 
 const PostDetailModal = ({ isOpen, onClose, postId }) => {
   const [post, setPost] = useState(null);
-  const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -26,50 +25,16 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       setError(null);
       console.log('Fetching post details for post ID:', postId);
       
-      // Try to fetch from API
+      // Obtener post y comentarios
       try {
-        const [postResponse, commentsResponse] = await Promise.all([
-          axios.get(`/api/posts/${postId}`),
-          axios.get(`/api/posts/${postId}/comments`)
-        ]);
+        const response = await axios.get(`/api/posts/${postId}`);
         
-        console.log('Post details:', postResponse.data);
-        console.log('Comments:', commentsResponse.data);
+        console.log('Post details:', response.data);
         
-        setPost(postResponse.data);
-        setComments(commentsResponse.data || []);
+        setPost(response.data);
       } catch (err) {
-        console.error('API request failed, using fallback data:', err);
-        
-        // Use placeholder data as fallback
-        setPost({
-          post_id: postId,
-          title: 'How to patch KDE on FreeBSD?',
-          user: { username: 'Golanginya', profile_pic: null },
-          created_at: new Date(Date.now() - 5 * 60000).toISOString(),
-          content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Consequat aliquet maecenas ut sit nulla',
-          tags: ['golang', 'linux', 'freebsd'],
-          interactions: { views: 125, likes: 15, comments: 155 }
-        });
-        
-        setComments([
-          {
-            comment_id: 1,
-            user: { username: 'LinuxExpert', profile_pic: null },
-            content: 'You should try using the ports system to rebuild KDE with the appropriate flags.',
-            created_at: new Date(Date.now() - 3 * 60000).toISOString(),
-            status: 'active',
-            honor_count: 12
-          },
-          {
-            comment_id: 2,
-            user: { username: 'FreeBSDDev', profile_pic: null },
-            content: 'Make sure you have the latest source code from the KDE repository before compiling.',
-            created_at: new Date(Date.now() - 120 * 60000).toISOString(),
-            status: 'active',
-            honor_count: 8
-          }
-        ]);
+        console.error('API request failed:', err);
+        setError('Failed to load post details. Please try again later.');
       }
     } catch (error) {
       console.error('Error in fetchPostDetails:', error);
@@ -90,31 +55,50 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       console.log('Posting comment to post ID:', postId);
       console.log('Comment content:', newComment);
       
+      // Obtener token de autenticación del localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setError('You must be logged in to post a comment');
+        setSubmitting(false);
+        return;
+      }
+      
+      // Configurar el encabezado de autorización
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      };
+      
       // Try to post comment via API
       try {
         const response = await axios.post(`/api/posts/${postId}/comments`, {
           content: newComment
-        });
+        }, config);
         
         console.log('Comment posted successfully:', response.data);
-        setComments([...comments, response.data]);
+        
+        // Actualizar el post con el nuevo comentario
+        setPost({
+          ...post,
+          comments: [...post.comments, response.data],
+          interactions: {
+            ...post.interactions,
+            comments: post.interactions.comments + 1
+          }
+        });
+        
+        setNewComment('');
       } catch (err) {
-        console.error('API request failed, using fallback:', err);
+        console.error('API request failed:', err);
         
-        // Fallback to adding comment locally
-        const placeholderComment = {
-          comment_id: comments.length + 1,
-          user: { username: 'CurrentUser', profile_pic: null },
-          content: newComment,
-          created_at: new Date().toISOString(),
-          status: 'active',
-          honor_count: 0
-        };
-        
-        setComments([...comments, placeholderComment]);
+        if (err.response?.status === 401) {
+          setError('Your session has expired. Please log in again.');
+        } else {
+          setError(err.response?.data?.message || 'Failed to post your comment. Please try again.');
+        }
       }
-      
-      setNewComment('');
     } catch (error) {
       console.error('Error in handleSubmitComment:', error);
       setError('Failed to post your comment. Please try again.');
@@ -141,22 +125,44 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
     try {
       console.log('Giving honor to comment ID:', commentId);
       
-      // Try to give honor via API
-      try {
-        await axios.post(`/api/comments/${commentId}/honor`);
-        console.log('Honor given successfully');
-      } catch (err) {
-        console.error('API request failed, updating UI only:', err);
+      // Obtener token de autenticación del localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setError('You must be logged in to give honor');
+        return;
       }
       
-      // Update the honor count in the UI
-      setComments(
-        comments.map(comment => 
-          comment.comment_id === commentId
-            ? { ...comment, honor_count: comment.honor_count + 1 }
-            : comment
-        )
-      );
+      // Configurar el encabezado de autorización
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      };
+      
+      // Try to give honor via API
+      try {
+        await axios.post(`/api/posts/comments/${commentId}/honor`, {}, config);
+        console.log('Honor given successfully');
+        
+        // Actualizar el honor count en la UI
+        setPost({
+          ...post,
+          comments: post.comments.map(comment => 
+            comment.comment_id === commentId
+              ? { ...comment, honor_count: comment.honor_count + 1 }
+              : comment
+          )
+        });
+      } catch (err) {
+        console.error('API request failed:', err);
+        
+        if (err.response?.status === 401) {
+          setError('Your session has expired. Please log in again.');
+        } else {
+          setError(err.response?.data?.message || 'Failed to give honor. Please try again.');
+        }
+      }
     } catch (error) {
       console.error('Error in handleHonor:', error);
       setError('Failed to give honor. Please try again.');
@@ -201,35 +207,35 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
               </div>
               
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 overflow-hidden mr-3">
-                  {post.user.profile_pic ? (
-                    <img src={post.user.profile_pic} alt={post.user.username} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
-                      {post.user.username.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                <div className="avatar">
+                  <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center mr-3 overflow-hidden">
+                    {post.user.profile_pic ? (
+                      <img src={post.user.profile_pic} alt={post.user.username} className="w-full h-full object-cover" />
+                    ) : (
+                      post.user.username.charAt(0).toUpperCase()
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-800 dark:text-gray-200">{post.user.username}</h3>
+                  <h3 className="font-medium text-gray-900 dark:text-white">{post.user.username}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{formatTimeAgo(post.created_at)}</p>
                 </div>
               </div>
               
-              <p className="text-gray-700 dark:text-gray-300 mb-4">{post.content}</p>
+              <p className="text-gray-800 dark:text-gray-200 mb-6">{post.content}</p>
               
               <div className="flex flex-wrap gap-2 mb-4">
-                {post.tags.map((tag, index) => (
+                {post.tags && post.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-md"
+                    className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md text-sm"
                   >
                     {tag}
                   </span>
                 ))}
               </div>
               
-              <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex text-sm text-gray-500 dark:text-gray-400 space-x-6">
                 <div className="flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -247,81 +253,83 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
                   </svg>
-                  <span>{comments.length}</span>
+                  <span>{post.interactions.comments}</span>
                 </div>
               </div>
             </div>
             
             <div className="p-6">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Comments</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                {post.comments && post.comments.length} Comment{post.comments && post.comments.length !== 1 ? 's' : ''}
+              </h3>
               
-              <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-                {comments.map((comment) => (
-                  <div key={comment.comment_id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <div className="flex justify-between">
-                      <div className="flex items-center mb-2">
-                        <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 overflow-hidden mr-2">
-                          {comment.user.profile_pic ? (
-                            <img src={comment.user.profile_pic} alt={comment.user.username} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
-                              {comment.user.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-800 dark:text-gray-200">{comment.user.username}</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(comment.created_at)}</p>
-                        </div>
-                      </div>
-                      
-                      <button 
-                        onClick={() => handleHonor(comment.comment_id)}
-                        className="flex items-center text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400"
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905a3.61 3.61 0 01-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
-                        </svg>
-                        <span>{comment.honor_count}</span>
-                      </button>
-                    </div>
-                    
-                    <p className="text-gray-700 dark:text-gray-300 mt-2">{comment.content}</p>
-                  </div>
-                ))}
-
-                {comments.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    No comments yet. Be the first to comment!
-                  </div>
-                )}
-              </div>
-              
-              <form onSubmit={handleSubmitComment}>
+              <form onSubmit={handleSubmitComment} className="mb-6">
                 <div className="mb-4">
-                  <label htmlFor="comment" className="block text-gray-700 dark:text-gray-300 mb-2">
-                    Add a comment
-                  </label>
                   <textarea
-                    id="comment"
+                    placeholder="Add a comment..."
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-h-[100px]"
-                    placeholder="Share your thoughts..."
+                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    rows="3"
                     required
                   ></textarea>
                 </div>
-                
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    disabled={submitting || !newComment.trim()}
-                    className="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50"
+                    disabled={submitting}
+                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50"
                   >
                     {submitting ? 'Posting...' : 'Post Comment'}
                   </button>
                 </div>
               </form>
+              
+              <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
+                {post.comments && post.comments.map((comment) => (
+                  <div key={comment.comment_id} className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                    <div className="flex items-start mb-2">
+                      <div className="avatar">
+                        <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center mr-3 overflow-hidden">
+                          {comment.user.profile_pic ? (
+                            <img src={comment.user.profile_pic} alt={comment.user.username} className="w-full h-full object-cover" />
+                          ) : (
+                            comment.user.username.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-medium text-gray-900 dark:text-white">{comment.user.username}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(comment.created_at)}</p>
+                        </div>
+                        <p className="text-gray-800 dark:text-gray-200 mt-1">{comment.content}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pl-12">
+                      <button
+                        onClick={() => handleHonor(comment.comment_id)}
+                        className="text-sm flex items-center text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Give Honor
+                      </button>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {comment.honor_count} Honor
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                
+                {post.comments && post.comments.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No comments yet. Be the first to comment!
+                  </div>
+                )}
+              </div>
             </div>
           </>
         ) : (

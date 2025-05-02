@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Set base URL for API requests if not already set
 if (!axios.defaults.baseURL) {
-  axios.defaults.baseURL = 'http://localhost:3000';
+  axios.defaults.baseURL = 'http://localhost:5000';
 }
 
 const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
@@ -32,13 +32,29 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
       
       console.log('Creating new post:', { title, content, tags: tagArray });
       
+      // Obtener token de autenticación del localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setError('You must be logged in to create a post');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Configurar el encabezado de autorización
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      };
+      
       // Try to create post via API
       try {
         const response = await axios.post('/api/posts', {
           title,
           content,
           tags: tagArray
-        });
+        }, config);
         
         console.log('Post created successfully:', response.data);
         
@@ -51,26 +67,12 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
           onPostCreated(response.data);
         }
       } catch (err) {
-        console.error('API request failed, creating placeholder post:', err);
+        console.error('API request failed:', err);
         
-        // Create a placeholder post if API fails
-        const newPost = {
-          post_id: Math.floor(Math.random() * 1000) + 100, // Random ID
-          title,
-          content,
-          tags: tagArray,
-          user: { username: 'CurrentUser', profile_pic: null },
-          created_at: new Date().toISOString(),
-          interactions: { views: 0, likes: 0, comments: 0 }
-        };
-        
-        setTitle('');
-        setContent('');
-        setTags('');
-        onClose();
-        
-        if (onPostCreated) {
-          onPostCreated(newPost);
+        if (err.response?.status === 401) {
+          setError('Your session has expired. Please log in again.');
+        } else {
+          setError(err.response?.data?.message || 'Failed to create post. Please try again.');
         }
       }
     } catch (error) {

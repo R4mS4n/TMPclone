@@ -10,7 +10,8 @@ const tournamentRoutes = require('./routes/tournamentRoutes');
 const userRoutes = require('./routes/userRoutes');
 const questionRoutes = require('./routes/questionRoutes');
 const achievementRoutes = require('./routes/achievementRoutes');
-const devRoutes = require('./routes/devRoutes'); 
+const devRoutes = require('./routes/devRoutes');
+const postRoutes = require('./routes/postRoutes'); 
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/achievements", achievementRoutes);
 app.use("/api/dev", devRoutes);
+app.use("/api/posts", postRoutes);
 
 const PORT = process.env.APIPORT || 5000;
 
