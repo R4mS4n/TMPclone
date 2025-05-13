@@ -1,36 +1,42 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import AdminSidebar from "../components/AdminSidebar";
-import TournamentManagement from "../components/TournamentManagement";
-import { verifyAdminStatus } from '../utils/adminHelper';
+import React, { useEffect, useState } from 'react';
+import {
+  useNavigate,
+  Routes,
+  Route,
+  useLocation,
+  Navigate
+} from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import AdminSidebar             from '../components/AdminSidebar';
+import TournamentManagement     from '../components/TournamentManagement';
+import UserManagement           from '../components/UserManagement';     
+import { verifyAdminStatus }    from '../utils/adminHelper';
+
 const Admin = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin]       = useState(false);
+  const [isLoading, setIsLoading]   = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate    = useNavigate();
+  const location    = useLocation();
 
   useEffect(() => {
     const checkAdmin = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
         const { isAdmin } = await verifyAdminStatus();
-        
         if (isAdmin) {
           setIsAdmin(true);
         } else {
           navigate('/', { replace: true });
         }
-      } catch (error) {
-        console.error('Admin verification failed:', error);
+      } catch (err) {
+        console.error('Admin verification failed:', err);
         navigate('/', { replace: true });
       } finally {
         setIsLoading(false);
       }
     };
-
     checkAdmin();
   }, [navigate]);
 
@@ -47,15 +53,13 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-base-100">
+    <div className="min-h-screen bg-base-100 flex">
       <AdminSidebar 
-        isOpen={isSidebarOpen} 
-        onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
-        onNavigation={() => setIsSidebarOpen(false)} 
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        onNavigation={() => setIsSidebarOpen(false)}
       />
-      <motion.main
-        className="min-h-[calc(100vh-4rem)]"
-      >
+      <motion.main className="flex-1 min-h-[calc(100vh-4rem)]">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -68,10 +72,10 @@ const Admin = () => {
             <Routes>
               <Route path="/" element={<Navigate to="/admin/tournaments" replace />} />
               <Route path="/tournaments" element={<TournamentManagement />} />
-              <Route path="/users" element={<div className="text-base-content/60">Users management coming soon...</div>} />
-              <Route path="/stats" element={<div className="text-base-content/60">User stats coming soon...</div>} />
+              <Route path="/users"       element={<UserManagement />} />           {/* Aquí va el componente */}
+              <Route path="/stats"       element={<div className="text-base-content/60">User stats coming soon...</div>} />
               <Route path="/notifications" element={<div className="text-base-content/60">Notifications coming soon...</div>} />
-              <Route path="/settings" element={<div className="text-base-content/60">Settings coming soon...</div>} />
+              <Route path="/settings"    element={<div className="text-base-content/60">Settings coming soon...</div>} />
             </Routes>
           </motion.div>
         </AnimatePresence>
