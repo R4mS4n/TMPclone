@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const {getQuestions, getChallengeById, reviewQuestionSubmission} = require('../controllers/questionController');
+const {getQuestions, getChallengeById, reviewQuestionSubmission, saveOrUpdateSubmission} = require('../controllers/questionController');
 
 router.get('/getAllQuestions', getQuestions);
 router.get('/:id', getChallengeById);
 router.post('/review', reviewQuestionSubmission);
 
+/*
 // Special debugging endpoint to help with Judge0 integration
 router.get('/admin/debug/:id', async (req, res) => {
   try {
@@ -75,6 +76,6 @@ router.get('/admin/debug/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to debug question', details: error.message });
   }
 });
-
+*/
 module.exports = router;
 
