@@ -38,6 +38,7 @@ export default function Login({ onLogin }) {
 
       if (response.ok) {
         localStorage.setItem("authToken", data.token);
+        localStorage.setItem("token", data.token);
         onLogin();
         navigate("/home");
         console.log("Login successful:", data);

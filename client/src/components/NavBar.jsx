@@ -37,9 +37,6 @@ const Navbar = () => {
   const handleLogout = () => {
     // Eliminar el token de autenticación del localStorage
     localStorage.removeItem("authToken");
-    // También eliminar otros datos relacionados con la sesión si existen
-    localStorage.removeItem("token");
-    
     // Redireccionar al usuario a la página de login
     navigate("/login");
   };

@@ -43,6 +43,9 @@ CREATE TABLE Question(
     topic VARCHAR(255),
     difficulty VARCHAR(255),
     tournament_id INT,
+    test_inputs TEXT,
+    expected_outputs TEXT,
+    template TEXT,
     FOREIGN KEY (tournament_id) REFERENCES Tournament(tournament_id)
 );
 
