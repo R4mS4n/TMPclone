@@ -139,28 +139,55 @@ const saveOrUpdateSubmission = async (userId, questionId, code, status) => {
 //get a particular submission by providing user and question
 const getSubmission = async (req, res) => {
   try {
-    const { userId, questionId } = req.query;
+    // Get userId from auth token instead of query params for security
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Authorization header required' });
+    }
+    
+    const userId = getUserIdFromToken(authHeader);
+    const { questionId } = req.query;
 
-    if (!userId || !questionId) {
-      return res.status(400).json({ error: 'Both userId and questionId are required' });
+    if (!questionId) {
+      return res.status(400).json({ error: 'questionId is required' });
     }
 
+    // Get the most recent submission
     const [results] = await db.promise().query(
-      'SELECT code FROM Submission WHERE user_id = ? AND question_id = ?',
+      `SELECT code, status, created_at 
+       FROM Submission 
+       WHERE user_id = ? AND question_id = ? 
+       ORDER BY created_at DESC 
+       LIMIT 1`,
       [userId, questionId]
     );
 
     if (results.length === 0) {
-      return res.status(404).json({ error: 'Submission not found' });
+      return res.status(404).json({ 
+        error: 'No submission found',
+        code: '',
+        status: -1
+      });
     }
 
-    res.status(200).json({ code: results[0].code });
+    res.status(200).json({
+      code: results[0].code,
+      status: results[0].status,
+      lastUpdated: results[0].created_at
+    });
 
   } catch (error) {
     console.error('[ERROR] Fetching submission failed:', error);
+    
+    // Handle specific JWT errors differently
+    if (error.message.includes('JWT') || error.message.includes('token')) {
+      return res.status(401).json({ error: 'Invalid authentication token' });
+    }
+    
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
 
 module.exports = { 
   getQuestions, 

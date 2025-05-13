@@ -4,13 +4,52 @@ import Editor from "@monaco-editor/react";
 import languages from "../utils/languages";
 import { getMonacoLanguage, getCodeTemplate } from "../utils/languageMapping";
 
-const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId }) => {
+const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId}) => {
   const [code, setCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState(languages[28]); // JavaScript default
   const [editorLanguage, setEditorLanguage] = useState('javascript');
   const { isDark } = useTheme();
   const [isEditorReady, setIsEditorReady] = useState(false);
+
+   useEffect(() => {
+    const fetchSavedCode = async () => {
+      if (!questionId) {
+        return;
+      }
+
+      try {
+        console.log('[CODE FORM] Fetching saved code for question:', questionId);
+        const response = await fetch(
+          `http://localhost:5000/api/questions/submissions?questionId=${questionId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch saved code');
+        }
+
+        const data = await response.json();
+        
+        if (data.code) {
+          console.log('[CODE FORM] Found saved code, length:', data.code.length);
+          setCode(data.code);
+        } else {
+          console.log('[CODE FORM] No saved code found, using default template');
+          setCode(getCodeTemplate(selectedLanguage.name));
+        }
+      } catch (error) {
+        console.error('[CODE FORM] Error fetching saved code:', error);
+        setCode(getCodeTemplate(selectedLanguage.name));
+      }
+    };
+
+    fetchSavedCode();
+  }, [questionId]);
 
   // Set selectedLanguage if "language" prop is passed
   useEffect(() => {
