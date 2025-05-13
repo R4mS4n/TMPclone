@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const {getQuestions, getChallengeById, reviewQuestionSubmission, saveOrUpdateSubmission} = require('../controllers/questionController');
+const {getQuestions, getChallengeById, reviewQuestionSubmission, saveOrUpdateSubmission, getSubmission} = require('../controllers/questionController');
 
 router.get('/getAllQuestions', getQuestions);
-router.get('/:id', getChallengeById);
+router.get('/submissions', getSubmission);
 router.post('/review', reviewQuestionSubmission);
+router.get('/:id', getChallengeById);
 
 /*
 // Special debugging endpoint to help with Judge0 integration

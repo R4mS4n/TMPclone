@@ -119,13 +119,53 @@ const getUserIdFromToken = (authHeader) => {
 };
 
 const saveOrUpdateSubmission = async (userId, questionId, code, status) => {
-  await db.promise().query(
-    `INSERT INTO Submission (user_id, question_id, code, status, created_at)
-     VALUES (?, ?, ?, ?, NOW())
-     ON DUPLICATE KEY UPDATE code = VALUES(code), status = VALUES(status), created_at = NOW()`,
-    [userId, questionId, code, status]
-  );
+  try {
+    await db.promise().query(
+      `INSERT INTO Submission (user_id, question_id, code, status, created_at)
+       VALUES (?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE 
+         code = VALUES(code), 
+         status = VALUES(status), 
+         created_at = NOW()`,
+      [userId, questionId, code, status]
+    );
+    console.log(`Submission updated for user ${userId} on question ${questionId}`);
+  } catch (error) {
+    console.error('[DB ERROR] Failed to save submission:', error);
+    throw error; // Re-throw to handle in calling function
+  }
 };
 
-module.exports = { getQuestions, getChallengeById, reviewQuestionSubmission };
+//get a particular submission by providing user and question
+const getSubmission = async (req, res) => {
+  try {
+    const { userId, questionId } = req.query;
+
+    if (!userId || !questionId) {
+      return res.status(400).json({ error: 'Both userId and questionId are required' });
+    }
+
+    const [results] = await db.promise().query(
+      'SELECT code FROM Submission WHERE user_id = ? AND question_id = ?',
+      [userId, questionId]
+    );
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    res.status(200).json({ code: results[0].code });
+
+  } catch (error) {
+    console.error('[ERROR] Fetching submission failed:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+module.exports = { 
+  getQuestions, 
+  getChallengeById, 
+  reviewQuestionSubmission,
+  getSubmission
+};
 
