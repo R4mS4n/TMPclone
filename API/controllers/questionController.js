@@ -38,7 +38,7 @@ const getChallengeById = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
+//esto va a actualizar el user score tmb, a la vez que actualiza el codigo guardado en la db, y su status
 const reviewQuestionSubmission = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -80,11 +80,18 @@ const reviewQuestionSubmission = async (req, res) => {
 
     const statusMapping = {
       'Accepted': 1,
-      'Wrong Answer': 0
+      'Wrong Answer': 0,
+      'Compilation Error': 0,
+      'Runtime Error': 0,
+      'Time Limit Exceeded': 0
+      //base cases
     };
-    const status = statusMapping[resultData.status?.description] ?? -1;
+    const status = statusMapping[resultData.status?.description] ?? 0;//default case is zero
 
     await saveOrUpdateSubmission(userId, questionId, code, status);
+    if (status !== -1){
+      await updateTournamentScore(userId, questionId);
+    }
 
     res.status(200).json(resultData);
 
@@ -188,6 +195,37 @@ const getSubmission = async (req, res) => {
   }
 };
 
+//helper function que va a actualizar el score de x user,la neta debi ponerlo en userController.js pero como es helper func prefiero no hacerme bolas
+
+//a grandes rasgos, lo que hace es que al ser llamada, calcula el nuevo user score de x torneo tomando en cuenta la suma de todas las respuestas relacionadas al torneo
+
+
+const updateTournamentScore = async (userId, questionId) => {
+  const [question] = await db.promise().query(
+    'SELECT tournament_id FROM Question WHERE question_id = ?', 
+    [questionId]
+  );
+  if (!question.length) return;
+
+  await db.promise().query(`
+    INSERT INTO Tournament_Participation (user_id, tournament_id, score)
+    SELECT 
+      ?, ?,
+      COALESCE(SUM(
+        s.status * 
+        CASE q.difficulty
+          WHEN 'Easy' THEN 100
+          WHEN 'Medium' THEN 200
+          WHEN 'Hard' THEN 300
+          ELSE 100
+        END
+      ), 0)
+    FROM Submission s
+    JOIN Question q ON s.question_id = q.question_id
+    WHERE s.user_id = ? AND q.tournament_id = ?
+    ON DUPLICATE KEY UPDATE score = VALUES(score)
+  `, [userId, question[0].tournament_id, userId, question[0].tournament_id]);
+};
 
 module.exports = { 
   getQuestions, 
