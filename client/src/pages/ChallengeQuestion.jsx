@@ -103,6 +103,9 @@ export default function ChallengeQuestion() {
   };
 
   const handleCodeSubmit = async (code, language, languageId) => {
+
+    console.log('Auth Token:', localStorage.getItem('authToken'));
+
     console.log('[CODE SUBMISSION] Starting submission process');
     console.log('[CODE SUBMISSION] Language:', language);
     console.log('[CODE SUBMISSION] Language ID:', languageId);
@@ -133,6 +136,7 @@ export default function ChallengeQuestion() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
         body: JSON.stringify({
           questionId,
