@@ -13,6 +13,7 @@ const achievementRoutes = require('./routes/achievementRoutes');
 const devRoutes         = require('./routes/devRoutes');
 const postRoutes        = require('./routes/postRoutes');
 const adminRoutes       = require('./routes/adminRoutes'); // ← Nueva ruta de Admin
+const aiRoutes          = require('./routes/aiRoutes');
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use("/api/achievements",achievementRoutes);
 app.use("/api/dev",         devRoutes);
 app.use("/api/posts",       postRoutes);
 app.use("/api/admin",       adminRoutes); // ← Aquí montamos el Admin Panel
+app.use("/api/ai",          aiRoutes);
 
 const PORT = process.env.APIPORT || 5000;
 app.listen(PORT, () => {
