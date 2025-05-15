@@ -14,6 +14,7 @@ const devRoutes         = require('./routes/devRoutes');
 const postRoutes        = require('./routes/postRoutes');
 const adminRoutes       = require('./routes/adminRoutes'); // ← Nueva ruta de Admin
 const aiRoutes          = require('./routes/aiRoutes');
+const leaderboardRoutes = require('./routes/leaderboardRoutes');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use("/api/dev",         devRoutes);
 app.use("/api/posts",       postRoutes);
 app.use("/api/admin",       adminRoutes); // ← Aquí montamos el Admin Panel
 app.use("/api/ai",          aiRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
 
 const PORT = process.env.APIPORT || 5000;
 app.listen(PORT, () => {
