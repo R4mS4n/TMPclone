@@ -18,6 +18,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import { verifyAdminStatus } from "./utils/adminHelper";
+import { AuthProvider } from './contexts/AuthContext';
 
 const AdminRoute = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
