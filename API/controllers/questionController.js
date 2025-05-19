@@ -38,12 +38,13 @@ const getChallengeById = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-//esto va a actualizar el user score tmb, a la vez que actualiza el codigo guardado en la db, y su status
+
+// Review Question Submission and update score
 const reviewQuestionSubmission = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    const userId=getUserIdFromToken(authHeader);
-    const { questionId, code, languageId} = req.body;
+    const userId = getUserIdFromToken(authHeader);
+    const { questionId, code, languageId } = req.body;
 
     const [results] = await db.promise().query(
       'SELECT test_inputs, expected_outputs FROM Question WHERE question_id = ?',
@@ -75,7 +76,6 @@ const reviewQuestionSubmission = async (req, res) => {
     );
 
     const resultData = await judge0Response.json();
-
     console.log('[JUDGE0] Response:', resultData);
 
     const statusMapping = {
@@ -84,12 +84,11 @@ const reviewQuestionSubmission = async (req, res) => {
       'Compilation Error': 0,
       'Runtime Error': 0,
       'Time Limit Exceeded': 0
-      //base cases
     };
-    const status = statusMapping[resultData.status?.description] ?? 0;//default case is zero
+    const status = statusMapping[resultData.status?.description] ?? 0;
 
     await saveOrUpdateSubmission(userId, questionId, code, status);
-    if (status !== -1){
+    if (status !== -1) {
       await updateTournamentScore(userId, questionId);
     }
 
@@ -101,10 +100,9 @@ const reviewQuestionSubmission = async (req, res) => {
   }
 };
 
+// Get User ID from JWT
 const getUserIdFromToken = (authHeader) => {
-  if (!authHeader) {
-    throw new Error("Missing Authorization header");
-  }
+  if (!authHeader) throw new Error("Missing Authorization header");
 
   const parts = authHeader.split(" ");
   if (parts.length !== 2 || parts[0] !== "Bearer") {
@@ -112,54 +110,34 @@ const getUserIdFromToken = (authHeader) => {
   }
 
   const token = parts[1];
-
-  try {
-    const decodedToken = jwt.decode(token);
-    if (!decodedToken || !decodedToken.sub) {
-      throw new Error("Invalid JWT structure: 'sub' claim missing");
-    }
-
-    return decodedToken.sub;
-  } catch (error) {
-    throw new Error(`Invalid JWT: ${error.message}`);
+  const decodedToken = jwt.decode(token);
+  if (!decodedToken || !decodedToken.sub) {
+    throw new Error("Invalid JWT structure: 'sub' claim missing");
   }
+
+  return decodedToken.sub;
 };
 
+// Save or Update Submission
 const saveOrUpdateSubmission = async (userId, questionId, code, status) => {
-  try {
-    await db.promise().query(
-      `INSERT INTO Submission (user_id, question_id, code, status, created_at)
-       VALUES (?, ?, ?, ?, NOW())
-       ON DUPLICATE KEY UPDATE 
-         code = VALUES(code), 
-         status = VALUES(status), 
-         created_at = NOW()`,
-      [userId, questionId, code, status]
-    );
-    console.log(`Submission updated for user ${userId} on question ${questionId}`);
-  } catch (error) {
-    console.error('[DB ERROR] Failed to save submission:', error);
-    throw error; // Re-throw to handle in calling function
-  }
+  await db.promise().query(
+    `INSERT INTO Submission (user_id, question_id, code, status, created_at)
+     VALUES (?, ?, ?, ?, NOW())
+     ON DUPLICATE KEY UPDATE 
+       code = VALUES(code), 
+       status = VALUES(status), 
+       created_at = NOW()`,
+    [userId, questionId, code, status]
+  );
 };
 
-//get a particular submission by providing user and question
+// Get a particular submission by providing user and question
 const getSubmission = async (req, res) => {
   try {
-    // Get userId from auth token instead of query params for security
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization header required' });
-    }
-    
     const userId = getUserIdFromToken(authHeader);
     const { questionId } = req.query;
 
-    if (!questionId) {
-      return res.status(400).json({ error: 'questionId is required' });
-    }
-
-    // Get the most recent submission
     const [results] = await db.promise().query(
       `SELECT code, status, created_at 
        FROM Submission 
@@ -170,11 +148,7 @@ const getSubmission = async (req, res) => {
     );
 
     if (results.length === 0) {
-      return res.status(404).json({ 
-        error: 'No submission found',
-        code: '',
-        status: -1
-      });
+      return res.status(404).json({ error: 'No submission found', code: '', status: -1 });
     }
 
     res.status(200).json({
@@ -185,21 +159,35 @@ const getSubmission = async (req, res) => {
 
   } catch (error) {
     console.error('[ERROR] Fetching submission failed:', error);
-    
-    // Handle specific JWT errors differently
-    if (error.message.includes('JWT') || error.message.includes('token')) {
-      return res.status(401).json({ error: 'Invalid authentication token' });
-    }
-    
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-//helper function que va a actualizar el score de x user,la neta debi ponerlo en userController.js pero como es helper func prefiero no hacerme bolas
+// Check if a question is solved by user
+const checkQuestionStatus = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const userId = getUserIdFromToken(authHeader);
+    const { questionId } = req.query;
 
-//a grandes rasgos, lo que hace es que al ser llamada, calcula el nuevo user score de x torneo tomando en cuenta la suma de todas las respuestas relacionadas al torneo
+    const [result] = await db.promise().query(
+      'SELECT status FROM Submission WHERE user_id = ? AND question_id = ? LIMIT 1',
+      [userId, questionId]
+    );
 
+    if (result.length > 0 && result[0].status === 1) {
+      return res.status(200).json({ solved: true });
+    } else {
+      return res.status(200).json({ solved: false });
+    }
 
+  } catch (error) {
+    console.error('[ERROR] Checking question status failed:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// Update Tournament Score (Helper Function)
 const updateTournamentScore = async (userId, questionId) => {
   const [question] = await db.promise().query(
     'SELECT tournament_id FROM Question WHERE question_id = ?', 
@@ -210,16 +198,7 @@ const updateTournamentScore = async (userId, questionId) => {
   await db.promise().query(`
     INSERT INTO Tournament_Participation (user_id, tournament_id, score)
     SELECT 
-      ?, ?,
-      COALESCE(SUM(
-        s.status * 
-        CASE q.difficulty
-          WHEN 'Easy' THEN 100
-          WHEN 'Medium' THEN 200
-          WHEN 'Hard' THEN 300
-          ELSE 100
-        END
-      ), 0)
+      ?, ?, SUM(s.status * q.points)
     FROM Submission s
     JOIN Question q ON s.question_id = q.question_id
     WHERE s.user_id = ? AND q.tournament_id = ?
@@ -231,6 +210,6 @@ module.exports = {
   getQuestions, 
   getChallengeById, 
   reviewQuestionSubmission,
-  getSubmission
+  getSubmission,
+  checkQuestionStatus
 };
-
