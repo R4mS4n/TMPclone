@@ -4,13 +4,14 @@ import Editor from "@monaco-editor/react";
 import languages from "../utils/languages";
 import { getMonacoLanguage, getCodeTemplate } from "../utils/languageMapping";
 
-const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId}) => {
+const CodeForm = ({ initialCode, language, onSubmit, questionId, questionContent, languageId}) => {
   const [code, setCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState(languages[28]); // JavaScript default
   const [editorLanguage, setEditorLanguage] = useState('javascript');
   const { isDark } = useTheme();
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState('');
 
    useEffect(() => {
     const fetchSavedCode = async () => {
@@ -168,6 +169,29 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId}) =>
           alert(`Code submission error: ${data.status?.description || 'Unknown error'}`);
         }
       }
+
+      const AIresponse = await fetch('http://localhost:5000/api/ai/analyzeCode', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code, questionContent,
+          }),
+        });
+
+      
+        if (!AIresponse.ok) {
+          console.error('[CODE FORM] AI error:', AIresponse.status, AIresponse.statusText);
+          throw new Error(`AI Error: ${AIresponse.status}`);
+        }
+
+        const AIdata = await AIresponse.json();
+        console.log('[CODE FORM] Response from AI:', AIdata);
+
+        const suggestion = AIdata.suggestion || 'No suggestion provided.';
+        setAiSuggestion(suggestion);
+
     } catch (error) {
       console.error('[CODE FORM] Error submitting code:', error);
       alert(`Error submitting code: ${error.message}`);
@@ -228,6 +252,13 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, languageId}) =>
             loading={<span className="loading loading-spinner loading-lg text-primary"></span>}
           />
         </div>
+      </div>
+
+      <div className="mb-2 max-w-full overflow-auto">
+      <strong>AI Suggestion:</strong>
+      <pre className="whitespace-pre-wrap break-words overflow-auto max-w-full">
+      {aiSuggestion}
+      </pre>
       </div>
 
       {/* Submit Button */}

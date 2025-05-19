@@ -11,7 +11,7 @@ const ai = new GoogleGenAI({
  */
 const analyzeCode = async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, questionContent } = req.body;
 
     if (!code) {
       return res.status(400).json({ error: 'Code is required' });
@@ -22,13 +22,16 @@ Eres un experto en programación. Analiza el siguiente código y sugiere:
 - Mejoras de estilo
 - Buenas prácticas
 - Correcciones si hay errores
+- Sugerencias de código
+
+${questionContent ? `Contexto de la pregunta: ${questionContent}` : ''}
 
 Código:
 \u0060\u0060\u0060
 ${code}
 \u0060\u0060\u0060
 
-Responde en máximo 3 líneas.
+  Sin negritas o cursiva.
 `;
 
     console.log('[ANALYZE] Prompt generado:', prompt);
@@ -40,7 +43,7 @@ Responde en máximo 3 líneas.
 
     console.log('[ANALYZE] API Response:', JSON.stringify(response, null, 2));
 
-    const suggestion = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const suggestion = response.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!suggestion) {
       return res.status(500).json({ error: 'Failed to analyze code', details: 'Empty response from AI' });
