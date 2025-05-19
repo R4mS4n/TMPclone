@@ -83,7 +83,7 @@ const reviewQuestionSubmission = async (req, res) => {
       'Wrong Answer': 0,
       'Compilation Error': 0,
       'Runtime Error': 0,
-      'Time Limit Exceeded': 0
+      'Date Limit Exceeded': 0
       //base cases
     };
     const status = statusMapping[resultData.status?.description] ?? 0;//default case is zero
