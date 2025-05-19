@@ -21,37 +21,40 @@ const transporter = nodemailer.createTransport({
  */
 const registerUser = async (req, res) => {
   try {
-    const { username, mail, password } = req.body;
-    if (!username || !mail || !password) {
+    // Ahora esperamos { username, email, password }
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) {
       return res.status(400).json({ message: "All fields must be filled" });
     }
 
+    // Verificar usuario o email existentes
     const [existing] = await db.promise().query(
       "SELECT * FROM `User` WHERE username = ? OR mail = ?",
-      [username, mail]
+      [username, email]
     );
     if (existing.length > 0) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const salt            = await bcrypt.genSalt(10);
-    const hashedPassword  = await bcrypt.hash(password, salt);
+    // Hashear contraseña y generar token de verificación
+    const salt              = await bcrypt.genSalt(10);
+    const hashedPassword    = await bcrypt.hash(password, salt);
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const tokenExpires      = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+    // Insert en la tabla (la columna sigue llamándose "mail")
     await db.promise().query(
       `INSERT INTO \`User\`
          (username, mail, password, verification_token, token_expires_at, is_verified)
        VALUES (?, ?, ?, ?, ?, FALSE)`,
-      [username, mail, hashedPassword, verificationToken, tokenExpires]
+      [username, email, hashedPassword, verificationToken, tokenExpires]
     );
 
+    // Enviar email de verificación
     const verificationLink = `${process.env.BACKEND_URL}/api/auth/verify-email?token=${verificationToken}`;
-    console.log('[REGISTER] Verification link:', verificationLink);
-
     await transporter.sendMail({
       from: `"TMP App" <${process.env.BOT_EMAIL}>`,
-      to: mail,
+      to: email,
       subject: 'Verify Your Email',
       html: `
         <h2>Welcome to TMP!</h2>
@@ -106,21 +109,23 @@ const verifyEmail = async (req, res) => {
 };
 
 /**
- * Inicio de sesión (login) — con logs de depuración
+ * Inicio de sesión (login)
  */
 const loginUser = async (req, res) => {
   try {
-    const { mail, password } = req.body;
+    // Ahora destructuramos { email, password }
+    const { email, password } = req.body;
 
-    console.log('[LOGIN] mail recibido:', mail);
+    console.log('[LOGIN] email recibido:', email);
     console.log('[LOGIN] password raw:', password);
     console.log('[LOGIN] password.length:', password?.length);
 
+    // Buscamos al usuario por la columna "mail"
     const [rows] = await db.promise().query(
       `SELECT user_id, username, password, role, is_verified
          FROM \`User\`
         WHERE mail = ?`,
-      [mail]
+      [email]
     );
     if (rows.length === 0) {
       console.log('[LOGIN] ❌ Usuario no encontrado');
@@ -156,7 +161,7 @@ const loginUser = async (req, res) => {
       { expiresIn: "1h", algorithm: "HS256" }
     );
     console.log('[LOGIN] ✅ Login exitoso');
-    return res.json({ message: "Login successful :3", token });
+    return res.json({ message: "Login successful", token });
   } catch (err) {
     console.error('[LOGIN] ERROR:', err);
     return res.status(500).json({ message: "Server error", error: err.message });
@@ -185,8 +190,27 @@ const verifyToken = (req, res, next) => {
 /**
  * Obtener datos del usuario autenticado
  */
-const getUser = (req, res) => {
-  res.json({ user_id: req.user.sub });
+const getUser = async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const [rows] = await db.promise().query(
+      `SELECT user_id, username, role
+         FROM \`User\`
+        WHERE user_id = ?
+        LIMIT 1`,
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { user_id, username, role } = rows[0];
+    return res.json({ user_id, username, role });
+  } catch (err) {
+    console.error('[GET /me] error:', err);
+    return res.status(500).json({ error: err.message });
+  }
 };
 
 /**
