@@ -462,6 +462,7 @@ export default function ChallengeQuestion() {
                   initialCode={template}
                   onSubmit={handleCodeSubmit}
                   questionId={question.question_id}
+                  questionContent={question.content}
                 />
               </div>
             </div>
