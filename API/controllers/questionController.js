@@ -100,9 +100,10 @@ const reviewQuestionSubmission = async (req, res) => {
   }
 };
 
-// Get User ID from JWT
 const getUserIdFromToken = (authHeader) => {
-  if (!authHeader) throw new Error("Missing Authorization header");
+  if (!authHeader) {
+    throw new Error("Missing Authorization header");
+  }
 
   const parts = authHeader.split(" ");
   if (parts.length !== 2 || parts[0] !== "Bearer") {
@@ -110,33 +111,50 @@ const getUserIdFromToken = (authHeader) => {
   }
 
   const token = parts[1];
-  const decodedToken = jwt.decode(token);
-  if (!decodedToken || !decodedToken.sub) {
-    throw new Error("Invalid JWT structure: 'sub' claim missing");
-  }
 
-  return decodedToken.sub;
+  try {
+    const decodedToken = jwt.decode(token);
+    if (!decodedToken || !decodedToken.sub) {
+      throw new Error("Invalid JWT structure: 'sub' claim missing");
+    }
+
+    return decodedToken.sub;
+  } catch (error) {
+    throw new Error(`Invalid JWT: ${error.message}`);
+  }
 };
 
-// Save or Update Submission
 const saveOrUpdateSubmission = async (userId, questionId, code, status) => {
-  await db.promise().query(
-    `INSERT INTO Submission (user_id, question_id, code, status, created_at)
-     VALUES (?, ?, ?, ?, NOW())
-     ON DUPLICATE KEY UPDATE 
-       code = VALUES(code), 
-       status = VALUES(status), 
-       created_at = NOW()`,
-    [userId, questionId, code, status]
-  );
+  try {
+    await db.promise().query(
+      `INSERT INTO Submission (user_id, question_id, code, status, created_at)
+       VALUES (?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE 
+         code = VALUES(code), 
+         status = VALUES(status), 
+         created_at = NOW()`,
+      [userId, questionId, code, status]
+    );
+    console.log(`Submission updated for user ${userId} on question ${questionId}`);
+  } catch (error) {
+    console.error('[DB ERROR] Failed to save submission:', error);
+    throw error; // Re-throw to handle in calling function
+  }
 };
 
 // Get a particular submission by providing user and question
 const getSubmission = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
+     if (!authHeader) {
+      return res.status(401).json({ error: 'Authorization header required' });
+    }
     const userId = getUserIdFromToken(authHeader);
     const { questionId } = req.query;
+
+    if (!questionId) {
+      return res.status(400).json({ error: 'questionId is required' });
+    }
 
     const [results] = await db.promise().query(
       `SELECT code, status, created_at 
@@ -148,7 +166,11 @@ const getSubmission = async (req, res) => {
     );
 
     if (results.length === 0) {
-      return res.status(404).json({ error: 'No submission found', code: '', status: -1 });
+       return res.status(404).json({ 
+        error: 'No submission found',
+        code: '',
+        status: -1
+      });
     }
 
     res.status(200).json({
@@ -159,6 +181,9 @@ const getSubmission = async (req, res) => {
 
   } catch (error) {
     console.error('[ERROR] Fetching submission failed:', error);
+    if (error.message.includes('JWT') || error.message.includes('token')) {
+      return res.status(401).json({ error: 'Invalid authentication token' });
+    }
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
@@ -196,9 +221,18 @@ const updateTournamentScore = async (userId, questionId) => {
   if (!question.length) return;
 
   await db.promise().query(`
-    INSERT INTO Tournament_Participation (user_id, tournament_id, score)
+ INSERT INTO Tournament_Participation (user_id, tournament_id, score)
     SELECT 
-      ?, ?, SUM(s.status * q.points)
+      ?, ?,
+      COALESCE(SUM(
+        s.status * 
+        CASE q.difficulty
+          WHEN 'Easy' THEN 100
+          WHEN 'Medium' THEN 200
+          WHEN 'Hard' THEN 300
+          ELSE 100
+        END
+      ), 0)
     FROM Submission s
     JOIN Question q ON s.question_id = q.question_id
     WHERE s.user_id = ? AND q.tournament_id = ?
