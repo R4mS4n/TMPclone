@@ -1,27 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const {
-  getQuestions, 
-  getChallengeById, 
-  reviewQuestionSubmission, 
-  saveOrUpdateSubmission, 
-  getSubmission, 
-  checkQuestionStatus
-} = require('../controllers/questionController');
+const {getQuestions, getChallengeById, reviewQuestionSubmission, saveOrUpdateSubmission, getSubmission} = require('../controllers/questionController');
 
-// Obtener todas las preguntas de un torneo específico
 router.get('/getAllQuestions', getQuestions);
-
-// Obtener una submission específica por usuario y pregunta
 router.get('/submissions', getSubmission);
-
-// Revisar una submission y actualizar score
 router.post('/review', reviewQuestionSubmission);
-
-// Verificar si una pregunta ya fue resuelta (nuevo)
-router.get('/check-status', checkQuestionStatus);
-
-// Obtener un desafío por ID
 router.get('/:id', getChallengeById);
 
 /*
@@ -95,5 +78,5 @@ router.get('/admin/debug/:id', async (req, res) => {
   }
 });
 */
-
 module.exports = router;
+
