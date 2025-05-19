@@ -37,11 +37,27 @@ const Leaderboard = () => {
           const firstTournament = data[0];
           setSelectedTournament(firstTournament.tournament_id);
           
-          // Set time remaining based on tournament time_limit
-          if (firstTournament.time_limit) {
-            const hours = Math.floor(firstTournament.time_limit / 60);
-            const minutes = firstTournament.time_limit % 60;
-            setTimeRemaining(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`);
+          // Set time remaining based on tournament date_limit
+          if (firstTournament.date_limit) {
+            const now = new Date();
+            const deadline = new Date(firstTournament.date_limit);
+
+             const timeDifference = deadline - now; // Diferencia en milisegundos
+
+              if (timeDifference > 0) {
+                const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeDifference / (1000 * 60 * 60)) % 24);
+                const minutes = Math.floor((timeDifference / (1000 * 60)) % 60);
+                const seconds = Math.floor((timeDifference / 1000) % 60);
+
+                setTimeRemaining(
+                  `${days}d ${hours.toString().padStart(2, '0')}:${minutes
+                  .toString()
+                  .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                );
+              } else {
+              setTimeRemaining("00d 00:00:00"); // Si el tiempo ya pasó
+            }
           }
           
           fetchLeaderboardData(firstTournament.tournament_id);
@@ -58,11 +74,24 @@ const Leaderboard = () => {
           const mockTournament = { 
             tournament_id: 20, 
             name: 'Mock Tournament',
-            time_limit: 180 // 3 hours in minutes
+            date_limit: '2025-12-31 23:59:59' // end fo year
           };
           setTournaments([mockTournament]);
           setSelectedTournament(mockTournament.tournament_id);
-          setTimeRemaining('03:00:00');
+          if (timeDifference > 0) {
+            const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeDifference / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((timeDifference / (1000 * 60)) % 60);
+            const seconds = Math.floor((timeDifference / 1000) % 60);
+
+            setTimeRemaining(
+              `${days}d ${hours.toString().padStart(2, '0')}:${minutes
+              .toString()
+              .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+            );
+          } else {
+            setTimeRemaining("00d 00:00:00"); // Si el tiempo ya pasó
+          }
           fetchLeaderboardData(mockTournament.tournament_id);
         }
       }
@@ -288,11 +317,29 @@ const Leaderboard = () => {
     
     // Update time remaining based on the selected tournament
     const tournament = tournaments.find(t => t.tournament_id === Number(tournamentId));
-    if (tournament && tournament.time_limit) {
-      const hours = Math.floor(tournament.time_limit / 60);
-      const minutes = tournament.time_limit % 60;
-      setTimeRemaining(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`);
+    if (tournament && tournament.date_limit) {
+      const now = new Date();
+      const deadline = new Date(tournament.date_limit);
+      const timeDifference = deadline - now;
+
+      if (timeDifference > 0) {
+        const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeDifference / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((timeDifference / (1000 * 60)) % 60);
+        const seconds = Math.floor((timeDifference / 1000) % 60);
+
+        setTimeRemaining(
+          `${days > 0 ? `${days}d ` : ""}${hours
+            .toString()
+            .padStart(2, '0')}:${minutes
+            .toString()
+            .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      } else {
+        setTimeRemaining("00:00:00"); // Si el tiempo ya pasó
+      }
     }
+
     
     fetchLeaderboardData(tournamentId);
   };
