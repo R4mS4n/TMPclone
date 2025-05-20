@@ -162,7 +162,17 @@ const ChallengeDetails = () => {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h1 className="card-title text-2xl md:text-3xl font-bold text-primary">{challenge.name}</h1>
-              <div className="badge badge-outline mt-2">Time Limit: {challenge.time_limit} minutes</div>
+              <div className="badge badge-outline mt-2">
+                Date Limit: {new Date(challenge.date_limit).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false,
+                })}
+              </div>
             </div>
             <button 
               onClick={handleParticipateOrDrop}
@@ -173,6 +183,7 @@ const ChallengeDetails = () => {
           </div>
         </div>
       </div>
+
       
       {/* Challenge details */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -218,9 +229,20 @@ const ChallengeDetails = () => {
                 </div>
                 
                 <div className="stat px-6 py-4">
-                  <div className="stat-title">Time Limit</div>
-                  <div className="stat-value text-primary">{challenge.time_limit} min</div>
+                  <div className="stat-title">Date Limit</div>
+                  <div className="stat-value text-primary">
+                    {new Date(challenge.date_limit).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false,
+                    })}
+                  </div>
                 </div>
+
                 
                 <div className="stat px-6 py-4">
                   <div className="stat-title">Difficulty</div>
@@ -232,7 +254,7 @@ const ChallengeDetails = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <div>
                   <h3 className="font-bold">Remember!</h3>
-                  <div className="text-xs">You must complete the challenge within the time limit.</div>
+                  <div className="text-xs">You must complete the challenge within the date limit.</div>
                 </div>
               </div>
             </div>

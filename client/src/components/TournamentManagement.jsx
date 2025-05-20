@@ -9,7 +9,7 @@ const TournamentManagement = () => {
   const [currentTournament, setCurrentTournament] = useState({
     name: '',
     description: '',
-    time_limit: ''
+    date_limit: ''
   });
   const [loading, setLoading] = useState(true);
   const { notify, notifySuccess, notifyError, confirm } = useNotification();
@@ -77,7 +77,7 @@ const TournamentManagement = () => {
     setCurrentTournament({
       name: '',
       description: '',
-      time_limit: ''
+      date_limit: ''
     });
     setShowTournamentModal(true);
   };
@@ -124,7 +124,7 @@ const TournamentManagement = () => {
       await fetchTournaments();
       console.log('Tournaments refreshed');
       setShowTournamentModal(false);
-      setCurrentTournament({ name: '', description: '', time_limit: '' });
+      setCurrentTournament({ name: '', description: '', date_limit: '' });
     } catch (error) {
       console.error('Error submitting tournament:', error);
       notifyError(error.message);
@@ -195,17 +195,27 @@ const TournamentManagement = () => {
 
               <div>
                 <label className="label">
-                  <span className="label-text text-base-content">Time Limit (hours)</span>
+                  <span className="label-text text-base-content">Date Limit (Date and Time)</span>
                 </label>
                 <input
-                  type="number"
-                  value={currentTournament.time_limit}
-                  onChange={(e) => setCurrentTournament({ ...currentTournament, time_limit: e.target.value })}
+                  type="datetime-local"
+                  value={
+                    currentTournament.date_limit 
+                      ? new Date(currentTournament.date_limit).toISOString().slice(0, 16) 
+                      : ''
+                  }
+                  onChange={(e) => {
+                    const selectedDate = new Date(e.target.value);
+                    const formattedDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')} ${String(selectedDate.getHours()).padStart(2, '0')}:${String(selectedDate.getMinutes()).padStart(2, '0')}:${String(selectedDate.getSeconds()).padStart(2, '0')}`;
+                    
+                    setCurrentTournament({ ...currentTournament, date_limit: formattedDate });
+                  }}
                   className="w-full rounded-lg bg-base-200 text-base-content px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Write in Hours"
+                  placeholder="Select Date and Time"
                   required
                 />
               </div>
+
 
               <div className="flex space-x-3">
                 <button
@@ -242,7 +252,17 @@ const TournamentManagement = () => {
               <h3 className="text-lg font-semibold mb-2 text-base-content">{tournament.name}</h3>
               <p className="text-base-content/60 text-sm mb-4">{tournament.description}</p>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-base-content/60">Time limit: {tournament.time_limit}h</span>
+                <span className="text-sm text-base-content/60">
+                  Date limit: {new Date(tournament.date_limit).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                  })}
+                </span>
                 <div className="flex gap-4">
                   <button
                     onClick={() => handleEdit(tournament)}
@@ -258,6 +278,7 @@ const TournamentManagement = () => {
                   </button>
                 </div>
               </div>
+
             </motion.div>
           ))
         )}

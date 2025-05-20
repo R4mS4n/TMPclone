@@ -82,7 +82,19 @@ const Challenges = () => {
                   {challenge.description || "Test your skills with this exciting challenge!"}
                 </p>
                 <div className="flex items-center gap-2 mt-3">
-                  <div className="badge badge-outline">Time: {challenge.time_limit || "3"} min</div>
+                  <div className="badge badge-outline">
+                    Date Limit: {challenge.date_limit 
+                      ? new Date(challenge.date_limit).toLocaleString('en-US', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false,
+                        })
+                      : "3 min"}
+                  </div>
                 </div>
                 <div className="card-actions justify-end mt-4">
                   <button

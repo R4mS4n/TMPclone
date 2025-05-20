@@ -118,20 +118,20 @@ const deleteTournament = async (req, res) => {
 // Editar torneo
 const updateTournament = async (req, res) => {
   const { id } = req.params;
-  const { name, description, time_limit } = req.body;
+  const { name, description, date_limit } = req.body;
 
-  if (!name || time_limit === undefined) {
+  if (!name || date_limit === undefined) {
     return res.status(400).json({
-      error: "Name and time limit are required"
+      error: "Name and date limit are required"
     });
   }
 
   try {
     const [result] = await db.promise().query(
       `UPDATE Tournament 
-       SET name = ?, description = ?, time_limit = ?
+       SET name = ?, description = ?, date_limit = ?
        WHERE tournament_id = ?`,
-      [name, description, time_limit, id]
+      [name, description, date_limit, id]
     );
 
     if (result.affectedRows === 0) {
@@ -141,7 +141,7 @@ const updateTournament = async (req, res) => {
     res.json({
       success: true,
       message: "Tournament updated successfully",
-      tournament: { id, name, description, time_limit }
+      tournament: { id, name, description, date_limit }
     });
 
   } catch (error) {
@@ -155,20 +155,20 @@ const updateTournament = async (req, res) => {
 
 // Crear torneo
 const createTournament = async (req, res) => {
-  const { name, description, time_limit } = req.body;
+  const { name, description, date_limit } = req.body;
 
-  if (!name || time_limit === undefined) {
+  if (!name || date_limit === undefined) {
     return res.status(400).json({
-      error: "Name and time limit are required",
+      error: "Name and date limit are required",
       received: req.body
     });
   }
 
   try {
     const [result] = await db.promise().query(
-      `INSERT INTO Tournament (name, description, time_limit)
+      `INSERT INTO Tournament (name, description, date_limit)
        VALUES (?, ?, ?)`,
-      [name, description, time_limit]
+      [name, description, date_limit]
     );
 
     const [newTournament] = await db.promise().query(
