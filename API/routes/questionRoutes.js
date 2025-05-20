@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const {getQuestions, getChallengeById, reviewQuestionSubmission, saveOrUpdateSubmission, getSubmission} = require('../controllers/questionController');
+const {getQuestions, getChallengeById, reviewQuestionSubmission, saveOrUpdateSubmission, getSubmission, checkQuestionStatus} = require('../controllers/questionController');
 
 router.get('/getAllQuestions', getQuestions);
 router.get('/submissions', getSubmission);
 router.post('/review', reviewQuestionSubmission);
+router.get('/check-status', checkQuestionStatus);
 router.get('/:id', getChallengeById);
+
 
 /*
 // Special debugging endpoint to help with Judge0 integration
@@ -78,5 +80,5 @@ router.get('/admin/debug/:id', async (req, res) => {
   }
 });
 */
-module.exports = router;
 
+module.exports = router;

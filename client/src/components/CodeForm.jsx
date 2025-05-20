@@ -12,212 +12,146 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, questionContent
   const { isDark } = useTheme();
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState('');
+  const [solved, setSolved] = useState(false); // ✅ Estado para verificar si la pregunta está resuelta
 
-   useEffect(() => {
+  useEffect(() => {
     const fetchSavedCode = async () => {
-      if (!questionId) {
-        return;
-      }
-
+      if (!questionId) return;
       try {
-        console.log('[CODE FORM] Fetching saved code for question:', questionId);
         const response = await fetch(
           `http://localhost:5000/api/questions/submissions?questionId=${questionId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
         );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch saved code');
-        }
-
         const data = await response.json();
-        
-        if (data.code) {
-          console.log('[CODE FORM] Found saved code, length:', data.code.length);
-          setCode(data.code);
-        } else {
-          console.log('[CODE FORM] No saved code found, using default template');
-          setCode(getCodeTemplate(selectedLanguage.name));
-        }
+        setCode(data.code || getCodeTemplate(selectedLanguage.name));
+        setSolved(data.status === 1); // ✅ Verificar si está resuelta
       } catch (error) {
-        console.error('[CODE FORM] Error fetching saved code:', error);
         setCode(getCodeTemplate(selectedLanguage.name));
+        setSolved(false);
       }
     };
-
     fetchSavedCode();
   }, [questionId]);
 
-  // Set selectedLanguage if "language" prop is passed
+  // ✅ Verificar si la pregunta ya está resuelta
+  const checkIfSolved = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/questions/submissions?questionId=${questionId}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
+      );
+      const data = await response.json();
+      setSolved(data.status === 1);
+    } catch (error) {
+      console.error('[CODE FORM] Error checking if solved:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (questionId) checkIfSolved();
+  }, [questionId]);
+
+  // Resto de useEffects y handlers exactamente iguales al primer componente
   useEffect(() => {
     if (language) {
-      console.log('[CODE FORM] Setting language from prop:', language);
       const languageObj = languages.find(lang =>
         lang.name.toLowerCase().includes(language.toLowerCase())
       );
-      if (languageObj) {
-        console.log('[CODE FORM] Found matching language:', languageObj.name, '(ID:', languageObj.id, ')');
-        setSelectedLanguage(languageObj);
-      } else {
-        console.warn('[CODE FORM] No matching language found for:', language);
-      }
+      if (languageObj) setSelectedLanguage(languageObj);
     }
   }, [language]);
 
   useEffect(() => {
-    if (selectedLanguage) {
-      console.log('[CODE FORM] Updating Monaco editor language to:', selectedLanguage.name);
-      const monacoLang = getMonacoLanguage(selectedLanguage.name);
-      setEditorLanguage(monacoLang);
-    }
+    setEditorLanguage(getMonacoLanguage(selectedLanguage.name));
   }, [selectedLanguage]);
 
   useEffect(() => {
-    if (initialCode) {
-      console.log('[CODE FORM] Using initial code template (length:', initialCode.length, 'chars)');
-      setCode(initialCode);
-    } else if (selectedLanguage) {
-      console.log('[CODE FORM] No initial code provided, using template for:', selectedLanguage.name);
-      setCode(getCodeTemplate(selectedLanguage.name));
-    }
+    if (initialCode) setCode(initialCode);
+    else setCode(getCodeTemplate(selectedLanguage.name));
   }, [initialCode, selectedLanguage]);
 
-  const handleLanguageChange = (e) => {
+  const handleLanguageChange = e => {
     const langId = parseInt(e.target.value);
-    console.log('[CODE FORM] Language changed to ID:', langId);
     const newLanguage = languages.find(lang => lang.id === langId);
     if (newLanguage) {
-      console.log('[CODE FORM] Setting language to:', newLanguage.name);
       setSelectedLanguage(newLanguage);
-      if (!initialCode) {
-        const template = getCodeTemplate(newLanguage.name);
-        console.log('[CODE FORM] Setting new template for language (length:', template.length, 'chars)');
-        setCode(template);
-      }
+      if (!initialCode) setCode(getCodeTemplate(newLanguage.name));
     }
   };
 
-  const handleEditorChange = (value) => {
-    setCode(value || '');
-  };
+  const handleEditorChange = value => setCode(value || '');
 
-  const handleEditorDidMount = (editor) => {
-    console.log('[CODE FORM] Monaco editor mounted');
+  const handleEditorDidMount = editor => {
     editor.updateOptions({
       automaticLayout: true,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
       fontSize: 14,
       scrollBeyondLastLine: false,
       minimap: { enabled: true },
-      lineNumbers: "on",
+      lineNumbers: 'on',
       folding: true,
       tabSize: 2
     });
     editor.focus();
     setIsEditorReady(true);
-    console.log('[CODE FORM] Editor ready for use');
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     if (e) e.preventDefault();
     if (!isEditorReady || isSubmitting) return;
-
-    console.log('[CODE FORM] Submitting code, language:', selectedLanguage.name, 'ID:', selectedLanguage.id);
-    console.log('[CODE FORM] Code length:', code.length, 'characters');
     setIsSubmitting(true);
-
     try {
       if (onSubmit) {
-        // Delegate submission logic to parent component
-        console.log('[CODE FORM] Using parent component submission handler');
         await onSubmit(code, selectedLanguage.name, selectedLanguage.id);
       } else if (questionId) {
-        // Default API submission logic
-        console.log('[CODE FORM] Using default API submission logic');
-        console.log('[CODE FORM] Submitting to /api/questions/review with questionId:', questionId);
-        
         const response = await fetch('http://localhost:5000/api/questions/review', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            questionId,
-            code,
-            languageId: selectedLanguage.id,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ questionId, code, languageId: selectedLanguage.id })
         });
-
-        if (!response.ok) {
-          console.error('[CODE FORM] API error:', response.status, response.statusText);
-          throw new Error(`API Error: ${response.status}`);
-        }
-
         const data = await response.json();
-        console.log('[CODE FORM] Response from API:', data);
-        
-        // Show appropriate message based on Judge0 response
-        if (data.status && data.status.id === 3) {
-          console.log('[CODE FORM] Code submission successful!');
-          alert('Code submitted successfully! All tests passed.');
-        } else {
-          console.warn('[CODE FORM] Code submission error:', data.status?.description || 'Unknown error');
-          alert(`Code submission error: ${data.status?.description || 'Unknown error'}`);
-        }
+        setSolved(data.status === 1); // ✅ Actualizar estado resuelta
       }
 
       const AIresponse = await fetch('http://localhost:5000/api/ai/analyzeCode', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            code, questionContent,
-          }),
-        });
-
-      
-        if (!AIresponse.ok) {
-          console.error('[CODE FORM] AI error:', AIresponse.status, AIresponse.statusText);
-          throw new Error(`AI Error: ${AIresponse.status}`);
-        }
-
-        const AIdata = await AIresponse.json();
-        console.log('[CODE FORM] Response from AI:', AIdata);
-
-        const suggestion = AIdata.suggestion || 'No suggestion provided.';
-        setAiSuggestion(suggestion);
-
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, questionContent })
+      });
+      const AIdata = await AIresponse.json();
+      setAiSuggestion(AIdata.suggestion || 'No suggestion provided.');
     } catch (error) {
       console.error('[CODE FORM] Error submitting code:', error);
       alert(`Error submitting code: ${error.message}`);
     } finally {
-      console.log('[CODE FORM] Submission process completed');
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="w-full">
+      {/* ✅ Mostrar el estado de la pregunta */}
+      <div className="mb-4">
+        {solved ? (
+          <div className="text-green-600 font-bold">✅ ¡Pregunta resuelta!</div>
+        ) : (
+          <div className="text-red-600 font-bold">❌ Pregunta pendiente</div>
+        )}
+      </div>
+
       <div className="rounded-md overflow-hidden mb-4 border border-base-300">
         {/* Language Selector Header */}
         <div className="flex justify-between items-center px-4 py-3 bg-neutral text-neutral-content">
-          <div className="flex items-center">
-            <span className="text-sm font-medium mr-2">Language:</span>
-            <select
-              value={selectedLanguage?.id || ''}
-              onChange={handleLanguageChange}
-              className="select select-bordered bg-base-100 text-base-content min-w-[200px] font-medium"
-            >
-              {languages.map(lang => (
-                <option key={lang.id} value={lang.id}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
+          <span className="text-sm font-medium mr-2">Language:</span>
+          <select
+            value={selectedLanguage?.id || ''}
+            onChange={handleLanguageChange}
+            className="select select-bordered bg-base-100 text-base-content min-w-[200px] font-medium"
+          >
+            {languages.map(lang => (
+              <option key={lang.id} value={lang.id}>{lang.name}</option>
+            ))}
+          </select>
         </div>
 
         {/* Monaco Code Editor */}
@@ -241,10 +175,7 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, questionContent
               tabSize: 2,
               cursorBlinking: "smooth",
               contextmenu: true,
-              scrollbar: {
-                vertical: 'auto',
-                horizontal: 'auto',
-              },
+              scrollbar: { vertical: 'auto', horizontal: 'auto' },
               suggestOnTriggerCharacters: true,
               formatOnPaste: true,
               formatOnType: true,
@@ -255,10 +186,10 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, questionContent
       </div>
 
       <div className="mb-2 max-w-full overflow-auto">
-      <strong>AI Suggestion:</strong>
-      <pre className="whitespace-pre-wrap break-words overflow-auto max-w-full">
-      {aiSuggestion}
-      </pre>
+        <strong>AI Suggestion:</strong>
+        <pre className="whitespace-pre-wrap break-words overflow-auto max-w-full">
+          {aiSuggestion}
+        </pre>
       </div>
 
       {/* Submit Button */}
