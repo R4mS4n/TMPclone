@@ -69,11 +69,19 @@ export default function ChallengeQuestion() {
 
   // Setup timer based on challenge limit
   useEffect(() => {
-    if (challengeInfo?.time_limit) {
-      const minutes = parseInt(challengeInfo.time_limit);
-      setRemainingTime(minutes * 60);
+    if (challengeInfo?.date_limit) {
+      const deadline = new Date(challengeInfo.date_limit);
+      const now = new Date();
+      const timeDifference = (deadline - now) / 1000; // Convertir a segundos
+
+      if (timeDifference > 0) {
+        setRemainingTime(Math.floor(timeDifference)); // Establece el tiempo restante en segundos
+      } else {
+        setRemainingTime(0); // Si ya pasó la fecha límite, establece 0
+      }
     }
   }, [challengeInfo]);
+
 
   // Timer countdown
   useEffect(() => {
@@ -97,10 +105,19 @@ export default function ChallengeQuestion() {
 
   const formatTime = (seconds) => {
     if (seconds === null) return '--:--';
-    const mins = Math.floor(seconds / 60);
+    
+    const days = Math.floor(seconds / (60 * 60 * 24));
+    const hours = Math.floor((seconds % (60 * 60 * 24)) / (60 * 60));
+    const mins = Math.floor((seconds % (60 * 60)) / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+    if (days > 0) {
+      return `${days}d ${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
 
   const handleCodeSubmit = async (code, language, languageId) => {
 
