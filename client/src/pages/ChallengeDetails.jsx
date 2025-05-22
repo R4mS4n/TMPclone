@@ -163,7 +163,7 @@ const ChallengeDetails = () => {
             <div>
               <h1 className="card-title text-2xl md:text-3xl font-bold text-primary">{challenge.name}</h1>
               <div className="badge badge-outline mt-2">
-                Date Limit: {new Date(challenge.date_limit).toLocaleString('en-US', {
+                Date Limit: {new Date(challenge.date_limit).toLocaleString('es-MX', {
                   year: 'numeric',
                   month: '2-digit',
                   day: '2-digit',
@@ -231,7 +231,7 @@ const ChallengeDetails = () => {
                 <div className="stat px-6 py-4">
                   <div className="stat-title">Date Limit</div>
                   <div className="stat-value text-primary">
-                    {new Date(challenge.date_limit).toLocaleString('en-US', {
+                    {new Date(challenge.date_limit).toLocaleString('es-MX', {
                       year: 'numeric',
                       month: '2-digit',
                       day: '2-digit',

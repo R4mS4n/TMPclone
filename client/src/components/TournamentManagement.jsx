@@ -201,7 +201,9 @@ const TournamentManagement = () => {
                   type="datetime-local"
                   value={
                     currentTournament.date_limit 
-                      ? new Date(currentTournament.date_limit).toISOString().slice(0, 16) 
+                      ? new Date(new Date(currentTournament.date_limit).getTime() - new Date().getTimezoneOffset() * 60000)
+                        .toISOString()
+                        .slice(0, 16)
                       : ''
                   }
                   onChange={(e) => {
@@ -253,7 +255,7 @@ const TournamentManagement = () => {
               <p className="text-base-content/60 text-sm mb-4">{tournament.description}</p>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-base-content/60">
-                  Date limit: {new Date(tournament.date_limit).toLocaleString('en-US', {
+                  Date limit: {new Date(tournament.date_limit).toLocaleString('es-MX', {
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit',

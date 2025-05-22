@@ -12,6 +12,16 @@ const getAllTournaments = async (req, res) => {
   }
 };
 
+const getCurrentTournaments = async (req, res) => {
+  try {
+    const [rows] = await db.promise().query("SELECT * FROM Tournament WHERE date_limit >= NOW()");
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching tournaments:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 // Obtener un torneo especifico por ID
 const getTournamentById = async (req, res) => {
   const { id } = req.params;
@@ -193,6 +203,7 @@ const createTournament = async (req, res) => {
 
 module.exports = {
   getAllTournaments,
+  getCurrentTournaments,
   getTournamentById,
   participateInTournament,
   checkEnrollment,
