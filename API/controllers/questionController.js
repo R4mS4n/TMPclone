@@ -21,6 +21,82 @@ const getQuestions = async (req, res) => {
   }
 };
 
+// UPDATE questions
+const updateQuestion = async (req, res) => {
+  const { question_id } = req.params;
+  const { content, language, topic, difficulty, test_inputs, expected_outputs } = req.body;
+
+  if (!content || !language || !topic || !difficulty || !test_inputs || !expected_outputs) {
+    return res.status(400).json({
+      error: "All inputs are required."
+    });
+  }
+
+  try {
+    const [result] = await db.promise().query(
+      `UPDATE Question 
+       SET content = ?, language = ?, topic = ?, difficulty = ?, test_inputs = ?, expected_outputs = ?
+       WHERE question_id = ?`,
+      [content, language, topic, difficulty, test_inputs, expected_outputs, question_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Question updated successfully",
+      question: { question_id, content, language, topic, difficulty, test_inputs, expected_outputs }
+    });
+
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({
+      error: "Update failed",
+      details: error.sqlMessage || error.message
+    });
+  }
+};
+
+// CREATE questions
+const createQuestion = async (req, res) => {
+  const { content, language, topic, difficulty, test_inputs, expected_outputs } = req.body;
+
+  if (!content || !language || !topic || !difficulty || !test_inputs || !expected_outputs) {
+    return res.status(400).json({
+      error: "All inputs are required.",
+      received: req.body
+    });
+  }
+
+  try {
+    const [result] = await db.promise().query(
+      `INSERT INTO Question (content, language, topic, difficulty, test_inputs, expected_outputs)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [content, language, topic, difficulty, test_inputs, expected_outputs]
+    );
+
+    const [newQuestion] = await db.promise().query(
+      'SELECT * FROM Question WHERE question_id = ?',
+      [result.insertId]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Question created successfully",
+      question: newQuestion[0]
+    });
+
+  } catch (error) {
+    console.error("Create error:", error);
+    res.status(500).json({
+      error: "Create failed",
+      details: error.sqlMessage || error.message
+    });
+  }
+};
+
 // GET challenge by ID
 const getChallengeById = async (req, res) => {
   try {
@@ -244,6 +320,8 @@ const updateTournamentScore = async (userId, questionId) => {
 
 module.exports = { 
   getQuestions, 
+  updateQuestion,
+  createQuestion,
   getChallengeById, 
   reviewQuestionSubmission,
   getSubmission,
