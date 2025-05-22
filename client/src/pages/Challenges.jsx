@@ -12,7 +12,7 @@ const Challenges = () => {
   useEffect(() => {
     const fetchChallenges = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/tournaments");
+        const response = await fetch("http://localhost:5000/api/tournaments/current");
         if (!response.ok) throw new Error("Failed to fetch challenges");
 
         const data = await response.json();
@@ -84,7 +84,7 @@ const Challenges = () => {
                 <div className="flex items-center gap-2 mt-3">
                   <div className="badge badge-outline">
                     Date Limit: {challenge.date_limit 
-                      ? new Date(challenge.date_limit).toLocaleString('en-US', {
+                      ? new Date(challenge.date_limit).toLocaleString('es-MX', {
                           year: 'numeric',
                           month: '2-digit',
                           day: '2-digit',

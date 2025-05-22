@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { getAllTournaments,
+        getCurrentTournaments,
         getTournamentById,
         participateInTournament, 
         checkEnrollment, 
@@ -11,6 +12,8 @@ const { getAllTournaments,
 const {verifyToken, verifyAdmin, endpointAdminFilter} = require('../controllers/authController');
 
 router.get("/", getAllTournaments);
+
+router.get("/current", getCurrentTournaments);
 
 router.get("/:id",getTournamentById);
 
