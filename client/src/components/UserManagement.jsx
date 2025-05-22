@@ -175,12 +175,13 @@
                     ) : getRoleBadge(u.role)}
                   </td>
                   <td className="px-4 py-2">
-                    {(currentUser?.role === 2 || (currentUser?.role === 1 && u.role === 0)) && (
-                      <>
-                        <button onClick={() => handleEdit(u)} className={linkBtn}>Editar</button>
-                        <button onClick={() => handleDelete(u.user_id)} className={`${linkBtn} ml-2`}>Eliminar</button>
-                      </>
+                    {(u.role !== 2 && (currentUser?.role === 2 || (currentUser?.role === 1 && u.role === 0))) && (
+                       <>
+                       <button onClick={() => handleEdit(u)} className={linkBtn}>Editar</button>
+                       <button onClick={() => handleDelete(u.user_id)} className={`${linkBtn} ml-2`}>Eliminar</button>
+                       </>
                     )}
+
                   </td>
                 </tr>
               ))
