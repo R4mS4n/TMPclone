@@ -145,10 +145,43 @@ const deleteUserByAdmin = async (req, res) => {
   }
 };
 
+const updateUserRole = async (req, res) => {
+  const editor = req.user;
+  const targetUserId = req.params.id;
+  const { role } = req.body;
+
+  if (editor.role < 2) {
+    return res.status(403).json({ error: 'Solo los SuperAdmins pueden cambiar roles' });
+  }
+
+  if (![0, 1].includes(role)) {
+    return res.status(400).json({ error: 'Rol inválido (solo 0 o 1 permitidos)' });
+  }
+
+  try {
+    const [rows] = await db.promise().query('SELECT * FROM User WHERE user_id = ?', [targetUserId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    await db.promise().query(
+      'UPDATE User SET role = ? WHERE user_id = ?',
+      [role, targetUserId]
+    );
+
+    return res.json({ success: true, message: 'Rol actualizado correctamente' });
+  } catch (error) {
+    console.error('updateUserRole error:', error);
+    return res.status(500).json({ error: 'Error al actualizar rol' });
+  }
+};
+
+
 module.exports = {
   getAllUsers,
   getHonorLeaderboard,
   checkUserEnrollments,
   updateUserByAdmin,
+  updateUserRole,
   deleteUserByAdmin
 };
