@@ -30,7 +30,7 @@ app.use(express.json());
 // Rutas de la API
 app.use("/api/auth",         authRoutes);
 app.use("/api/tournaments",  tournamentRoutes);
-app.use("/api/user",         userRoutes);
+app.use("/api/users",        userRoutes); 
 app.use("/api/questions",    questionRoutes);
 app.use("/api/achievements", achievementRoutes);
 app.use("/api/dev",          devRoutes);
