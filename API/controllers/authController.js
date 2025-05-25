@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
 const registerUser = async (req, res) => {
   try {
     // Ahora esperamos { username, email, password }
-    const { username, email, password } = req.body;
+    const { username, mail: email, password } = req.body;
     if (!username || !email || !password) {
       return res.status(400).json({ message: "All fields must be filled" });
     }
