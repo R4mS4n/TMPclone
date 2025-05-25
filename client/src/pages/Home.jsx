@@ -44,7 +44,7 @@ const Home = () => {
 
     const fetchEnrollments = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/user/enrollments', {
+        const res = await fetch('http://localhost:5000/api/users/enrollments', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch enrollments');
