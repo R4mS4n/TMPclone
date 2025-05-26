@@ -13,6 +13,8 @@ const Leaderboard = () => {
   const [participants, setParticipants] = useState(0);
   const [honorLeaderboard, setHonorLeaderboard] = useState([]);
   const [honorLeaderboardLoading, setHonorLeaderboardLoading] = useState(true);
+  const [top10Leaderboard, setTop10Leaderboard] = useState([]);
+  const [top10Loading, setTop10Loading] = useState(true);
 
   useEffect(() => {
     // Fetch tournaments first
@@ -61,6 +63,7 @@ const Leaderboard = () => {
           }
           
           fetchLeaderboardData(firstTournament.tournament_id);
+          fetchTop10Leaderboard();
         } else {
           setLoading(false);
         }
@@ -181,6 +184,26 @@ const Leaderboard = () => {
       setHonorLeaderboardLoading(false);
     }
   };
+
+  const fetchTop10Leaderboard = async () => {
+  try {
+    setTop10Loading(true);
+    const token = localStorage.getItem('authToken');
+    const response = await fetch('http://localhost:5000/api/leaderboard/10leaderboard', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) throw new Error('Failed to fetch top 10 leaderboard');
+    
+    const data = await response.json();
+    setTop10Leaderboard(data);
+  } catch (err) {
+    console.error('Error fetching top 10 leaderboard:', err);
+    setError('Failed to load top 10 leaderboard');
+  } finally {
+    setTop10Loading(false);
+  }
+};
 
   const fetchLeaderboardData = async (tournamentId) => {
     setLoading(true);
@@ -356,6 +379,8 @@ const Leaderboard = () => {
     // Filter data based on selected tab
     if (selectedTab === 'honor') {
       return honorLeaderboardLoading ? [] : honorLeaderboard;
+    } else if (selectedTab === 'all'  ) {
+      return top10Loading ? [] : top10Leaderboard;
     } else if (selectedTab === 'teams') {
       // Group by team_id and sum scores
       const teamScores = new Map();
@@ -431,11 +456,12 @@ const Leaderboard = () => {
   };
 
   // Level indicator
-  const renderLevel = (level, xp) => {
+  const renderLevel = (xp) => {
+    const level = Math.floor(xp/500);
     return (
       <div className="flex items-center">
-        <div className="badge badge-primary mr-1">Lvl {level}</div>
-        <span className="text-xs text-gray-500">{xp} XP</span>
+        <div className="badge badge-primary mr-1">{level}</div>
+
       </div>
     );
   };
@@ -456,7 +482,10 @@ const Leaderboard = () => {
   // Get filtered and processed data to display
   const displayData = filterLeaderboardData();
   const isHonorTab = selectedTab === 'honor';
-  const isLoading = isHonorTab ? honorLeaderboardLoading : loading;
+  const isLoading = 
+  isHonorTab ? honorLeaderboardLoading : 
+  selectedTab === 'all' ? top10Loading : 
+  loading;
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -576,7 +605,9 @@ const Leaderboard = () => {
                     <th>{selectedTab === 'teams' ? 'Team' : 'Username'}</th>
                     <th>{isHonorTab ? 'Honor Points' : 'Level'}</th>
                     {!isHonorTab && <th>Achievements</th>}
-                    <th className="text-right">{isHonorTab ? 'Honor' : 'Score'}</th>
+                    <th className="text-right">
+  {isHonorTab ? 'Honor' : selectedTab === 'all' ? 'Score' : 'Score'}
+</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -601,17 +632,21 @@ const Leaderboard = () => {
                       </td>
                       <td>{entry.username}</td>
                       <td>
-                        {isHonorTab ? (
-                          <span className="font-semibold">{entry.score} points</span>
-                        ) : (
-                          <>
-                            {selectedTab !== 'teams' && entry.level && renderLevel(entry.level, entry.xp)}
-                            {selectedTab === 'teams' && <span className="badge badge-secondary">{entry.members} members</span>}
-                          </>
-                        )}
-                      </td>
+  {isHonorTab ? (
+    <span className="font-semibold">{entry.score} points</span>
+  ) : selectedTab === 'all' ? (
+    renderLevel(entry.xp)
+  ) : (
+    <>
+      {selectedTab !== 'teams' && entry.xp && renderLevel(entry.xp)}
+      {selectedTab === 'teams' && <span className="badge badge-secondary">{entry.members} members</span>}
+    </>
+  )}
+</td>
                       {!isHonorTab && <td>{renderAchievements(entry.achievements || 0)}</td>}
-                      <td className="text-right font-bold text-primary">{entry.score}</td>
+                      <td className="text-right font-bold text-primary">
+  {selectedTab === 'all' ? entry.xp : entry.score}
+</td>
                     </tr>
                   ))}
                 </tbody>
