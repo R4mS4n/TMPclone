@@ -38,8 +38,8 @@ const Challenges = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-primary mb-2">Available Challenges</h1>
           <p className="text-base-content opacity-80">Browse and participate in coding challenges</p>
         </div>
-        <div className="stats shadow mt-4 md:mt-0 bg-base-200 w-full md:w-auto">
-          <div className="stat px-6">
+        <div className="stats shadow mt-4 md:mt-0 bg-base-200 w-full md:w-auto rounded-md">
+          <div className="stat px-6 rounded-md">
             <div className="stat-title">Total Challenges</div>
             <div className="stat-value text-primary">{challenges.length}</div>
           </div>
@@ -71,12 +71,9 @@ const Challenges = () => {
           {challenges.map((challenge) => (
             <div
               key={challenge.tournament_id}
-              className="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden h-full"
+              className="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden h-full rounded-md"
             >
               <div className="card-body p-6">
-                <div className="card-actions justify-end">
-                  <div className="badge badge-primary">Challenge</div>
-                </div>
                 <h2 className="card-title text-base-content">{challenge.name}</h2>
                 <p className="text-base-content opacity-70 line-clamp-2">
                   {challenge.description || "Test your skills with this exciting challenge!"}

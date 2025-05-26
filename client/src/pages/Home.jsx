@@ -143,7 +143,7 @@ const Home = () => {
               {userProfile.username}
             </h2>
 
-            {/* Aquí dejas tu barra de nivel */}
+            {/* Barra */}
             <div className="bg-base-100 p-4 rounded-lg shadow w-full mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-xs font-bold">
@@ -151,17 +151,27 @@ const Home = () => {
                 </div>
                 <div>
                   <div className="font-semibold">Level {levelStats.level}</div>
-                  <div className="text-xs text-gray-500">{500-levelStats.remainder} Points to next level</div>
+                  <div className="text-xs text-gray-500">XP to next level: {500 - levelStats.remainder}</div>
+                  <div className="text-xs text-gray-500">Total XP: {levelStats.xp}</div>
                 </div>
               </div>
-              <div className="relative h-4 bg-yellow-100 rounded-full overflow-hidden mt-2">
-                <div
-                  className="absolute top-0 left-0 h-full bg-yellow-400 flex items-center justify-center text-xs text-yellow-800 font-semibold"
-                  style={{ width: `${(levelStats.remainder / 500) * 100}%` }}
-                >
-                  ⭐ {levelStats.remainder}/500
-                </div>
-              </div>
+              {/* Dynamic XP Bar */}
+              {(() => {
+                const percent = (levelStats.remainder / 500) * 100;
+                let barColor = "bg-[#FF253A]"; // leaderboard button red
+                if (percent > 70) barColor = "bg-green-400";
+                else if (percent > 30) barColor = "bg-yellow-400";
+                return (
+                  <div className="relative h-8 shadow-md" style={{ backgroundColor: '#FF6B81', minHeight: '2rem', borderRadius: '0.375rem', overflow: 'hidden', marginTop: '1rem' }}>
+                    <div
+                      className={`absolute top-0 left-0 h-full ${barColor} flex items-center pl-4 text-base text-black font-bold transition-all duration-300 rounded-md`}
+                      style={{ width: `${percent}%`, minWidth: percent > 0 ? '2.5rem' : '0' }}
+                    >
+                      <span className="ml-2 whitespace-nowrap text-sm">{levelStats.remainder}/500 XP ⭐</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Stats */}

@@ -460,7 +460,7 @@ const Leaderboard = () => {
 
   return (
     <div className="min-h-screen p-4 md:p-6">
-      <div className={`card ${isDark ? 'bg-base-200' : 'bg-base-100'} shadow-xl`}>
+      <div className={`card ${isDark ? 'bg-base-200' : 'bg-base-100'} shadow-xl rounded-md`}>
         <div className="card-body p-4 md:p-6">
           {/* Header section with tournament selector */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-6">
@@ -471,7 +471,7 @@ const Leaderboard = () => {
                 <div className="mt-2">
                   <div className="relative">
                     <select 
-                      className="w-full max-w-xs px-4 py-2 h-10 bg-base-300 rounded-md border-none appearance-none cursor-pointer text-base-content"
+                      className="w-full max-w-xs px-4 py-2 h-12 bg-base-300 rounded-md border-none appearance-none cursor-pointer text-base-content"
                       style={{ 
                         backgroundImage: "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E\")",
                         backgroundPosition: "right 0.5rem center",
@@ -550,7 +550,7 @@ const Leaderboard = () => {
 
           {/* No data message */}
           {!isLoading && !error && displayData.length === 0 && (
-            <div className="alert alert-info">
+            <div className="alert alert-info rounded-md">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <span>{isHonorTab ? 'No honor data available yet.' : 'No participants found for this tournament yet.'}</span>
             </div>
@@ -562,7 +562,7 @@ const Leaderboard = () => {
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
           ) : error ? (
-            <div className="alert alert-error">
+            <div className="alert alert-error rounded-md">
               <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               <span>{error}</span>
             </div>

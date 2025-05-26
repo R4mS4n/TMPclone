@@ -70,4 +70,9 @@
 /* Loading spinner */
 .loading-spinner {
   border-width: 3px;
+}
+
+.post-card,
+.sidebar-box {
+  border-radius: 0.375rem !important;
 } 

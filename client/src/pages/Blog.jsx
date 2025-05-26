@@ -343,7 +343,7 @@ const Blog = () => {
             <input
               type="text"
               placeholder="Search posts..."
-              className="w-full p-2 input input-bordered focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full h-12 input input-bordered focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -365,7 +365,7 @@ const Blog = () => {
                 filteredPosts.map((post) => (
                   <div 
                     key={post.post_id} 
-                    className="post-card card bg-base-100 shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 border border-base-200"
+                    className="post-card card bg-base-100 shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 border border-base-200 rounded-md"
                     onClick={() => openPostDetail(post.post_id)}
                   >
                     <div className="card-body p-4">
@@ -447,7 +447,7 @@ const Blog = () => {
                   </div>
                 ))
               ) : (
-                <div className="card bg-base-100 shadow-md p-8 text-center">
+                <div className="card bg-base-100 shadow-md p-8 text-center rounded-md">
                   <p className="text-base-content opacity-60 mb-4">
                     {activeTab === 'closed' ? 'No closed posts available.' : 'No posts found matching your search criteria.'}
                   </p>
@@ -469,7 +469,7 @@ const Blog = () => {
         {/* Sidebar - right column */}
         <div className="lg:w-1/3 space-y-4">
           {/* Honor Leaderboard Box */}
-          <div className="sidebar-box card bg-base-100 shadow-md">
+          <div className="sidebar-box card bg-base-100 shadow-md rounded-md">
             <div className="card-body p-4">
               <h3 className="card-title text-base-content mb-4">Highest Honor Leaderboard</h3>
               
@@ -505,7 +505,7 @@ const Blog = () => {
           </div>
 
           {/* Must-read posts & Featured links Box */}
-          <div className="sidebar-box card bg-base-100 shadow-md">
+          <div className="sidebar-box card bg-base-100 shadow-md rounded-md">
             <div className="card-body p-4">
               <h3 className="card-title text-base-content mb-3">Must-read posts</h3>
               <ul className="space-y-2 text-sm">
