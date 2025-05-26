@@ -7,13 +7,15 @@ const {
   getHonorLeaderboard,
   updateUserByAdmin,
   updateUserRole,
-  deleteUserByAdmin
+  deleteUserByAdmin,
+  getUserLevelStats
 } = require('../controllers/userController.js');
 
 const { getUser } = require('../controllers/authController.js');
 const { verifyToken } = require('../middleware/authMiddleware.js');
 
 // Rutas protegidas
+router.get('/level-stats', verifyToken, getUserLevelStats)
 router.get('/me', verifyToken, getUser);
 router.get('/enrollments', verifyToken, checkUserEnrollments);
 router.get('/honor-leaderboard', getHonorLeaderboard);
