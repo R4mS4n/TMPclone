@@ -22,6 +22,7 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+
 const getHonorLeaderboard = async (req, res) => {
   try {
     const [leaderboard] = await db
@@ -55,9 +56,7 @@ const getHonorLeaderboard = async (req, res) => {
 const checkUserEnrollments = async (req, res) => {
   try {
     const userId = req.user.sub;
-    const [enrollments] = await db
-      .promise()
-      .query(
+    const [enrollments] = await db.promise().query(
         `SELECT 
            t.tournament_id AS challenge_id,
            t.name            AS challenge_name,
@@ -176,6 +175,39 @@ const updateUserRole = async (req, res) => {
   }
 };
 
+const getUserLevelStats = async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const LEVEL_BASE = 500;
+
+    const [users] = await db.promise().query(
+      'SELECT xp FROM User WHERE user_id = ? LIMIT 1',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const xp = users[0].xp || 0;
+
+    const level = Math.floor(xp / LEVEL_BASE);
+    const remainder = xp % LEVEL_BASE;
+
+    res.json({
+      level,
+      remainder,
+      xp // total ref for debugging
+    });
+
+  } catch (error) {
+    console.error('[getUserLevelStats] error:', error);
+    res.status(500).json({ 
+      error: 'Level calculation failed',
+      details: error.message 
+    });
+  }
+};
 
 module.exports = {
   getAllUsers,
@@ -183,5 +215,6 @@ module.exports = {
   checkUserEnrollments,
   updateUserByAdmin,
   updateUserRole,
-  deleteUserByAdmin
+  deleteUserByAdmin,
+  getUserLevelStats
 };

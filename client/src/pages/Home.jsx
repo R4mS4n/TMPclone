@@ -14,51 +14,76 @@ const Home = () => {
   const { notifyError } = useNotification();
 
   const openBadgesModal = () => setBadgesModalOpen(true);
-  const closeBadgesModal = () => setBadgesModalOpen(false);
+  const closeBadgesModal=()=>setBadgesModalOpen(false);
+  const [levelStats, setLevelStats] = useState({
+    level: 1,
+    remainder: 0,
+    xp: 0
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    navigate('/login');
+    return;
+  }
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/me', {
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+      if (!res.ok) throw new Error('Unauthorized');
+      const data = await res.json();
+      setUserProfile(data);
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      localStorage.removeItem('authToken');
       navigate('/login');
-      return;
     }
+  };
 
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/auth/me', {
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
-          }
-        });
-        if (!res.ok) throw new Error('Unauthorized');
-        const data = await res.json();
-        // data: { user_id, username, role }
-        setUserProfile(data);
-      } catch (err) {
-        console.error('Error fetching profile:', err);
-        localStorage.removeItem('authToken');
-        navigate('/login');
-      }
-    };
+  const fetchEnrollments = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/users/enrollments', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch enrollments');
+      const data = await res.json();
+      setEnrollments(data.enrollments || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
-    const fetchEnrollments = async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/users/enrollments', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('Failed to fetch enrollments');
-        const data = await res.json();
-        setEnrollments(data.enrollments || []);
-      } catch (err) {
-        setError(err.message);
-      }
-    };
+  const fetchLevelStats = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/users/level-stats', {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch level stats');
+      const data = await res.json();
+      setLevelStats(data);
+    } catch (err) {
+      console.error('Error fetching level stats:', err);
+      notifyError('Failed to load level information');
+    }
+  };
 
-    // Disparamos ambas en paralelo
-    Promise.all([fetchProfile(), fetchEnrollments()])
-      .finally(() => setLoading(false));
-  }, [navigate]);
+  // Run all fetches in parallel
+  Promise.all([
+    fetchProfile(),
+    fetchEnrollments(),
+    fetchLevelStats()
+  ]).finally(() => setLoading(false));
+}, [navigate]);
+    
 
   const handleChallengeClick = async (challengeId) => {
     try {
@@ -122,19 +147,19 @@ const Home = () => {
             <div className="bg-base-100 p-4 rounded-lg shadow w-full mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-xs font-bold">
-                  2
+                  {levelStats.level}
                 </div>
                 <div>
-                  <div className="font-semibold">Level 2</div>
-                  <div className="text-xs text-gray-500">500 Points to next level</div>
+                  <div className="font-semibold">Level {levelStats.level}</div>
+                  <div className="text-xs text-gray-500">{500-levelStats.remainder} Points to next level</div>
                 </div>
               </div>
               <div className="relative h-4 bg-yellow-100 rounded-full overflow-hidden mt-2">
                 <div
                   className="absolute top-0 left-0 h-full bg-yellow-400 flex items-center justify-center text-xs text-yellow-800 font-semibold"
-                  style={{ width: "86%" }}
+                  style={{ width: `${(levelStats.remainder / 500) * 100}%` }}
                 >
-                  ⭐ 5200/6000
+                  ⭐ {levelStats.remainder}/500
                 </div>
               </div>
             </div>
