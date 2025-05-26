@@ -185,7 +185,7 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
             placeholder="Add a comment..."
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="w-full p-3 border border-base-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-base-200 text-base-content placeholder-base-content/60"
             rows="3"
             required
           ></textarea>
@@ -208,9 +208,9 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 overflow-y-auto">
       <div className="absolute inset-0 bg-black opacity-50" onClick={onClose}></div>
-      <div className="bg-white dark:bg-gray-800 w-full max-w-4xl mx-4 my-8 rounded-lg shadow-lg z-10 relative">
+      <div className="bg-base-100 text-base-content w-full max-w-4xl mx-4 my-8 rounded-lg shadow-lg z-10 relative flex flex-col max-h-[90vh]">
         {error && (
-          <div className="p-4 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100">
+          <div className="p-4 bg-error text-error-content">
             {error}
             <button 
               className="ml-2 underline"
@@ -226,10 +226,10 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
           </div>
         ) : post ? (
-          <>
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex-1 overflow-y-auto pr-4">
+            <div className="p-6 border-b border-base-200">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{post.title}</h2>
+                <h2 className="text-2xl font-bold text-base-content">{post.title}</h2>
                 <button
                   onClick={onClose}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -251,25 +251,25 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white">{post.user.username}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{formatTimeAgo(post.created_at)}</p>
+                  <h3 className="font-medium text-base-content">{post.user.username}</h3>
+                  <p className="text-sm text-base-content/70">{formatTimeAgo(post.created_at)}</p>
                 </div>
               </div>
               
-              <p className="text-gray-800 dark:text-gray-200 mb-6">{post.content}</p>
+              <p className="text-base-content mb-6">{post.content}</p>
               
               <div className="flex flex-wrap gap-2 mb-4">
                 {post.tags && post.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md text-sm"
+                    className="bg-base-200 text-base-content px-2 py-1 rounded-md text-sm"
                   >
                     {tag}
                   </span>
                 ))}
               </div>
               
-              <div className="flex text-sm text-gray-500 dark:text-gray-400 space-x-6">
+              <div className="flex text-sm text-base-content/70 space-x-6">
                 <div className="flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -293,7 +293,7 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
             </div>
             
             <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+              <h3 className="text-lg font-bold text-base-content mb-4">
                 {post.comments && post.comments.length} Comment{post.comments && post.comments.length !== 1 ? 's' : ''}
               </h3>
               
@@ -301,7 +301,7 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
               
               <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
                 {post.comments && post.comments.map((comment) => (
-                  <div key={comment.comment_id} className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                  <div key={comment.comment_id} className="border-b border-base-200 pb-4">
                     <div className="flex items-start mb-2">
                       <div className="avatar">
                         <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center mr-3 overflow-hidden">
@@ -314,10 +314,10 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between items-center">
-                          <h4 className="font-medium text-gray-900 dark:text-white">{comment.user.username}</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(comment.created_at)}</p>
+                          <h4 className="font-medium text-base-content">{comment.user.username}</h4>
+                          <p className="text-xs text-base-content/70">{formatTimeAgo(comment.created_at)}</p>
                         </div>
-                        <p className="text-gray-800 dark:text-gray-200 mt-1">{comment.content}</p>
+                        <p className="text-base-content mt-1">{comment.content}</p>
                       </div>
                     </div>
                     
@@ -336,7 +336,7 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                         </svg>
                         {post.status === 'closed' ? 'Honor Disabled' : 'Give Honor'}
                       </button>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                      <span className="text-sm text-base-content/70">
                         {comment.honor_count} Honor
                       </span>
                     </div>
@@ -344,15 +344,15 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                 ))}
                 
                 {post.comments && post.comments.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-8 text-base-content/70">
                     No comments yet. Be the first to comment!
                   </div>
                 )}
               </div>
             </div>
-          </>
+          </div>
         ) : (
-          <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+          <div className="p-6 text-center text-base-content/70">
             Post not found or has been deleted.
           </div>
         )}
