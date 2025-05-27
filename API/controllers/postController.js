@@ -447,6 +447,11 @@ const giveHonorToComment = async (req, res) => {
       return res.status(404).json({ message: 'Comment not found' });
     }
     
+    // Prevent honoring your own comment
+    if (comments[0].user_id === user_id) {
+      return res.status(403).json({ message: 'You cannot honor your own comment' });
+    }
+    
     // Verificar si el usuario ya dio honor a este comentario
     const [existingHonors] = await db.promise().query(
       'SELECT * FROM Honor WHERE comment_id = ? AND given_by_user_id = ?',

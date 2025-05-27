@@ -3,6 +3,15 @@ import { formatTimeAgo } from '../utils/timeUtils';
 
 const API_BASE_URL = 'http://localhost:5000';
 
+// Function to decode JWT token
+const parseJwt = (token) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    return null;
+  }
+};
+
 const PostDetailModal = ({ isOpen, onClose, postId }) => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,10 +19,41 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [timeRefresh, setTimeRefresh] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
     if (isOpen && postId) {
       fetchPostDetails();
+      
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        const decodedToken = parseJwt(token);
+        if (decodedToken) {
+          let userIdFromToken = null;
+          if (decodedToken.id) {
+            userIdFromToken = decodedToken.id;
+          } else if (decodedToken.sub) { // Check for 'sub' claim
+            userIdFromToken = decodedToken.sub;
+          }
+          
+          if (userIdFromToken !== null) {
+            const numericUserId = parseInt(userIdFromToken, 10);
+            if (!isNaN(numericUserId)) {
+              setCurrentUserId(numericUserId);
+            } else {
+              console.error("User ID from token is not a valid number:", userIdFromToken);
+              // Optionally set to null or handle error appropriately
+              setCurrentUserId(null); 
+            }
+          } else {
+            setCurrentUserId(null);
+          }
+        } else {
+          setCurrentUserId(null);
+        }
+      } else {
+        setCurrentUserId(null);
+      }
       
       // Set up periodic data refresh while modal is open
       const refreshDataInterval = setInterval(() => {
@@ -112,7 +152,7 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
     }
   };
 
-  const handleHonor = async (commentId) => {
+  const handleHonor = async (commentId, commentUserId) => {
     try {
       // Check if post is closed
       if (post.status === 'closed') {
@@ -123,6 +163,15 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       const token = localStorage.getItem('authToken');
       if (!token) {
         setError('You must be logged in to give honor');
+        return;
+      }
+      
+      // Prevent honoring own comment
+      // Ensure commentUserId is a number for comparison, if it's not already
+      const numericCommentUserId = typeof commentUserId === 'string' ? parseInt(commentUserId, 10) : commentUserId;
+
+      if (currentUserId !== null && numericCommentUserId === currentUserId) {
+        setError('You cannot honor your own comment.');
         return;
       }
       
@@ -300,7 +349,13 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
               {renderCommentSection()}
               
               <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
-                {post.comments && post.comments.map((comment) => (
+                {post.comments && post.comments.map((comment) => {
+                  // Ensure comment.user.user_id is a number for comparison
+                  const numericCommentUserId = typeof comment.user.user_id === 'string' 
+                                              ? parseInt(comment.user.user_id, 10) 
+                                              : comment.user.user_id;
+                  const isOwnComment = currentUserId !== null && numericCommentUserId === currentUserId;
+                  return (
                   <div key={comment.comment_id} className="border-b border-base-200 pb-4">
                     <div className="flex items-start mb-2">
                       <div className="avatar">
@@ -323,10 +378,10 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                     
                     <div className="flex justify-between items-center pl-12">
                       <button
-                        onClick={() => handleHonor(comment.comment_id)}
-                        disabled={post.status === 'closed'}
+                        onClick={() => handleHonor(comment.comment_id, comment.user.user_id)}
+                        disabled={post.status === 'closed' || isOwnComment}
                         className={`text-sm flex items-center ${
-                          post.status === 'closed'
+                          post.status === 'closed' || isOwnComment
                             ? 'text-gray-400 cursor-not-allowed'
                             : 'text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400'
                         }`}
@@ -334,14 +389,15 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        {post.status === 'closed' ? 'Honor Disabled' : 'Give Honor'}
+                        {isOwnComment ? 'Cannot Honor Own Comment' : (post.status === 'closed' ? 'Honor Disabled' : 'Give Honor')}
                       </button>
                       <span className="text-sm text-base-content/70">
                         {comment.honor_count} Honor
                       </span>
                     </div>
                   </div>
-                ))}
+                );
+              })}
                 
                 {post.comments && post.comments.length === 0 && (
                   <div className="text-center py-8 text-base-content/70">
