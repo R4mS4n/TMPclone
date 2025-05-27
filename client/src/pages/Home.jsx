@@ -123,8 +123,6 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-base-200">
       <div className="p-4">
-        <NotificationTest />
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-4rem)]">
           {/* Profile Card */}
           <div className="bg-base-100 p-6 rounded-lg shadow-lg row-span-2 h-full flex flex-col items-center">
