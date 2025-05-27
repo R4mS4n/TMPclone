@@ -57,11 +57,27 @@ const registerUser = async (req, res) => {
       to: email,
       subject: 'Verify Your Email',
       html: `
-        <h2>Welcome to TMP!</h2>
-        <p>Click below to verify your email:</p>
-        <a href="${verificationLink}">Verify Email</a>
-        <p>Link expires in 24 hours.</p>
-      `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
+                <div style="background-color: #E31321;"; padding: 20px; text-align: center;">
+                  <h2 style="color: white; margin: 0;">Welcome to TMP!</h2>
+                </div>
+
+                <div style="padding: 30px; color: #333; background-color: #fff;">
+                  <p style="font-size: 16px;">Please confirm that you want to use this email in TMP, simply click the button below:</p>
+                  
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${verificationLink}" style="background-color: #f44336; color: white; padding: 14px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                      Verify email
+                    </a>
+                  </div>
+
+                  <p style="font-size: 14px; color: #555;">The link will expire in 24 hours.</p>
+                </div>
+
+                <div style="padding: 15px; text-align: center; background-color: #fafafa; border-top: 1px solid #eee;">
+                </div>
+              </div>
+            `
     });
 
     res.status(201).json({ message: "Registration successful! Please check your email." });
@@ -98,9 +114,56 @@ const verifyEmail = async (req, res) => {
     }
 
     return res.send(`
-      <h2 style="color:#4CAF50;">✓ Email Verified Successfully!</h2>
-      <p>You can now log in.</p>
-      <a href="${process.env.FRONTEND_URL}/login">Go to Login</a>
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Email Verified</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background-color: #3B3A3A;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+            }
+            .card {
+              background-color: white;
+              padding: 40px;
+              border-radius: 16px;
+              box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+              text-align: center;
+            }
+            .success {
+              color: #4CAF50;
+              font-size: 24px;
+              font-weight: bold;
+            }
+            .login-button {
+              display: inline-block;
+              margin-top: 20px;
+              background-color: #f44336;
+              color: white;
+              padding: 12px 24px;
+              text-decoration: none;
+              border-radius: 8px;
+              font-weight: bold;
+              transition: background-color 0.3s;
+            }
+            .login-button:hover {
+              background-color: #d32f2f;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="success">✓ Email Verified Successfully!</div>
+            <a href="${process.env.FRONTEND_URL}/login" class="login-button">Go to Login</a>
+          </div>
+        </body>
+      </html>
     `);
   } catch (error) {
     console.error('[VERIFY EMAIL] error:', error);
