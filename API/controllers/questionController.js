@@ -61,7 +61,7 @@ const updateQuestion = async (req, res) => {
 
 // CREATE questions
 const createQuestion = async (req, res) => {
-  const { content, language, topic, difficulty, test_inputs, expected_outputs } = req.body;
+  const { content, language, topic, difficulty, test_inputs, expected_outputs, tournament_id } = req.body;
 
   if (!content || !language || !topic || !difficulty || !test_inputs || !expected_outputs) {
     return res.status(400).json({
@@ -70,11 +70,15 @@ const createQuestion = async (req, res) => {
     });
   }
 
+  if (!tournament_id) {
+    return res.status(400).json({ error: "Tournament ID is missing." });
+  }
+
   try {
     const [result] = await db.promise().query(
-      `INSERT INTO Question (content, language, topic, difficulty, test_inputs, expected_outputs)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [content, language, topic, difficulty, test_inputs, expected_outputs]
+      `INSERT INTO Question (content, language, topic, difficulty, tournament_id, test_inputs, expected_outputs)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [content, language, topic, difficulty, tournament_id, test_inputs, expected_outputs]
     );
 
     const [newQuestion] = await db.promise().query(
@@ -92,6 +96,34 @@ const createQuestion = async (req, res) => {
     console.error("Create error:", error);
     res.status(500).json({
       error: "Create failed",
+      details: error.sqlMessage || error.message
+    });
+  }
+};
+
+// DELETE questions
+const deleteQuestion = async (req, res) => {
+  const question_id = req.params.question_id;
+
+  try {
+    const [result] = await db.promise().query(
+      'DELETE FROM Question WHERE question_id = ?',
+      [question_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    res.json({
+      success: true,
+      message: "Question and all related data deleted successfully"
+    });
+  } catch (error) {
+    console.error("Delete error: ", error);
+    res.status(500).json({
+      success: false,
+      error: "Delete failed",
       details: error.sqlMessage || error.message
     });
   }
@@ -322,6 +354,7 @@ module.exports = {
   getQuestions, 
   updateQuestion,
   createQuestion,
+  deleteQuestion,
   getChallengeById, 
   reviewQuestionSubmission,
   getSubmission,

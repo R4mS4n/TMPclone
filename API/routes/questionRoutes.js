@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const {getQuestions, getChallengeById, reviewQuestionSubmission, saveOrUpdateSubmission, getSubmission, checkQuestionStatus, updateQuestion, createQuestion} = require('../controllers/questionController');
+const {getQuestions, getChallengeById, reviewQuestionSubmission, saveOrUpdateSubmission, getSubmission, checkQuestionStatus, updateQuestion, createQuestion, deleteQuestion} = require('../controllers/questionController');
 const {verifyToken, verifyAdmin, endpointAdminFilter} = require('../controllers/authController');
 
 router.get('/getAllQuestions', getQuestions);
+
 router.put('/update/:question_id', verifyToken, endpointAdminFilter, updateQuestion);
+
 router.post('/', verifyToken, endpointAdminFilter, createQuestion);
+
+router.delete('/delete/:question_id', verifyToken, endpointAdminFilter, deleteQuestion);
+
 router.get('/submissions', getSubmission);
+
 router.post('/review', reviewQuestionSubmission);
+
 router.get('/check-status', checkQuestionStatus);
+
 router.get('/:id', getChallengeById);
 
 
