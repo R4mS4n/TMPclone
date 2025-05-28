@@ -13,6 +13,9 @@ const TournamentManagement = () => {
   });
   const [loading, setLoading] = useState(true);
   const { notify, notifySuccess, notifyError, confirm } = useNotification();
+  const [showQuestionsFrame, setShowQuestionsFrame] = useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
 
   // Common button styles with consistent shape
   const baseButtonStyle = "px-4 py-2 rounded-md transition-colors";
@@ -122,14 +125,255 @@ const TournamentManagement = () => {
       console.log('Tournament saved successfully');
       notifySuccess(isEditing ? 'Tournament updated successfully!' : 'Tournament created successfully!');
       await fetchTournaments();
+      setCurrentTournament({
+        ...currentTournament,
+        tournament_id: responseData?.tournament?.tournament_id || currentTournament.tournament_id
+      });
       console.log('Tournaments refreshed');
       setShowTournamentModal(false);
+      setShowQuestionsFrame(false);
       setCurrentTournament({ name: '', description: '', date_limit: '' });
     } catch (error) {
       console.error('Error submitting tournament:', error);
       notifyError(error.message);
     }
   };
+
+  const fetchQuestions = async (tournamentId) => {
+    setIsLoadingQuestions(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/questions/getAllQuestions?challenge_id=${tournamentId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch questions');
+      setQuestions(data);
+    } catch (err) {
+      notifyError(err.message);
+    } finally {
+      setIsLoadingQuestions(false);
+    }
+  };
+
+  const handleUpdateQuestion = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/questions/update/${currentTournament.question_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          content: currentTournament.content,
+          language: currentTournament.language,
+          topic: currentTournament.topic,
+          difficulty: currentTournament.difficulty,
+          test_inputs: currentTournament.test_inputs,
+          expected_outputs: currentTournament.expected_outputs
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update question');
+      notifySuccess('Question updated successfully!');
+      fetchQuestions(currentTournament.tournament_id);
+    } catch (err) {
+      notifyError(err.message);
+    }
+  };
+
+  const handleDeleteQuestion = async (question_id) => {
+    confirm('Are you sure you want to delete this question?', async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/questions/delete/${question_id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to delete question');
+        notifySuccess('Question deleted successfully!');
+        fetchQuestions(currentTournament.tournament_id);
+      } catch (err) {
+        notifyError(err.message);
+      }
+    });
+  };
+
+  const renderQuestionForm = () => {
+    return (
+      <div className="mt-4 p-4 border-2 border-accent rounded-md bg-base-200 space-y-4">
+        <h3 className="font-semibold text-lg">
+          {currentTournament.question_id ? "Update Question" : "Add Question"}
+        </h3>
+
+        <div>
+          <label className="label text-base-content">Content</label>
+          <textarea
+            className="textarea textarea-bordered w-full"
+            rows="3"
+            placeholder="Write the question content..."
+            value={currentTournament.content || ''}
+            onChange={(e) =>
+              setCurrentTournament({ ...currentTournament, content: e.target.value })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="label text-base-content">Language</label>
+          <input
+            className="input input-bordered w-full"
+            placeholder="e.g. Python, JavaScript..."
+            value={currentTournament.language || ''}
+            onChange={(e) =>
+              setCurrentTournament({ ...currentTournament, language: e.target.value })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="label text-base-content">Topic</label>
+          <input
+            className="input input-bordered w-full"
+            placeholder="Topic name"
+            value={currentTournament.topic || ''}
+            onChange={(e) =>
+              setCurrentTournament({ ...currentTournament, topic: e.target.value })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="label text-base-content">Difficulty</label>
+          <select
+            className="select select-bordered w-full"
+            value={currentTournament.difficulty || ''}
+            onChange={(e) =>
+              setCurrentTournament({ ...currentTournament, difficulty: e.target.value })
+            }
+          >
+            <option value="">Select difficulty</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="label text-base-content">Test Inputs</label>
+          <textarea
+            className="textarea textarea-bordered w-full"
+            rows="2"
+            placeholder='["1\n", "2\n"]'
+            value={currentTournament.test_inputs || ''}
+            onChange={(e) =>
+              setCurrentTournament({ ...currentTournament, test_inputs: e.target.value })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="label text-base-content">Expected Outputs</label>
+          <textarea
+            className="textarea textarea-bordered w-full"
+            rows="2"
+            placeholder='["1\n", "1\n"]'
+            value={currentTournament.expected_outputs || ''}
+            onChange={(e) =>
+              setCurrentTournament({ ...currentTournament, expected_outputs: e.target.value })
+            }
+          />
+        </div>
+        {currentTournament.question_id ? (
+        <button
+          type="button"
+          className="w-full bg-primary hover:bg-primary-focus text-primary-content px-4 py-2 rounded-md transition-colors"
+          onClick={handleUpdateQuestion}
+        >
+          Update Question
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="w-full bg-secondary hover:bg-secondary-focus text-secondary-content px-4 py-2 rounded-md transition-colors"
+          onClick={async () => {
+            try {
+              const response = await fetch('http://localhost:5000/api/questions/', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                },
+                body: JSON.stringify({
+                  content: currentTournament.content,
+                  language: currentTournament.language,
+                  topic: currentTournament.topic,
+                  difficulty: currentTournament.difficulty,
+                  test_inputs: currentTournament.test_inputs,
+                  expected_outputs: currentTournament.expected_outputs,
+                  tournament_id: currentTournament.tournament_id
+                })
+              });
+
+              const data = await response.json();
+
+              if (!response.ok) {
+                throw new Error(data.error || 'Failed to create question');
+              }
+
+              notifySuccess('Question created successfully!');
+              fetchQuestions(currentTournament.tournament_id);
+              setCurrentTournament(prev => ({
+                ...prev,
+                content: '',
+                language: '',
+                topic: '',
+                difficulty: '',
+                test_inputs: '',
+                expected_outputs: '',
+                question_id: null
+              }));
+            } catch (error) {
+              console.error('Error creating question:', error);
+              notifyError(error.message);
+            }
+          }}
+        >
+          Submit Question
+        </button>
+        
+      )}
+      {currentTournament.question_id && (
+        <button
+          type="button"
+          className="w-full mt-2 bg-base-300 hover:bg-base-200 text-base-content px-4 py-2 rounded-md transition-colors"
+          onClick={() => {
+            setCurrentTournament(prev => ({
+              ...prev,
+              content: '',
+              language: '',
+              topic: '',
+              difficulty: '',
+              test_inputs: '',
+              expected_outputs: '',
+              question_id: null
+            }));
+            notify("Edit cancelled. You're now creating a new question.");
+          }}
+        >
+          Cancel Edit
+        </button>
+      )}
+      </div>
+    );
+  };
+
 
   return (
     <div className="min-h-screen bg-base-100 p-6 text-base-content">
@@ -150,12 +394,15 @@ const TournamentManagement = () => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 w-1/3 h-full bg-base-100 shadow-lg p-6 z-50"
+            className="fixed right-0 top-0 w-1/3 h-full bg-base-100 shadow-lg p-6 z-50 overflow-y-auto"
           >
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">{isEditing ? 'Edit Tournament' : 'New Tournament'}</h2>
               <button
-                onClick={() => setShowTournamentModal(false)}
+                onClick={() => {
+                  setShowTournamentModal(false);
+                  setShowQuestionsFrame(false);
+                }}
                 className="text-base-content/60 hover:text-base-content transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -229,12 +476,82 @@ const TournamentManagement = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowTournamentModal(false)}
+                  onClick={() => {
+                    setShowTournamentModal(false);
+                    setShowQuestionsFrame(false);
+                  }}
                   className={secondaryButtonStyle + " flex-1"}
                 >
                   Cancel
                 </button>
               </div>
+              {isEditing && (
+                <>
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!showQuestionsFrame) await fetchQuestions(currentTournament.tournament_id);
+                        setShowQuestionsFrame(!showQuestionsFrame);
+                      }}
+                      className="w-full bg-accent hover:bg-accent-focus text-accent-content px-4 py-2 rounded-md transition-colors"
+                    >
+                      {showQuestionsFrame ? "Hide Questions" : "Show Questions"}
+                    </button>
+                  </div>
+
+                  {showQuestionsFrame && (
+                    <div className="mt-4 space-y-4">
+                      {isLoadingQuestions ? (
+                        <p>Loading questions...</p>
+                      ) : (
+                        <>
+                          {questions.map((q) => (
+                            <div key={q.question_id} className="bg-base-300 p-4 rounded-lg space-y-2">
+                              <div className="font-bold">{q.content}</div>
+                              <div className="text-sm text-base-content/70">
+                                Language: {q.language} | Topic: {q.topic} | Difficulty: {q.difficulty}
+                              </div>
+                              <div className="flex gap-4">
+                                <button
+                                  type='button'
+                                  className="text-blue-600 hover:underline"
+                                  onClick={() => {
+                                    setCurrentTournament({
+                                      ...currentTournament,
+                                      content: q.content,
+                                      language: q.language,
+                                      topic: q.topic,
+                                      difficulty: q.difficulty,
+                                      test_inputs: q.test_inputs,
+                                      expected_outputs: q.expected_outputs,
+                                      question_id: q.question_id,
+                                    });
+                                    notify("Question loaded into form for editing.");
+                                  }}
+                                >
+                                  Update
+                                </button>
+                                <button
+                                  type='button'
+                                  className="text-red-600 hover:underline"
+                                  onClick={() => handleDeleteQuestion(q.question_id)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* 👉 Formulario al final para agregar o actualizar */}
+                          {renderQuestionForm()}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
             </form>
           </motion.div>
         )}
