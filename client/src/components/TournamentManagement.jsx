@@ -131,6 +131,7 @@ const TournamentManagement = () => {
       });
       console.log('Tournaments refreshed');
       setShowTournamentModal(false);
+      setShowQuestionsFrame(false);
       setCurrentTournament({ name: '', description: '', date_limit: '' });
     } catch (error) {
       console.error('Error submitting tournament:', error);
@@ -398,7 +399,10 @@ const TournamentManagement = () => {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">{isEditing ? 'Edit Tournament' : 'New Tournament'}</h2>
               <button
-                onClick={() => setShowTournamentModal(false)}
+                onClick={() => {
+                  setShowTournamentModal(false);
+                  setShowQuestionsFrame(false);
+                }}
                 className="text-base-content/60 hover:text-base-content transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -472,7 +476,10 @@ const TournamentManagement = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowTournamentModal(false)}
+                  onClick={() => {
+                    setShowTournamentModal(false);
+                    setShowQuestionsFrame(false);
+                  }}
                   className={secondaryButtonStyle + " flex-1"}
                 >
                   Cancel
