@@ -170,27 +170,6 @@ app.post('/api/posts/:id/comments', (req, res) => {
   res.status(201).json(newComment);
 });
 
-app.post('/api/comments/:id/honor', (req, res) => {
-  const commentId = parseInt(req.params.id);
-  let found = false;
-  
-  // Search for the comment in all post comments
-  Object.keys(comments).forEach(postId => {
-    const comment = comments[postId].find(c => c.comment_id === commentId);
-    
-    if (comment) {
-      comment.honor_count += 1;
-      found = true;
-    }
-  });
-  
-  if (!found) {
-    return res.status(404).json({ message: 'Comment not found' });
-  }
-  
-  res.status(200).json({ message: 'Honor given successfully' });
-});
-
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

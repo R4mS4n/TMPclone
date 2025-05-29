@@ -142,7 +142,7 @@ const Leaderboard = () => {
       // Also set the regular loading state to false to avoid loading spinner conflicts
       setLoading(false);
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/user/honor-leaderboard', {
+      const response = await fetch('http://localhost:5000/api/users/honor-leaderboard', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

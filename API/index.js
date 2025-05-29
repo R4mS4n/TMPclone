@@ -15,6 +15,7 @@ const postRoutes        = require('./routes/postRoutes');
 const adminRoutes       = require('./routes/adminRoutes');       // Panel de Admin
 const aiRoutes          = require('./routes/aiRoutes');          // Rutas de IA
 const leaderboardRoutes = require('./routes/leaderboardRoutes'); // Rutas de Leaderboard
+const reportRoutes      = require('./routes/reportRoutes');      // Rutas de Reportes
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use("/api/posts",        postRoutes);
 app.use("/api/admin",        adminRoutes);
 app.use("/api/ai",           aiRoutes);
 app.use("/api/leaderboard",  leaderboardRoutes);
+app.use("/api/reports",      reportRoutes);
 
 const PORT = process.env.APIPORT || 5000;
 app.listen(PORT, () => {

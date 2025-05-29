@@ -121,6 +121,19 @@ const AdminSidebar = ({ isOpen, onToggle, onNavigation }) => {
                   <span>Notifications</span>
                 </NavLink>
                 <NavLink
+                  to="/admin/reports"
+                  className={({ isActive }) =>
+                    `flex items-center p-3 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-content hover:bg-primary-focus'
+                        : 'text-base-content/60 hover:bg-base-200'
+                    }`
+                  }
+                  onClick={handleNavLinkClick}
+                >
+                  <span>Content Reports</span>
+                </NavLink>
+                <NavLink
                   to="/admin/settings"
                   className={({ isActive }) =>
                     `flex items-center p-3 rounded-lg transition-colors ${
