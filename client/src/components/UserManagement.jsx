@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotification } from '../contexts/NotificationContext';
+import ManageUserPenaltiesSidebar from './admin/ManageUserPenaltiesSidebar';
 
-const API_BASE = "http://localhost:5000/api/users";
+const API_ADMIN_BASE = "http://localhost:5000/api/admin/users";
+const API_USERS_BASE = "http://localhost:5000/api/users";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -12,6 +14,10 @@ const UserManagement = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const { notifySuccess, notifyError, confirm } = useNotification();
+
+  // State for the new Manage User Penalties Sidebar
+  const [showManagePenaltiesSidebar, setShowManagePenaltiesSidebar] = useState(false);
+  const [selectedUserForPenalties, setSelectedUserForPenalties] = useState(null);
 
   const baseBtn = "px-4 py-2 rounded-md transition-colors";
   const primaryBtn = `${baseBtn} bg-primary hover:bg-primary-focus text-primary-content`;
@@ -24,16 +30,21 @@ const UserManagement = () => {
   }, []);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}`, {
+      const res = await fetch(`${API_ADMIN_BASE}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
       });
-      if (!res.ok) throw new Error('Error al listar usuarios');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Error listing users and failed to parse error response' }));
+        throw new Error(errorData.error || 'Error listing users');
+      }
       const data = await res.json();
-      setUsers(data.users);
+      setUsers(data.users || []);
     } catch (err) {
-      console.error(err);
+      console.error('fetchUsers error:', err);
       notifyError(err.message);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -41,89 +52,91 @@ const UserManagement = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const res = await fetch(`${API_BASE}/me`, {
+      const res = await fetch(`${API_USERS_BASE}/me`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
       });
-      if (!res.ok) throw new Error('No autorizado');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Not authorized and failed to parse error response' }));
+        throw new Error(errorData.error || 'Not authorized to fetch current user details');
+      }
       const data = await res.json();
-      setCurrentUser(data);
+      if (data && data.user) {
+        setCurrentUser(data.user);
+      } else if (data && !data.user && Object.keys(data).length > 0 && data.user_id) {
+        setCurrentUser(data);
+      } else {
+        throw new Error('User data not found in /me response');
+      }
     } catch (err) {
-      console.error(err);
-      notifyError('No se pudo cargar tu sesión');
+      console.error('fetchCurrentUser error:', err);
+      notifyError('Could not load your session details: ' + err.message);
+      setCurrentUser(null);
     }
   };
 
   const handleEdit = (user) => {
     setIsEditing(true);
-    setEditingUser(user);
+    setEditingUser({ user_id: user.user_id, username: user.username, mail: user.mail });
     setShowUserModal(true);
   };
 
   const handleDelete = async (id) => {
-    confirm('¿Seguro que quieres eliminar este usuario?', async () => {
+    confirm('Are you sure you want to delete this user? This action is irreversible.', async () => {
       try {
-        const res = await fetch(`${API_BASE}/${id}`, {
+        const res = await fetch(`${API_ADMIN_BASE}/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
           }
         });
-        if (!res.ok) throw new Error('No se pudo eliminar');
-        notifySuccess('Usuario eliminado');
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({error: 'Failed to delete user and parse error message'}));
+          throw new Error(errorData.error || 'Could not delete user');
+        }
+        notifySuccess('User deleted successfully');
         await fetchUsers();
       } catch (err) {
-        console.error(err);
+        console.error('handleDelete error:', err);
         notifyError(err.message);
       }
     });
   };
 
   const handleSubmit = async () => {
+    if (!editingUser || !editingUser.user_id) {
+      notifyError('No user selected for editing.');
+      return;
+    }
     try {
-      const res = await fetch(`${API_BASE}/${editingUser.user_id}`, {
+      const res = await fetch(`${API_ADMIN_BASE}/${editingUser.user_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
-          username: editingUser.username,
-          mail: editingUser.mail
+          username: editingUser.username
         })
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Error al guardar');
+        const errData = await res.json().catch(() => ({error: 'Failed to save user and parse error message'}));
+        throw new Error(errData.error || 'Error saving user details');
       }
 
-      notifySuccess('Usuario actualizado');
+      notifySuccess('User updated successfully');
       setShowUserModal(false);
       await fetchUsers();
     } catch (err) {
-      console.error(err);
+      console.error('handleSubmit error for user edit:', err);
       notifyError(err.message);
     }
   };
 
-  const handleRoleChange = async (userId, newRole) => {
-    try {
-      const res = await fetch(`${API_BASE}/${userId}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({ role: newRole })
-      });
-
-      if (!res.ok) throw new Error('Error al cambiar el rol');
-      notifySuccess('Rol actualizado');
-      await fetchUsers();
-    } catch (err) {
-      console.error(err);
-      notifyError(err.message);
-    }
+  // Function to open the manage penalties sidebar
+  const openManagePenaltiesSidebar = (user) => {
+    setSelectedUserForPenalties(user);
+    setShowManagePenaltiesSidebar(true);
   };
 
   const getRoleBadge = (role) => {
@@ -138,55 +151,101 @@ const UserManagement = () => {
   return (
     <div className="min-h-screen bg-base-100 p-6 text-base-content">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Usuarios</h1>
+        <h1 className="text-2xl font-bold text-primary">User Management</h1>
       </div>
 
-      <table className="w-full table-auto mb-6">
-        <thead>
-          <tr>
-            <th className="px-4 py-2">ID</th>
-            <th className="px-4 py-2">Usuario</th>
-            <th className="px-4 py-2">Email</th>
-            <th className="px-4 py-2">Rol</th>
-            <th className="px-4 py-2">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
+      <div className="overflow-x-auto shadow-lg rounded-md">
+        <table className="table table-zebra w-full table-compact">
+          <thead className="bg-base-300 text-base-content">
             <tr>
-              <td colSpan="5" className="p-4">Cargando...</td>
+              <th className="px-4 py-2">ID</th>
+              <th className="px-4 py-2">Username</th>
+              <th className="px-4 py-2">Email</th>
+              <th className="px-4 py-2">Role</th>
+              <th className="px-4 py-2">Actions</th>
             </tr>
-          ) : (
-            users.map((u) => (
-              <tr key={u.user_id} className="border-b">
-                <td className="px-4 py-2">{u.user_id}</td>
-                <td className="px-4 py-2">{u.username}</td>
-                <td className="px-4 py-2">{u.mail}</td>
-                <td className="px-4 py-2">
-                  {currentUser?.role === 2 && u.role !== 2 ? (
-                    <select
-                      value={u.role}
-                      onChange={(e) => handleRoleChange(u.user_id, parseInt(e.target.value))}
-                      className="bg-base-200 px-2 py-1 rounded"
-                    >
-                      <option value={0}>Usuario</option>
-                      <option value={1}>Admin</option>
-                    </select>
-                  ) : getRoleBadge(u.role)}
-                </td>
-                <td className="px-4 py-2">
-                  {(u.role !== 2 && (currentUser?.role === 2 || (currentUser?.role === 1 && u.role === 0))) && (
-                    <>
-                      <button onClick={() => handleEdit(u)} className={linkBtn}>Editar</button>
-                      <button onClick={() => handleDelete(u.user_id)} className={`${linkBtn} ml-2`}>Eliminar</button>
-                    </>
-                  )}
-                </td>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="p-4 text-center">Loading users...</td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : users && users.length > 0 ? (
+              users.map((u) => (
+                <tr key={u.user_id} className="hover:bg-base-200">
+                  <td className="px-4 py-2 font-semibold">{u.user_id}</td>
+                  <td className="px-4 py-2">{u.username}</td>
+                  <td className="px-4 py-2">{u.mail}</td>
+                  <td className="px-4 py-2">
+                    {/* Role Change UI commented out 
+                    currentUser?.role === 2 && u.role !== 2 && currentUser?.user_id !== u.user_id ? (
+                      <select
+                        value={u.role}
+                        onChange={(e) => handleRoleChange(u.user_id, parseInt(e.target.value))}
+                        className="select select-bordered select-sm rounded-md h-10"
+                        disabled // Disabled until backend support is confirmed
+                      >
+                        <option value={0}>User</option>
+                        <option value={1}>Admin</option>
+                      </select>
+                    ) : */ getRoleBadge(u.role)}
+                  </td>
+                  <td className="px-4 py-2 flex flex-wrap gap-1">
+                    { (currentUser?.user_id !== u.user_id) && (
+                      <>
+                        <button 
+                          onClick={() => handleEdit(u)} 
+                          className="btn btn-xs btn-outline btn-info rounded-md"
+                          disabled={u.role !== 0} 
+                        >
+                          Edit Username
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(u.user_id)} 
+                          className="btn btn-xs btn-outline btn-error rounded-md"
+                          disabled={u.role !== 0} 
+                        >
+                          Delete User
+                        </button>
+                        <button 
+                          onClick={() => openManagePenaltiesSidebar(u)} 
+                          className="btn btn-xs btn-outline btn-warning rounded-md"
+                          // This button should ideally be enabled for all non-self users
+                          // regardless of role, as penalties can apply to admins too.
+                        >
+                          Manage Penalties
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" className="p-4 text-center">No users found or failed to load users.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ManageUserPenaltiesSidebar Integration */}
+      <AnimatePresence>
+        {showManagePenaltiesSidebar && selectedUserForPenalties && (
+          <ManageUserPenaltiesSidebar 
+            user={selectedUserForPenalties}
+            onClose={() => {
+              setShowManagePenaltiesSidebar(false);
+              setSelectedUserForPenalties(null);
+            }}
+            onActionSuccess={() => {
+              fetchUsers(); // Refresh users list in the main table
+              // The sidebar itself will also call its own fetchUserPenalties internally after an action.
+              // Optionally, could also force close, but better to let admin continue if they need to.
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showUserModal && (
@@ -197,14 +256,14 @@ const UserManagement = () => {
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed right-0 top-0 w-1/3 h-full bg-base-100 shadow-lg p-6 z-50"
           >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Editar Usuario</h2>
-              <button onClick={() => setShowUserModal(false)} className="text-base-content/60 hover:text-base-content">
+            <div className="flex justify-between items-center mb-6 border-b border-base-300 pb-4">
+              <h2 className="text-xl font-semibold">Edit User</h2>
+              <button onClick={() => setShowUserModal(false)} className="btn btn-sm btn-ghost text-base-content/70 hover:bg-base-200">
                 ✕
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 flex-grow overflow-y-auto">
               <div>
                 <label className="block mb-1">Usuario</label>
                 <input
@@ -223,10 +282,10 @@ const UserManagement = () => {
                   className="w-full px-4 py-2 rounded-lg bg-base-200 focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
-              <div className="flex gap-3">
-                <button onClick={handleSubmit} className={primaryBtn}>Guardar</button>
-                <button onClick={() => setShowUserModal(false)} className={secondaryBtn}>Cancelar</button>
-              </div>
+            </div>
+            <div className="pt-4 border-t border-base-300 flex justify-end space-x-3">
+              <button onClick={() => setShowUserModal(false)} className="btn btn-ghost rounded-md">Cancel</button>
+              <button onClick={handleSubmit} className="btn btn-primary rounded-md">Save Changes</button>
             </div>
           </motion.div>
         )}

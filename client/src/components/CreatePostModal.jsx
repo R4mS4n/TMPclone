@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Set base URL for API requests if not already set
@@ -6,12 +6,29 @@ if (!axios.defaults.baseURL) {
   axios.defaults.baseURL = 'http://localhost:5000';
 }
 
-const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
+const CreatePostModal = ({ isOpen, onClose, onPostCreated, postToEdit }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const isEditMode = !!postToEdit;
+
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditMode) {
+        setTitle(postToEdit.title || '');
+        setContent(postToEdit.content || '');
+        setTags(postToEdit.tags ? postToEdit.tags.join(', ') : '');
+      } else {
+        setTitle('');
+        setContent('');
+        setTags('');
+      }
+      setError('');
+    }
+  }, [isOpen, postToEdit, isEditMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,54 +47,54 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
       
-      console.log('Creating new post:', { title, content, tags: tagArray });
-      
-      // Obtener token de autenticación del localStorage
       const token = localStorage.getItem('authToken');
-      
       if (!token) {
-        setError('You must be logged in to create a post');
+        setError('You must be logged in');
         setIsSubmitting(false);
         return;
       }
       
-      // Configurar el encabezado de autorización
       const config = {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       };
-      
-      // Try to create post via API
-      try {
-        const response = await axios.post('/api/posts', {
+
+      let response;
+      if (isEditMode) {
+        console.log('Updating post:', postToEdit.post_id, { title, content, tags: tagArray });
+        response = await axios.put(`/api/posts/${postToEdit.post_id}`, {
           title,
           content,
           tags: tagArray
         }, config);
-        
+        console.log('Post updated successfully:', response.data);
+      } else {
+        console.log('Creating new post:', { title, content, tags: tagArray });
+        response = await axios.post('/api/posts', {
+          title,
+          content,
+          tags: tagArray
+        }, config);
         console.log('Post created successfully:', response.data);
-        
-        setTitle('');
-        setContent('');
-        setTags('');
-        onClose();
-        
-        if (onPostCreated) {
-          onPostCreated(response.data);
-        }
-      } catch (err) {
-        console.error('API request failed:', err);
-        
-        if (err.response?.status === 401) {
-          setError('Your session has expired. Please log in again.');
-        } else {
-          setError(err.response?.data?.message || 'Failed to create post. Please try again.');
-        }
       }
-    } catch (error) {
-      console.error('Error creating post:', error);
-      setError(error.response?.data?.message || 'Failed to create post. Please try again.');
+      
+      setTitle('');
+      setContent('');
+      setTags('');
+      onClose();
+      
+      if (onPostCreated) {
+        onPostCreated(response.data.post || response.data);
+      }
+
+    } catch (err) {
+      console.error('API request failed:', err);
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please log in again.');
+      } else {
+        setError(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} post. Please try again.`);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +107,9 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
       <div className="absolute inset-0 bg-black opacity-50" onClick={onClose}></div>
       <div className="bg-white dark:bg-gray-800 w-full max-w-2xl mx-4 p-6 rounded-lg shadow-lg z-10">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Create New Post</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {isEditMode ? 'Edit Post' : 'Create New Post'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -164,7 +183,7 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated }) => {
               disabled={isSubmitting}
               className="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50"
             >
-              {isSubmitting ? 'Posting...' : 'Post'}
+              {isSubmitting ? (isEditMode ? 'Updating...' : 'Posting...') : (isEditMode ? 'Update Post' : 'Create Post')}
             </button>
           </div>
         </form>

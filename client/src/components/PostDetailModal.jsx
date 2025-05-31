@@ -1,28 +1,103 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { formatTimeAgo } from '../utils/timeUtils';
 
 const API_BASE_URL = 'http://localhost:5000';
 
-const PostDetailModal = ({ isOpen, onClose, postId }) => {
+// Function to decode JWT token
+const parseJwt = (token) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    return null;
+  }
+};
+
+const PostDetailModal = ({ isOpen, onClose, postId, handleOpenReportModal }) => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [timeRefresh, setTimeRefresh] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentContent, setEditingCommentContent] = useState('');
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [commentToDeleteId, setCommentToDeleteId] = useState(null);
+  const [activeCommentMenu, setActiveCommentMenu] = useState(null);
+  const currentOpenPostIdRef = useRef(null); // Ref to store current postId for the event listener
 
   useEffect(() => {
     if (isOpen && postId) {
+      currentOpenPostIdRef.current = postId; // Update ref when postId changes
       fetchPostDetails();
+      
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        const decodedToken = parseJwt(token);
+        if (decodedToken) {
+          let userIdFromToken = null;
+          if (decodedToken.id) {
+            userIdFromToken = decodedToken.id;
+          } else if (decodedToken.sub) { // Check for 'sub' claim
+            userIdFromToken = decodedToken.sub;
+          }
+          
+          if (userIdFromToken !== null) {
+            const numericUserId = parseInt(userIdFromToken, 10);
+            if (!isNaN(numericUserId)) {
+              setCurrentUserId(numericUserId);
+            } else {
+              console.error("User ID from token is not a valid number:", userIdFromToken);
+              // Optionally set to null or handle error appropriately
+              setCurrentUserId(null); 
+            }
+          } else {
+            setCurrentUserId(null);
+          }
+        } else {
+          setCurrentUserId(null);
+        }
+      } else {
+        setCurrentUserId(null);
+      }
       
       // Set up periodic data refresh while modal is open
       const refreshDataInterval = setInterval(() => {
         fetchPostDetails();
       }, 60000 * 5); // Refresh post data every 5 minutes
       
-      return () => clearInterval(refreshDataInterval);
+      // Event listener for post like changes
+      const handlePostLikeChange = (event) => {
+        // Use the ref to get the current post ID for comparison
+        if (event.detail && event.detail.postId === currentOpenPostIdRef.current) {
+          console.log('[PostDetailModal] Event post-like-changed received:', event.detail);
+          setPost(prevPost => {
+            if (!prevPost || prevPost.post_id !== event.detail.postId) {
+              console.log('[PostDetailModal] Event listener: prevPost mismatch, not updating.');
+              return prevPost; 
+            }
+            console.log('[PostDetailModal] Event listener: Updating post state from event.');
+            return {
+              ...prevPost,
+              currentUserHasLiked: event.detail.currentUserHasLiked,
+              interactions: {
+                ...prevPost.interactions,
+                likes: event.detail.likes,
+              },
+            };
+          });
+        }
+      };
+      window.addEventListener('post-like-changed', handlePostLikeChange);
+      
+      return () => {
+        clearInterval(refreshDataInterval);
+        window.removeEventListener('post-like-changed', handlePostLikeChange);
+        currentOpenPostIdRef.current = null; // Clear ref on cleanup
+      };
     }
-  }, [isOpen, postId]);
+  }, [isOpen, postId]); // Removed 'post' from dependency array, rely on ref for listener
 
   // Set up automatic refreshing of timestamps
   useEffect(() => {
@@ -48,12 +123,18 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       setError(null);
       console.log('Fetching post details for post ID:', postId);
       
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`);
+      const token = localStorage.getItem('authToken');
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}`, { headers });
       if (!response.ok) {
         throw new Error('Failed to fetch post details');
       }
       const data = await response.json();
-      console.log('Post details:', data);
+      console.log('[PostDetailModal] Fetched post details:', data.title, 'currentUserHasLiked:', data.currentUserHasLiked, 'Likes:', data.interactions?.likes);
       setPost(data);
     } catch (error) {
       console.error('Error in fetchPostDetails:', error);
@@ -112,7 +193,8 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
     }
   };
 
-  const handleHonor = async (commentId) => {
+  const handleHonor = async (commentId, commentUserId) => {
+    console.log('handleHonor called for commentId:', commentId, 'by user:', currentUserId, 'for user:', commentUserId );
     try {
       // Check if post is closed
       if (post.status === 'closed') {
@@ -123,6 +205,15 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       const token = localStorage.getItem('authToken');
       if (!token) {
         setError('You must be logged in to give honor');
+        return;
+      }
+      
+      // Prevent honoring own comment
+      // Ensure commentUserId is a number for comparison, if it's not already
+      const numericCommentUserId = typeof commentUserId === 'string' ? parseInt(commentUserId, 10) : commentUserId;
+
+      if (currentUserId !== null && numericCommentUserId === currentUserId) {
+        setError('You cannot honor your own comment.');
         return;
       }
       
@@ -144,20 +235,19 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
       // Check if honor was added or removed
       const isHonorRemoved = data.message === 'Honor removed';
       
-      // Update the honor count in the UI
-      setPost({
-        ...post,
-        comments: post.comments.map(comment => 
+      // Update the honor count and status in the UI
+      setPost(prevPost => ({
+        ...prevPost,
+        comments: prevPost.comments.map(comment => 
           comment.comment_id === commentId
             ? { 
                 ...comment, 
-                honor_count: isHonorRemoved
-                  ? comment.honor_count - 1
-                  : comment.honor_count + 1
+                honor_count: data.count,
+                currentUserHasHonored: data.currentUserHasHonored
               }
             : comment
         )
-      });
+      }));
       
       // Refresh the honor leaderboard
       window.dispatchEvent(new CustomEvent('honor-update'));
@@ -165,6 +255,198 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
     } catch (error) {
       console.error('Error in handleHonor:', error);
       setError(error.message || 'Failed to give honor. Please try again.');
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    setCommentToDeleteId(commentId);
+    setShowDeleteConfirmModal(true);
+  };
+
+  const executeDeleteComment = async () => {
+    if (!commentToDeleteId) return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setError('Authentication required to delete comments.');
+        setShowDeleteConfirmModal(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/posts/comments/${commentToDeleteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete comment');
+      }
+
+      setPost(prevPost => ({
+        ...prevPost,
+        comments: prevPost.comments.map(c => 
+          c.comment_id === commentToDeleteId 
+            ? { ...c, content: '[comment deleted]', status: 'deleted', updated_at: new Date().toISOString() } 
+            : c
+        ),
+      }));
+      setError(null);
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      setError(err.message || 'Could not delete comment. Please try again.');
+    } finally {
+      setShowDeleteConfirmModal(false);
+      setCommentToDeleteId(null);
+    }
+  };
+  
+  const handleEditComment = (comment) => {
+    setEditingCommentId(comment.comment_id);
+    setEditingCommentContent(comment.content);
+  };
+
+  const handleSaveEdit = async (commentId) => {
+    if (!editingCommentContent.trim()) {
+      setError("Comment can't be empty.");
+      return;
+    }
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setError('Authentication required to edit comments.');
+        return;
+      }
+      const response = await fetch(`${API_BASE_URL}/api/posts/comments/${commentId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: editingCommentContent }),
+      });
+
+      if (!response.ok) {
+        // Try to get error message from JSON response, otherwise log raw text
+        let errorResponseMessage = 'Failed to update comment';
+        try {
+          const errorData = await response.json();
+          errorResponseMessage = errorData.message || errorResponseMessage;
+        } catch (jsonError) {
+          // If response is not JSON, log the raw text to see what it is (e.g., HTML error page)
+          const rawResponseText = await response.text();
+          console.error('Server returned non-JSON response:', rawResponseText);
+          errorResponseMessage = `Server error: Received non-JSON response. Check console for details. Status: ${response.status}`;
+        }
+        throw new Error(errorResponseMessage);
+      }
+      const updatedComment = await response.json();
+      setPost(prevPost => ({
+        ...prevPost,
+        comments: prevPost.comments.map(c => 
+          c.comment_id === commentId ? { ...updatedComment, user: c.user } : c
+        ),
+      }));
+      setEditingCommentId(null);
+      setEditingCommentContent('');
+      setError(null);
+    } catch (err) {
+      console.error('Error saving comment edit:', err);
+      setError(err.message || 'Could not save comment. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingCommentContent('');
+  };
+
+  const handleLikeUnlikePost = async () => {
+    if (!post || !post.post_id) return;
+    if (post.status === 'closed') {
+      setError('Cannot interact with closed posts.');
+      return;
+    }
+    console.log(`[PostDetailModal] handleLikeUnlikePost called for post ${post.post_id}. Current state: liked=${post.currentUserHasLiked}, likes=${post.interactions.likes}`);
+
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setError('You must be logged in to like posts.');
+      return;
+    }
+
+    // Optimistic update (optional, but good for UX)
+    const originalLikedStatus = post.currentUserHasLiked;
+    const originalLikeCount = post.interactions.likes;
+
+    const newOptimisticLikedStatus = !originalLikedStatus;
+    const newOptimisticLikeCount = originalLikedStatus ? originalLikeCount - 1 : originalLikeCount + 1;
+    console.log(`[PostDetailModal] Optimistic update: newLikedState=${newOptimisticLikedStatus}, newLikeCount=${newOptimisticLikeCount}`);
+
+    setPost(prevPost => ({
+      ...prevPost,
+      currentUserHasLiked: newOptimisticLikedStatus,
+      interactions: {
+        ...prevPost.interactions,
+        likes: newOptimisticLikeCount,
+      },
+    }));
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/posts/${post.post_id}/like`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json', // Though not strictly needed for this POST if no body
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update like status');
+      }
+
+      const data = await response.json();
+      console.log('[PostDetailModal] Server response for like/unlike:', data);
+      // Update with confirmed data from server
+      setPost(prevPost => {
+        console.log('[PostDetailModal] Updating post state from server response.');
+        return {
+          ...prevPost,
+          currentUserHasLiked: data.currentUserHasLiked,
+          interactions: {
+            ...prevPost.interactions,
+            likes: data.count,
+          },
+        };
+      });
+      setError(null);
+
+      // Dispatch event so other components can sync
+      window.dispatchEvent(new CustomEvent('post-like-changed', {
+        detail: {
+          postId: post.post_id,
+          likes: data.count,
+          currentUserHasLiked: data.currentUserHasLiked,
+        }
+      }));
+
+    } catch (err) {
+      console.error('Error liking/unliking post:', err);
+      setError(err.message || 'Could not update like status. Please try again.');
+      // Rollback optimistic update on error
+      console.log('[PostDetailModal] Error in like/unlike. Rolling back optimistic update.');
+      setPost(prevPost => ({
+        ...prevPost,
+        currentUserHasLiked: originalLikedStatus,
+        interactions: {
+          ...prevPost.interactions,
+          likes: originalLikeCount,
+        },
+      }));
     }
   };
 
@@ -185,7 +467,7 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
             placeholder="Add a comment..."
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="w-full p-3 border border-base-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-base-200 text-base-content placeholder-base-content/60"
             rows="3"
             required
           ></textarea>
@@ -208,9 +490,9 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 overflow-y-auto">
       <div className="absolute inset-0 bg-black opacity-50" onClick={onClose}></div>
-      <div className="bg-white dark:bg-gray-800 w-full max-w-4xl mx-4 my-8 rounded-lg shadow-lg z-10 relative">
+      <div className="bg-base-100 text-base-content w-full max-w-4xl mx-4 my-8 rounded-lg shadow-lg z-10 relative flex flex-col max-h-[90vh]">
         {error && (
-          <div className="p-4 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100">
+          <div className="p-4 bg-error text-error-content">
             {error}
             <button 
               className="ml-2 underline"
@@ -226,10 +508,10 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
           </div>
         ) : post ? (
-          <>
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex-1 overflow-y-auto pr-4">
+            <div className="p-6 border-b border-base-200">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{post.title}</h2>
+                <h2 className="text-2xl font-bold text-base-content">{post.title}</h2>
                 <button
                   onClick={onClose}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -251,25 +533,25 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white">{post.user.username}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{formatTimeAgo(post.created_at)}</p>
+                  <h3 className="font-medium text-base-content">{post.user.username}</h3>
+                  <p className="text-sm text-base-content/70">{formatTimeAgo(post.created_at)}</p>
                 </div>
               </div>
               
-              <p className="text-gray-800 dark:text-gray-200 mb-6">{post.content}</p>
+              <p className="text-base-content mb-6">{post.content}</p>
               
               <div className="flex flex-wrap gap-2 mb-4">
                 {post.tags && post.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded-md text-sm"
+                    className="bg-base-200 text-base-content px-2 py-1 rounded-md text-sm"
                   >
                     {tag}
                   </span>
                 ))}
               </div>
               
-              <div className="flex text-sm text-gray-500 dark:text-gray-400 space-x-6">
+              <div className="flex text-sm text-base-content/70 space-x-6">
                 <div className="flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -278,10 +560,18 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                   <span>{post.interactions.views}</span>
                 </div>
                 <div className="flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                  </svg>
-                  <span>{post.interactions.likes}</span>
+                  <button onClick={handleLikeUnlikePost} disabled={post.status === 'closed'} className={`flex items-center text-base-content/70 hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed`}>
+                    <svg 
+                      className={`w-4 h-4 mr-1 ${post.currentUserHasLiked ? 'text-red-500' : ''}`}
+                      fill={post.currentUserHasLiked ? 'currentColor' : 'none'} 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24" 
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                    </svg>
+                    <span>{post.interactions.likes}</span>
+                  </button>
                 </div>
                 <div className="flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -293,15 +583,21 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
             </div>
             
             <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+              <h3 className="text-lg font-bold text-base-content mb-4">
                 {post.comments && post.comments.length} Comment{post.comments && post.comments.length !== 1 ? 's' : ''}
               </h3>
               
               {renderCommentSection()}
               
               <div className="space-y-4 max-h-96 overflow-y-auto pr-4">
-                {post.comments && post.comments.map((comment) => (
-                  <div key={comment.comment_id} className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                {post.comments && post.comments.map((comment) => {
+                  // Ensure comment.user.user_id is a number for comparison
+                  const numericCommentUserId = typeof comment.user.user_id === 'string' 
+                                              ? parseInt(comment.user.user_id, 10) 
+                                              : comment.user.user_id;
+                  const isOwnComment = currentUserId !== null && numericCommentUserId === currentUserId;
+                  return (
+                  <div key={comment.comment_id} className="border-b border-base-200 pb-4">
                     <div className="flex items-start mb-2">
                       <div className="avatar">
                         <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center mr-3 overflow-hidden">
@@ -313,50 +609,145 @@ const PostDetailModal = ({ isOpen, onClose, postId }) => {
                         </div>
                       </div>
                       <div className="flex-1">
-                        <div className="flex justify-between items-center">
-                          <h4 className="font-medium text-gray-900 dark:text-white">{comment.user.username}</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimeAgo(comment.created_at)}</p>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium text-base-content">{comment.user.username}</h4>
+                            <p className="text-xs text-base-content/70">
+                              {formatTimeAgo(comment.created_at)}
+                              {comment.updated_at && comment.created_at !== comment.updated_at && (
+                                <span className="italic text-xs"> (edited)</span>
+                              )}
+                            </p>
+                          </div>
+                          {comment.status !== 'deleted' && (
+                            <div className="flex items-center space-x-1 relative">
+                              {!isOwnComment && (
+                                <button 
+                                  onClick={() => handleOpenReportModal('comment', comment.comment_id)}
+                                  title="Report Comment"
+                                  className="p-1 rounded-full hover:bg-base-300 dark:hover:bg-base-200 text-gray-500 dark:text-gray-400 transition-colors"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                                    <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h1a1 1 0 001-1V9.707l4.707 4.707a1 1 0 001.414-1.414L6.828 9.707H12.5A2.5 2.5 0 0015 7.207V6.5A2.5 2.5 0 0012.5 4H3zm13 1h-1.586A1 1 0 0013.707 6H16v1.293A1 1 0 0016.707 8H17a1 1 0 001-1V5a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                </button>
+                              )}
+                              {isOwnComment && (
+                                <div className="relative">
+                                  <button 
+                                    onClick={() => setActiveCommentMenu(activeCommentMenu === comment.comment_id ? null : comment.comment_id)}
+                                    className="p-1 rounded-full hover:bg-base-300 dark:hover:bg-base-200 text-gray-500 dark:text-gray-400 transition-colors"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                    </svg>
+                                  </button>
+                                  {activeCommentMenu === comment.comment_id && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-base-100 rounded-md shadow-lg py-1 z-20 dark:bg-base-300 border dark:border-base-200">
+                                      <button
+                                        onClick={() => { handleEditComment(comment); setActiveCommentMenu(null); }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-base-content hover:bg-base-200 dark:hover:bg-base-100"
+                                      >
+                                        Edit Comment
+                                      </button>
+                                      <button
+                                        onClick={() => { handleDeleteComment(comment.comment_id); setActiveCommentMenu(null); }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-base-200 dark:hover:bg-base-100"
+                                      >
+                                        Delete Comment
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <p className="text-gray-800 dark:text-gray-200 mt-1">{comment.content}</p>
+                        {editingCommentId === comment.comment_id ? (
+                          <div>
+                            <textarea 
+                              value={editingCommentContent}
+                              onChange={(e) => setEditingCommentContent(e.target.value)}
+                              className="w-full p-2 border border-base-300 rounded-md mt-1 bg-base-200 text-base-content"
+                              rows="3"
+                            />
+                            <div className="flex justify-end space-x-2 mt-1">
+                              <button onClick={() => handleSaveEdit(comment.comment_id)} className="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600">Save</button>
+                              <button onClick={handleCancelEdit} className="text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className={`text-base-content mt-1 ${comment.status === 'deleted' ? 'italic text-base-content/60' : ''}`}>{comment.content}</p>
+                        )}
                       </div>
                     </div>
                     
-                    <div className="flex justify-between items-center pl-12">
-                      <button
-                        onClick={() => handleHonor(comment.comment_id)}
-                        disabled={post.status === 'closed'}
-                        className={`text-sm flex items-center ${
-                          post.status === 'closed'
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400'
-                        }`}
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        {post.status === 'closed' ? 'Honor Disabled' : 'Give Honor'}
-                      </button>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {comment.honor_count} Honor
-                      </span>
+                    {comment.status !== 'deleted' && (
+                    <div className="flex justify-between items-center pl-12 mt-2">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleHonor(comment.comment_id, comment.user.user_id)}
+                          disabled={post.status === 'closed' || isOwnComment || comment.status === 'deleted'}
+                          className={`text-sm flex items-center ${
+                            post.status === 'closed' || isOwnComment || comment.status === 'deleted'
+                              ? 'text-gray-400 cursor-not-allowed'
+                              : comment.currentUserHasHonored
+                                ? 'text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300'
+                                : 'text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300'
+                          }`}
+                        >
+                          <svg className={`w-4 h-4 mr-1 ${comment.currentUserHasHonored ? 'text-red-500' : 'text-green-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                          </svg>
+                          {isOwnComment 
+                            ? 'Cannot Honor Own Comment' 
+                            : post.status === 'closed' 
+                              ? 'Honor Disabled' 
+                              : comment.currentUserHasHonored 
+                                ? 'Revoke Honor'
+                                : 'Give Honor'
+                          }
+                        </button>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-sm text-base-content/70 mr-4">
+                          {typeof comment.honor_count === 'number' ? comment.honor_count : 0} Honor
+                        </span>
+                      </div>
                     </div>
+                    )}
                   </div>
-                ))}
+                );
+              })}
                 
                 {post.comments && post.comments.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-8 text-base-content/70">
                     No comments yet. Be the first to comment!
                   </div>
                 )}
               </div>
             </div>
-          </>
+          </div>
         ) : (
-          <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+          <div className="p-6 text-center text-base-content/70">
             Post not found or has been deleted.
           </div>
         )}
       </div>
+
+      {/* DaisyUI Delete Confirmation Modal */}
+      {showDeleteConfirmModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Confirm Deletion</h3>
+            <p className="py-4">Are you sure you want to delete this comment? This action cannot be undone.</p>
+            <div className="modal-action">
+              <button onClick={() => setShowDeleteConfirmModal(false)} className="btn">Cancel</button>
+              <button onClick={executeDeleteComment} className="btn btn-error">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

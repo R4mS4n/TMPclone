@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AdminSidebar             from '../components/AdminSidebar';
 import TournamentManagement     from '../components/TournamentManagement';
 import UserManagement           from '../components/UserManagement';     
+import AdminReportsView         from '../components/admin/AdminReportsView';
 import { verifyAdminStatus }    from '../utils/adminHelper';
 
 const Admin = () => {
@@ -72,7 +73,8 @@ const Admin = () => {
             <Routes>
               <Route path="/" element={<Navigate to="/admin/tournaments" replace />} />
               <Route path="/tournaments" element={<TournamentManagement />} />
-              <Route path="/users"       element={<UserManagement />} />           {/* Aquí va el componente */}
+              <Route path="/users"       element={<UserManagement />} />
+              <Route path="/reports"     element={<AdminReportsView />} />
               <Route path="/stats"       element={<div className="text-base-content/60">User stats coming soon...</div>} />
               <Route path="/notifications" element={<div className="text-base-content/60">Notifications coming soon...</div>} />
               <Route path="/settings"    element={<div className="text-base-content/60">Settings coming soon...</div>} />

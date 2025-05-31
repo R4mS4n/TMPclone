@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import CreatePostModal from '../components/CreatePostModal';
 import PostDetailModal from '../components/PostDetailModal';
+import ReportModal from '../components/ReportModal';
+import { jwtDecode } from "jwt-decode";
 import '../styles/blog.css';
 import { useTheme } from '../contexts/ThemeContext';
 import { formatTimeAgo } from '../utils/timeUtils';
@@ -21,61 +23,75 @@ const Blog = () => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [timeRefresh, setTimeRefresh] = useState(0);
+  const [activePostMenu, setActivePostMenu] = useState(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportingTarget, setReportingTarget] = useState(null);
+  const [showDeletePostConfirmModal, setShowDeletePostConfirmModal] = useState(false);
+  const [postToDeleteId, setPostToDeleteId] = useState(null);
+  const [postToEdit, setPostToEdit] = useState(null);
   
   useTheme();
+
+  // Determine current user ID and roles from token
+  let currentUserId = null;
+  let currentUserIsAdmin = false; // Changed from currentUserRoles to a boolean
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    try {
+      const decodedToken = jwtDecode(token);
+      currentUserId = decodedToken.sub; 
+      // Check the singular 'role' claim and assume role > 0 is admin
+      // Adjust this logic if your admin role has a different specific value (e.g., role === 1, or role === 'admin_role_value')
+      if (decodedToken.role && Number(decodedToken.role) > 0) { 
+        currentUserIsAdmin = true;
+      }
+    } catch (error) {
+      console.error("Error decoding token:", error);
+    }
+  }
 
   // Fetch posts from API
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        console.log('Fetching posts with status:', activeTab);
+        console.log('Fetching posts for tab:', activeTab);
         
         let endpoint = `${API_BASE_URL}/api/posts`;
-        
-        // Add sorting criteria based on activeTab
+        const queryParams = new URLSearchParams();
+
         switch(activeTab) {
           case 'new':
-            endpoint += '?sort=created_at';
+            queryParams.set('sort_by', 'created_at');
             break;
           case 'top':
-            endpoint += '?sort=likes';
+            queryParams.set('sort_by', 'likes');
             break;
           case 'hot':
-            endpoint += '?sort=views';
+            queryParams.set('sort_by', 'comments'); // Changed from 'views' to 'comments'
             break;
           case 'closed':
-            endpoint += '?status=closed';
+            queryParams.set('filter_status', 'closed');
             break;
           default:
-            endpoint += '?sort=created_at';
+            queryParams.set('sort_by', 'created_at'); // Default to 'new'
+        }
+        endpoint += `?${queryParams.toString()}`;
+
+        const headers = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await fetch(endpoint);
+        const response = await fetch(endpoint, { headers });
         if (!response.ok) {
           throw new Error('Failed to fetch posts');
         }
         const data = await response.json();
         
-        // Sort the posts based on the activeTab criteria
-        let sortedPosts = [...data];
-        switch(activeTab) {
-          case 'new':
-            sortedPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            break;
-          case 'top':
-            sortedPosts.sort((a, b) => b.interactions.likes - a.interactions.likes);
-            break;
-          case 'hot':
-            sortedPosts.sort((a, b) => b.interactions.views - a.interactions.views);
-            break;
-          // For closed posts, maintain server-side sorting
-          default:
-            break;
-        }
-
-        console.log('Sorted posts:', sortedPosts);
-        setPosts(sortedPosts);
+        // Remove client-side sorting, rely on server for correct order
+        console.log('Fetched posts (server-sorted):', data);
+        setPosts(data);
         setError(null);
       } catch (err) {
         console.error('Error fetching posts:', err);
@@ -87,13 +103,14 @@ const Blog = () => {
 
     fetchPosts();
     
-    // Set up periodic data refresh
     const refreshInterval = setInterval(() => {
       fetchPosts();
-    }, 60000 * 5); // Refresh every 5 minutes
+    }, 60000 * 5); 
     
-    return () => clearInterval(refreshInterval);
-  }, [activeTab]);
+    return () => {
+      clearInterval(refreshInterval); 
+    };
+  }, [activeTab, token]); // Added token to dependencies as it's used in headers
 
   // Set up automatic refreshing of timestamps
   useEffect(() => {
@@ -110,7 +127,7 @@ const Blog = () => {
     const fetchLeaderboard = async () => {
       try {
         setLeaderboardLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/user/honor-leaderboard`);
+        const response = await fetch(`${API_BASE_URL}/api/users/honor-leaderboard`);
         if (!response.ok) {
           throw new Error('Failed to fetch leaderboard');
         }
@@ -138,6 +155,30 @@ const Blog = () => {
       window.removeEventListener('honor-update', handleHonorUpdate);
     };
   }, []);
+
+  // Event listener for post like changes from other components (e.g., modal)
+  useEffect(() => {
+    const handlePostLikeUpdateFromEvent = (event) => {
+      if (event.detail && event.detail.postId) {
+        console.log(`[BlogPage] Event post-like-changed received for post ${event.detail.postId}`, event.detail);
+        setPosts(prevPosts => 
+          prevPosts.map(p => 
+            p.post_id === event.detail.postId 
+              ? { 
+                  ...p, 
+                  currentUserHasLiked: event.detail.currentUserHasLiked,
+                  interactions: { ...p.interactions, likes: event.detail.likes }
+                }
+              : p
+          )
+        );
+      }
+    };
+    window.addEventListener('post-like-changed', handlePostLikeUpdateFromEvent);
+    return () => {
+      window.removeEventListener('post-like-changed', handlePostLikeUpdateFromEvent);
+    };
+  }, []); // Empty dependency array, runs once
 
   // Filter posts based on search query
   const filteredPosts = posts.filter(post => 
@@ -211,25 +252,32 @@ const Blog = () => {
 
       const data = await response.json();
       
-      // Check if like was added or removed based on response
-      const isLikeRemoved = data.message === 'Like removed';
-      
-      // Update local state
-      setPosts(
-        posts.map(post => 
-          post.post_id === postId
+      // Update local state with new like count and status from API response
+      setPosts(prevPosts =>
+        prevPosts.map(p => 
+          p.post_id === postId
             ? { 
-                ...post, 
+                ...p, 
+                currentUserHasLiked: data.currentUserHasLiked, // Use status from API
                 interactions: { 
-                  ...post.interactions, 
-                  likes: isLikeRemoved 
-                    ? post.interactions.likes - 1 
-                    : post.interactions.likes + 1 
+                  ...p.interactions, 
+                  likes: data.count // Use count from API
                 } 
               }
-            : post
+            : p
         )
       );
+      setError(null);
+
+      // Dispatch event so other components (like PostDetailModal) can sync
+      window.dispatchEvent(new CustomEvent('post-like-changed', {
+        detail: {
+          postId: postId,
+          likes: data.count,
+          currentUserHasLiked: data.currentUserHasLiked,
+        }
+      }));
+
     } catch (err) {
       console.error('Error liking post:', err);
       setError(err.message || 'Failed to like post');
@@ -240,23 +288,42 @@ const Blog = () => {
   const handleClosePostDetail = () => {
     setIsPostDetailModalOpen(false);
     
-    // Refresh the posts to get updated view counts
-    const fetchPosts = async () => {
+    // Refresh the posts to get updated view counts and like statuses
+    const fetchPostsOnClose = async () => {
       try {
-        console.log('Fetching posts with status:', activeTab);
-        const response = await fetch(`${API_BASE_URL}/api/posts?status=${activeTab}`);
+        console.log('[BlogPage] handleClosePostDetail: Fetching posts with status:', activeTab);
+        let endpoint = `${API_BASE_URL}/api/posts`;
+        const queryParams = new URLSearchParams();
+        if (activeTab && activeTab !== 'all') { // Assuming 'all' is a default or handled by backend if no status
+            queryParams.set('status', activeTab);
+        }
+        // Add other params like sort if needed, consistent with main fetch
+        // For simplicity, this example just uses status. Adjust if your main fetch uses more for the current activeTab.
+        endpoint += `?${queryParams.toString()}`;
+
+        const token = localStorage.getItem('authToken');
+        const headers = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(endpoint, { headers });
         if (!response.ok) {
-          throw new Error('Failed to fetch posts');
+          throw new Error('Failed to fetch posts on modal close');
         }
         const data = await response.json();
-        setPosts(data);
+        // It might be better to merge this data or update based on activeTab sorting 
+        // as the main fetchPosts does, but for now, direct set to ensure fresh like status.
+        console.log('[BlogPage] handleClosePostDetail: Fetched posts:', data.length);
+        setPosts(data); 
         setError(null);
       } catch (err) {
-        console.error('Error fetching posts:', err);
+        console.error('Error fetching posts on modal close:', err);
+        // Potentially set an error state if needed
       }
     };
     
-    fetchPosts();
+    fetchPostsOnClose();
   };
 
   // Get the first initial of a username for the avatar
@@ -290,6 +357,138 @@ const Blog = () => {
       default:
         return "honor-badge honor-badge-default";
     }
+  };
+
+  const handleOpenReportModal = (type, id) => {
+    setReportingTarget({ type, id });
+    setIsReportModalOpen(true);
+    setActivePostMenu(null); // Close three-dots menu if open
+  };
+
+  const submitReportToApi = async (targetType, targetId, reasonCategory, customReasonText) => {
+    console.log('[submitReportToApi] Called with:', { targetType, targetId, reasonCategory, customReasonText }); // Log inputs
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      throw new Error('Authentication required to submit a report.');
+    }
+
+    const body = {
+      action_type: targetType === 'comment' ? 'REPORT_COMMENT' : 'REPORT_POST',
+      reason_category: reasonCategory, // Use the selected category
+      custom_reason_text: customReasonText // Pass the custom text (can be empty or null)
+    };
+
+    if (targetType === 'comment') {
+      body.target_comment_id = targetId;
+    } else { // 'post'
+      body.target_post_id = targetId;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/reports`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to submit report (${response.status})`);
+      }
+      
+      console.log('Report submitted successfully:', data);
+      // Success message handled by ReportModal
+    } catch (error) {
+      console.error('Error submitting report:', error);
+      throw error; // Re-throw to be caught by ReportModal
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    setPostToDeleteId(postId);
+    setShowDeletePostConfirmModal(true);
+    setActivePostMenu(null); // Close three-dots menu
+  };
+
+  const executeDeletePost = async () => {
+    if (!postToDeleteId) return;
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      setError('Authentication required to delete posts.');
+      setShowDeletePostConfirmModal(false);
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postToDeleteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to delete post');
+      }
+      setPosts(prevPosts => prevPosts.filter(p => p.post_id !== postToDeleteId));
+      setError(null);
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      setError(err.message || 'Could not delete post.');
+    }
+    setShowDeletePostConfirmModal(false);
+    setPostToDeleteId(null);
+  };
+
+  const handleChangePostStatus = async (postId, newStatus) => {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      setError('Authentication required.');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || `Failed to update post status to ${newStatus}`);
+      }
+      // Update post in local state
+      setPosts(prevPosts => prevPosts.map(p => 
+        p.post_id === postId ? { ...p, status: newStatus } : p
+      ));
+      // If the active tab is 'closed' and we just activated a post, or vice versa,
+      // it might disappear from the current view. Consider fetching posts again or
+      // conditionally removing from list if it no longer matches activeTab.
+      if ((activeTab === 'closed' && newStatus !== 'closed') || (activeTab !== 'closed' && newStatus === 'closed')) {
+        // Optionally, remove from current list if it doesn't match the active filter
+        setPosts(prevPosts => prevPosts.filter(p => p.post_id !== postId)); 
+      } else {
+         setPosts(prevPosts => prevPosts.map(p => 
+           p.post_id === postId ? { ...p, status: newStatus } : p
+         ));
+      }
+      setError(null);
+    } catch (err) {
+      console.error(`Error updating post status to ${newStatus}:`, err);
+      setError(err.message || `Could not update post status.`);
+    }
+    setActivePostMenu(null); // Close three-dots menu
+  };
+
+  const handleEditPost = (post) => {
+    setPostToEdit(post);
+    setIsCreateModalOpen(true);
+    setActivePostMenu(null); // Close three-dots menu
   };
 
   return (
@@ -343,7 +542,7 @@ const Blog = () => {
             <input
               type="text"
               placeholder="Search posts..."
-              className="w-full p-2 input input-bordered focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full h-12 input input-bordered focus:outline-none focus:ring-2 focus:ring-primary rounded-md"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -365,12 +564,92 @@ const Blog = () => {
                 filteredPosts.map((post) => (
                   <div 
                     key={post.post_id} 
-                    className="post-card card bg-base-100 shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 border border-base-200"
+                    className="post-card card bg-base-100 shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 border border-base-200 rounded-md relative"
                     onClick={() => openPostDetail(post.post_id)}
                   >
+                    <div className="absolute top-2 right-2 z-20">
+                      <div className="relative">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setActivePostMenu(activePostMenu === post.post_id ? null : post.post_id); }}
+                          className="p-1.5 rounded-full hover:bg-base-300 dark:hover:bg-base-200 transition-colors text-base-content/70 hover:text-base-content"
+                          title="Post options"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                          </svg>
+                        </button>
+                        {activePostMenu === post.post_id && (
+                          <div 
+                            className="absolute right-0 mt-2 w-48 bg-base-100 rounded-md shadow-xl py-1 z-30 dark:bg-base-300 border dark:border-base-200 ring-1 ring-black ring-opacity-5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {post.user_id !== currentUserId && (
+                              <button
+                                onClick={(e) => { handleOpenReportModal('post', post.post_id); }}
+                                className="flex items-center w-full text-left px-4 py-2 text-sm text-base-content hover:bg-base-200 dark:hover:bg-base-100"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h1a1 1 0 001-1V9.707l4.707 4.707a1 1 0 001.414-1.414L6.828 9.707H12.5A2.5 2.5 0 0015 7.207V6.5A2.5 2.5 0 0012.5 4H3zm13 1h-1.586A1 1 0 0013.707 6H16v1.293A1 1 0 0016.707 8H17a1 1 0 001-1V5a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                Report Post
+                              </button>
+                            )}
+                            {post.user_id === currentUserId && (
+                              <button
+                                onClick={(e) => { handleEditPost(post); }}
+                                className="flex items-center w-full text-left px-4 py-2 text-sm text-base-content hover:bg-base-200 dark:hover:bg-base-100"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                  <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                                  <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                                </svg>
+                                Edit Post
+                              </button>
+                            )}
+                            {post.user_id === currentUserId && (
+                              <button
+                                onClick={(e) => { handleDeletePost(post.post_id); }}
+                                className="flex items-center w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-base-200 dark:hover:bg-base-100"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                Delete Post
+                              </button>
+                            )}
+                            {/* Admin actions: Close/Reopen Post */}
+                            {currentUserIsAdmin && (
+                              <>
+                                <div className="my-1 border-t border-base-200 dark:border-base-100"></div> {/* Separator */}
+                                {post.status !== 'closed' ? (
+                                  <button
+                                    onClick={(e) => { handleChangePostStatus(post.post_id, 'closed'); }}
+                                    className="flex items-center w-full text-left px-4 py-2 text-sm text-orange-500 hover:bg-base-200 dark:hover:bg-base-100"
+                                  >
+                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                       <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                     </svg>
+                                    Close Post
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => { handleChangePostStatus(post.post_id, 'active'); }}
+                                    className="flex items-center w-full text-left px-4 py-2 text-sm text-green-500 hover:bg-base-200 dark:hover:bg-base-100"
+                                  >
+                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                       <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm0 5h.01M10 10a2 2 0 100 4 2 2 0 000-4z" />
+                                     </svg>
+                                    Reopen Post
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     <div className="card-body p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center">
+                      <div className="flex items-center mb-2">
                           <div className="avatar">
                             <div className="w-10 h-10 rounded-full bg-primary text-primary-content overflow-hidden mr-3">
                               {post.user.profile_pic ? (
@@ -387,27 +666,17 @@ const Blog = () => {
                             <span>{formatTimeAgo(post.created_at)}</span>
                           </div>
                         </div>
-                        <button 
-                          className="btn btn-ghost btn-circle btn-sm"
-                          onClick={(e) => e.stopPropagation()} // Prevent opening the post detail modal
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
-                          </svg>
-                        </button>
-                      </div>
                       
-                      <div className="mb-3">
-                        <h2 className="post-title text-xl font-semibold text-base-content mb-2">{post.title}</h2>
-                        <p className="post-content text-base-content opacity-80">{post.content}</p>
-                      </div>
+                      <h2 className="text-xl font-bold text-base-content group-hover:text-primary transition-colors duration-200 mb-2">
+                        {post.title}
+                      </h2>
                       
                       <div className="flex flex-wrap gap-2 mb-4">
                         {post.tags.map((tag, index) => (
                           <span
                             key={index}
                             className="badge badge-outline px-2 py-1 text-xs"
-                            onClick={(e) => e.stopPropagation()} // Prevent opening the post detail modal
+                            onClick={(e) => e.stopPropagation()}
                           >
                             {tag}
                           </span>
@@ -429,9 +698,15 @@ const Blog = () => {
                               : 'cursor-pointer hover:text-primary transition-colors duration-200'
                           }`}
                           onClick={(e) => handleLikePost(post.post_id, e)}
-                          title={post.status === 'closed' ? 'Cannot like closed posts' : ''}
+                          title={post.status === 'closed' ? 'Cannot like closed posts' : 'Like/Unlike'}
                         >
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <svg 
+                            className={`w-4 h-4 mr-1 ${post.currentUserHasLiked ? 'text-red-500' : ''}`}
+                            fill={post.currentUserHasLiked ? 'currentColor' : 'none'} 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24" 
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                           </svg>
                           <span>{post.interactions.likes}</span>
@@ -447,7 +722,7 @@ const Blog = () => {
                   </div>
                 ))
               ) : (
-                <div className="card bg-base-100 shadow-md p-8 text-center">
+                <div className="card bg-base-100 shadow-md p-8 text-center rounded-md">
                   <p className="text-base-content opacity-60 mb-4">
                     {activeTab === 'closed' ? 'No closed posts available.' : 'No posts found matching your search criteria.'}
                   </p>
@@ -469,7 +744,7 @@ const Blog = () => {
         {/* Sidebar - right column */}
         <div className="lg:w-1/3 space-y-4">
           {/* Honor Leaderboard Box */}
-          <div className="sidebar-box card bg-base-100 shadow-md">
+          <div className="sidebar-box card bg-base-100 shadow-md rounded-md">
             <div className="card-body p-4">
               <h3 className="card-title text-base-content mb-4">Highest Honor Leaderboard</h3>
               
@@ -505,7 +780,7 @@ const Blog = () => {
           </div>
 
           {/* Must-read posts & Featured links Box */}
-          <div className="sidebar-box card bg-base-100 shadow-md">
+          <div className="sidebar-box card bg-base-100 shadow-md rounded-md">
             <div className="card-body p-4">
               <h3 className="card-title text-base-content mb-3">Must-read posts</h3>
               <ul className="space-y-2 text-sm">
@@ -549,19 +824,51 @@ const Blog = () => {
         </svg>
       </button>
 
-      {/* Create Post Modal */}
+      {/* Create Post Modal (also used for editing) */}
       <CreatePostModal 
         isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)}
-        onPostCreated={handlePostCreated}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setPostToEdit(null); // Clear postToEdit when modal closes
+        }}
+        onPostCreated={handlePostCreated} // This will also be used for post updated
+        postToEdit={postToEdit} // Pass the post to edit
       />
 
       {/* Post Detail Modal */}
-      <PostDetailModal
-        isOpen={isPostDetailModalOpen}
-        onClose={handleClosePostDetail}
-        postId={selectedPostId}
-      />
+      {isPostDetailModalOpen && (
+        <PostDetailModal 
+          isOpen={isPostDetailModalOpen} 
+          onClose={handleClosePostDetail} 
+          postId={selectedPostId}
+          handleOpenReportModal={handleOpenReportModal}
+        />
+      )}
+
+      {/* Report Modal - now shared between Blog and PostDetailModal */}
+      {isReportModalOpen && (
+        <ReportModal 
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          targetType={reportingTarget?.type}
+          targetId={reportingTarget?.id}
+          onSubmitReport={submitReportToApi} 
+        />
+      )}
+
+      {/* Delete Post Confirmation Modal */}
+      {showDeletePostConfirmModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Confirm Post Deletion</h3>
+            <p className="py-4">Are you sure you want to delete this post? This will also delete all associated comments and interactions. This action cannot be undone.</p>
+            <div className="modal-action">
+              <button onClick={() => setShowDeletePostConfirmModal(false)} className="btn">Cancel</button>
+              <button onClick={executeDeletePost} className="btn btn-error">Delete Post</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

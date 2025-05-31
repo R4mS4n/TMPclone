@@ -236,16 +236,16 @@ const loginUser = async (req, res) => {
  */
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token      = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (token == null) return res.sendStatus(401); // Unauthorized if no token
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: "Invalid token" });
-    req.user = {
-      sub:      decoded.sub,
-      username: decoded.username,
-      role:     decoded.role
-    };
+    if (err) {
+      console.error('[authController.verifyToken] JWT verification error:', err.message);
+      return res.sendStatus(403); // Forbidden if token is invalid
+    }
+    req.user = decoded; // Populate req.user with the entire decoded token payload
     next();
   });
 };
