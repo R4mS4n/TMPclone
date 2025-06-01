@@ -18,12 +18,13 @@ router.get("/current", getCurrentTournaments);
 
 router.get('/enrolled-count', verifyToken, getUserEnrolledChallengesCount);
 
-router.get("/:id",getTournamentById);
+
 router.get('/enrollment/:id', verifyToken, checkEnrollment);
 
 
 router.post("/participateInTournament",verifyToken, participateInTournament);
 router.post('/quitTournament',verifyToken, quitTournament);
+router.get("/:id",getTournamentById);
 router.delete('/:id', verifyToken, endpointAdminFilter, deleteTournament);
 router.put('/:id', verifyToken, endpointAdminFilter, updateTournament);
 router.post('/', verifyToken, endpointAdminFilter, createTournament);

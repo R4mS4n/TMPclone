@@ -12,6 +12,9 @@ const UserSettings = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Username change state
   const [newUsername, setNewUsername] = useState('');
@@ -210,6 +213,49 @@ const UserSettings = () => {
         }
     };
 
+    const handleDeleteAccount = async () => {
+      if (!deletePassword) {
+        notifyError('Please enter your password');
+        return;
+      }
+
+      setIsDeleting(true);
+      const token = localStorage.getItem('authToken');
+
+        try {
+          const response = await fetch('http://localhost:5000/api/users/delete-account', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ password: deletePassword })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete account');
+          }
+
+          // Success - clear local storage and redirect
+          localStorage.removeItem('authToken');
+          notifySuccess('Your account has been deleted');
+          window.location.href = '/login';
+          
+        } catch (error) {
+          console.error('Account deletion error:', error);
+          notifyError(error.message);
+          
+          if (error.message.includes('Unauthorized')) {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
+          }
+        } finally {
+          setIsDeleting(false);
+          setShowDeleteModal(false);
+        }
+    };
+
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Profile Picture</h2>
@@ -370,7 +416,63 @@ const UserSettings = () => {
             </button>
         </form>
         </div>
+        <div className="mt-12 border-t border-error pt-6">
+        <h2 className="text-xl font-bold mb-4 text-error">Account deletion</h2>
+        
+        <div className="card bg-opacity-10 border border-error max-w-md">
+          <div className="card-body">
+            <h3 className="card-title text-error">Delete Account</h3>
+            <p className="text-sm mb-4">This will permanently delete your account and all associated data. This action cannot be undone.</p>
+            
+            <button 
+              onClick={() => setShowDeleteModal(true)}
+              className="btn btn-error btn-outline"
+            >
+              Delete Account
+            </button>
+          </div>
+        </div>
+      </div>
 
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-base-100 p-6 rounded-lg max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Confirm Account Deletion</h3>
+            <p className="mb-4">This action cannot be undone. Please enter your password to confirm.</p>
+            
+            <div className="form-control mb-4">
+              <label className="label">
+                <span className="label-text">Password</span>
+              </label>
+              <input
+                type="password"
+                className="input input-bordered w-full"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="btn btn-ghost"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDeleteAccount}
+                className={`btn btn-error ${isDeleting ? 'loading' : ''}`}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
