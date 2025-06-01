@@ -15,6 +15,7 @@ const {
   changePassword,
   getUserLeaderboardPosition,
   getUserProfilePicById,
+  deleteUserSelf,
   upload
 } = require('../controllers/userController.js');
 
@@ -46,6 +47,7 @@ router.post(
   upload.single('profilePic'),
   uploadProfilePic
 );
+router.delete('/delete-account', verifyToken, deleteUserSelf);
 
 
 // Edición y eliminación

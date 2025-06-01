@@ -436,6 +436,58 @@ const getUserProfilePicById = async (req, res) => {
   }
 };
 
+const deleteUserSelf = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const userId = req.user.sub; // From JWT
+
+    // Validate input
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password is required'
+      });
+    }
+
+    // Get user's current password hash from DB
+    const [users] = await db.promise().query(
+      'SELECT password FROM User WHERE user_id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Verify password
+    const isValid = await bcrypt.compare(password, users[0].password);
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Incorrect password'
+      });
+    }
+
+    // Single query to delete user (cascades to related tables)
+    await db.promise().query('DELETE FROM User WHERE user_id = ?', [userId]);
+
+    res.json({
+      success: true,
+      message: 'Account deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('deleteUserSelf error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete account'
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getHonorLeaderboard,
@@ -450,5 +502,6 @@ module.exports = {
   changePassword,
   getUserLeaderboardPosition,
   getUserProfilePicById,
+  deleteUserSelf,
   upload
 };
