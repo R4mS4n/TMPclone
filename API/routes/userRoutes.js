@@ -11,6 +11,7 @@ const {
   getUserLevelStats,
   uploadProfilePic,
   getMyProfilePic,
+  changeUsername,
   upload
 } = require('../controllers/userController.js');
 
@@ -22,7 +23,11 @@ router.get('/level-stats', verifyToken, getUserLevelStats)
 router.get('/me', verifyToken, getUser);
 router.get('/enrollments', verifyToken, checkUserEnrollments);
 router.get('/honor-leaderboard', getHonorLeaderboard);
-router.get('/', verifyToken, getAllUsers); 
+router.get('/', verifyToken, getAllUsers);
+
+router.put('/change-username', verifyToken, (req, res, next) => {
+  changeUsername(req, res).catch(next);
+});
 
 // Profile picture routes
 router.get('/profile-pic', verifyToken, getMyProfilePic);
@@ -39,5 +44,7 @@ router.delete('/:id', verifyToken, deleteUserByAdmin);
 
 // Cambio de rol por superadmin
 router.put('/:id/role', verifyToken, updateUserRole);
+
+
 
 module.exports = router;

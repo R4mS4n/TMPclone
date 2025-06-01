@@ -9,6 +9,10 @@ const UserSettings = () => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Username change state
+  const [newUsername, setNewUsername] = useState('');
+  const [isChangingUsername, setIsChangingUsername] = useState(false);
+
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
@@ -104,6 +108,52 @@ const UserSettings = () => {
     }
   };
 
+  const handleUsernameChange = async (e) => {
+        e.preventDefault();
+        setIsChangingUsername(true);
+        
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+        notifyError('You need to be logged in to change your username');
+        window.location.href = '/login';
+        return;
+        }
+
+        try {
+        const response = await fetch('http://localhost:5000/api/users/change-username', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ newUsername })
+        });
+        console.log(response);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update username');
+        }
+
+        notifySuccess('Username updated successfully!');
+        setNewUsername('');
+        
+        // Optionally refresh the page to reflect changes
+        window.location.reload();
+        
+        } catch (error) {
+        console.error('Username change error:', error);
+        notifyError(error.message);
+        
+        // Handle unauthorized (token expired)
+        if (error.message.includes('Unauthorized')) {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
+        }
+        } finally {
+        setIsChangingUsername(false);
+        }
+    };
+
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Profile Picture</h2>
@@ -181,6 +231,36 @@ const UserSettings = () => {
           </button>
         )}
       </div>
+
+      <div>
+        <h2 className="text-xl font-bold mb-4">Change Username</h2>
+        <form onSubmit={handleUsernameChange} className="max-w-md space-y-4">
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">New Username</span>
+            </label>
+            <input
+              type="text"
+              className="input input-bordered w-full"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              required
+              minLength={3}
+              maxLength={20}
+              pattern="[a-zA-Z0-9_]+" // Only allow letters, numbers and underscores
+              title="Username can only contain letters, numbers and underscores"
+            />
+          </div>
+          <button
+            type="submit"
+            className={`btn btn-primary ${isChangingUsername ? 'loading' : ''}`}
+            disabled={isChangingUsername || !newUsername.trim()}
+          >
+            {isChangingUsername ? 'Updating...' : 'Change Username'}
+          </button>
+        </form>
+      </div>
+
     </div>
   );
 };

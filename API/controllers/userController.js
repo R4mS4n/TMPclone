@@ -276,6 +276,54 @@ const getMyProfilePic = async (req, res) => {
   }
 };
 
+//username change (self)
+const changeUsername = async (req, res) => {
+  try {
+    const { newUsername } = req.body;
+    const userId = req.user.sub; // From JWT
+
+    // Validate input
+    if (!newUsername || newUsername.trim().length < 3) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Username must be at least 3 characters long'
+      });
+    }
+
+    // Check if username already exists (case-insensitive)
+    const [existingUser] = await db.promise().query(
+      'SELECT user_id FROM User WHERE LOWER(username) = LOWER(?) AND user_id != ?',
+      [newUsername, userId]
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Username already taken'
+      });
+    }
+
+    // Update username
+    await db.promise().query(
+      'UPDATE User SET username = ? WHERE user_id = ?',
+      [newUsername.trim(), userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Username updated successfully',
+      newUsername
+    });
+
+  } catch (error) {
+    console.error('changeUsername error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update username'
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getHonorLeaderboard,
@@ -286,5 +334,6 @@ module.exports = {
   getUserLevelStats,
   uploadProfilePic,
   getMyProfilePic,
+  changeUsername,
   upload
 };
