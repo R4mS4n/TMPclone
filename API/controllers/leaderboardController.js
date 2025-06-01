@@ -26,6 +26,7 @@ const top10Leaderboard = async (req, res) => {
     const [rows] = await db.promise().query(`
       SELECT 
         RANK() OVER (ORDER BY xp DESC) AS position,
+        user_id,
         level,
         username,
         xp

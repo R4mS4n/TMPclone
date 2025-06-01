@@ -14,6 +14,7 @@ const {
   changeUsername,
   changePassword,
   getUserLeaderboardPosition,
+  getUserProfilePicById,
   upload
 } = require('../controllers/userController.js');
 
@@ -37,12 +38,15 @@ router.put('/change-password', verifyToken, changePassword);
 
 // Profile picture routes
 router.get('/profile-pic', verifyToken, getMyProfilePic);
+
+router.get('/profile-pic/:id', verifyToken, getUserProfilePicById);
 router.post(
   '/upload-profile-pic',
   verifyToken,
   upload.single('profilePic'),
   uploadProfilePic
 );
+
 
 // Edición y eliminación
 router.put('/:id', verifyToken, updateUserByAdmin);

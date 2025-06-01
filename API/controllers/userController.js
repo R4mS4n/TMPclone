@@ -414,6 +414,28 @@ const getUserLeaderboardPosition = async (req, res) => {
   }
 };
 
+// Get Profile Picture by User ID
+const getUserProfilePicById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const [rows] = await db.promise().query(
+      'SELECT profile_pic FROM User WHERE user_id = ?',
+      [userId]
+    );
+
+    if (!rows[0]?.profile_pic) {
+      return res.status(404).json({ error: 'Profile picture not found' });
+    }
+
+    // Set proper content-type and send raw image data
+    res.set('Content-Type', 'image/jpeg');
+    res.send(rows[0].profile_pic);
+  } catch (error) {
+    console.error('Error fetching profile picture:', error);
+    res.status(500).json({ error: 'Failed to fetch profile picture' });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getHonorLeaderboard,
@@ -427,5 +449,6 @@ module.exports = {
   changeUsername,
   changePassword,
   getUserLeaderboardPosition,
+  getUserProfilePicById,
   upload
 };

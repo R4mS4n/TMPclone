@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import UserAvatar from '../components/UserAvatar';
 
 const Leaderboard = () => {
   const { isDark } = useTheme();
@@ -131,7 +132,7 @@ const Leaderboard = () => {
   useEffect(() => {
     if (selectedTab === 'honor') {
       fetchHonorLeaderboard();
-    } else if (selectedTab === 'all' || selectedTab === 'teams') {
+    } else if (selectedTab === 'all' || selectedTab === 'Tournaments') {
       // When switching to non-honor tabs, make sure to fetch data if we have a selected tournament
       if (selectedTournament) {
         fetchLeaderboardData(selectedTournament);
@@ -218,12 +219,13 @@ const Leaderboard = () => {
       const token = localStorage.getItem('authToken');
       
       // First approach: Check if we have official leaderboard entries
+      /*
       const leaderboardResponse = await fetch(`http://localhost:5000/api/leaderboard?tournament_id=${tournamentId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+      */
       // If we have official leaderboard entries, use them
       if (leaderboardResponse.ok) {
         const leaderboardResults = await leaderboardResponse.json();
@@ -252,12 +254,13 @@ const Leaderboard = () => {
       }
       
       // Second approach: If no official leaderboard, build from Tournament_Participation
+      /*
       const participationResponse = await fetch(`http://localhost:5000/api/tournament-participation?tournament_id=${tournamentId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+      */
       if (!participationResponse.ok) {
         throw new Error('Failed to fetch tournament participation data');
       }
@@ -389,7 +392,7 @@ const Leaderboard = () => {
       ...item,
       position: index + 1
     }));
-    } else if (selectedTab === 'teams') {
+    } else if (selectedTab === 'Tournaments') {
       // Group by team_id and sum scores
       const teamScores = new Map();
       
@@ -577,10 +580,10 @@ const Leaderboard = () => {
                 All
               </button>
               <button 
-                className={`px-4 py-2 rounded-md transition-colors ${selectedTab === 'teams' ? 'bg-primary text-white' : 'hover:bg-base-200'}`}
-                onClick={() => handleTabChange('teams')}
+                className={`px-4 py-2 rounded-md transition-colors ${selectedTab === 'Tournaments' ? 'bg-primary text-white' : 'hover:bg-base-200'}`}
+                onClick={() => handleTabChange('Tournaments')}
               >
-                Teams
+                Tournaments
               </button>
             </div>
           </div>
@@ -610,7 +613,7 @@ const Leaderboard = () => {
                   <tr className="bg-primary text-white">
                     <th className="text-center">Position</th>
                     <th className="text-center">Avatar</th>
-                    <th>{selectedTab === 'teams' ? 'Team' : 'Username'}</th>
+                    <th>{selectedTab === 'Tournaments' ? 'Tournament' : 'Username'}</th>
                     <th>{isHonorTab ? 'Honor Points' : 'Level'}</th>
                     {!isHonorTab && <th>Achievements</th>}
                     <th className="text-right">
@@ -621,22 +624,17 @@ const Leaderboard = () => {
                 <tbody>
                   {displayData.map((entry) => (
                     <tr 
-                      key={selectedTab === 'teams' ? `team-${entry.team_id}` : `user-${entry.user_id}-${entry.tournament_id || 'honor'}`} 
+                      key={selectedTab === 'Tournaments' ? `team-${entry.team_id}` : `user-${entry.user_id}-${entry.tournament_id || 'honor'}`} 
                       className={`${entry.position <= 3 ? 'font-semibold' : ''}`}
                     >
                       <td className="text-center">{renderRank(entry.position)}</td>
+                      
                       <td className="text-center">
-                        <div className="avatar">
-                          <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden">
-                            {entry.profile_pic ? (
-                              <img src={entry.profile_pic} alt={entry.username} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                {entry.username.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <UserAvatar 
+                          userId={entry.user_id} 
+                          size="sm" // or 'md', 'lg', 'xl' as needed
+                          className="mx-auto" // additional classes if needed
+                        />
                       </td>
                       <td>{entry.username}</td>
                       <td>
@@ -646,8 +644,8 @@ const Leaderboard = () => {
     renderLevel(entry.xp)
   ) : (
     <>
-      {selectedTab !== 'teams' && entry.xp && renderLevel(entry.xp)}
-      {selectedTab === 'teams' && <span className="badge badge-secondary">{entry.members} members</span>}
+      {selectedTab !== 'Tournaments' && entry.xp && renderLevel(entry.xp)}
+      {selectedTab === 'Tournaments' && <span className="badge badge-secondary">{entry.members} members</span>}
     </>
   )}
 </td>
