@@ -383,6 +383,37 @@ const changePassword = async (req, res) => {
   }
 };
 
+const getUserLeaderboardPosition = async (req, res) => {
+  try {
+    const userId = req.user.sub; // Get from JWT
+    
+    // Using RANK() approach (MySQL 8.0+)
+    const [results] = await db.promise().query(`
+      SELECT user_rank
+      FROM (
+        SELECT 
+          user_id,
+          RANK() OVER (ORDER BY xp DESC, level DESC) AS user_rank
+        FROM User
+      ) AS ranked_users
+      WHERE user_id = ?
+    `, [userId]);
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      position: results[0].user_rank
+    });
+    
+  } catch (error) {
+    console.error("Error fetching leaderboard position:", error);
+    res.status(500).json({ error: "Failed to get leaderboard position" });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getHonorLeaderboard,
@@ -395,5 +426,6 @@ module.exports = {
   getMyProfilePic,
   changeUsername,
   changePassword,
+  getUserLeaderboardPosition,
   upload
 };

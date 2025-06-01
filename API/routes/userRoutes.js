@@ -13,6 +13,7 @@ const {
   getMyProfilePic,
   changeUsername,
   changePassword,
+  getUserLeaderboardPosition,
   upload
 } = require('../controllers/userController.js');
 
@@ -25,6 +26,8 @@ router.get('/me', verifyToken, getUser);
 router.get('/enrollments', verifyToken, checkUserEnrollments);
 router.get('/honor-leaderboard', getHonorLeaderboard);
 router.get('/', verifyToken, getAllUsers);
+
+router.get('/leaderboard-position', verifyToken, getUserLeaderboardPosition);
 
 router.put('/change-username', verifyToken, (req, res, next) => {
   changeUsername(req, res).catch(next);
