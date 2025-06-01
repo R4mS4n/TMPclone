@@ -16,6 +16,8 @@ const Leaderboard = () => {
   const [honorLeaderboardLoading, setHonorLeaderboardLoading] = useState(true);
   const [top10Leaderboard, setTop10Leaderboard] = useState([]);
   const [top10Loading, setTop10Loading] = useState(true);
+  const [tournamentLeaderboard, setTournamentLeaderboard] = useState([]);
+  const [tournamentLoading, setTournamentLoading] = useState(true);
 
   useEffect(() => {
     // Fetch tournaments first
@@ -212,125 +214,45 @@ const Leaderboard = () => {
 };
 
   const fetchLeaderboardData = async (tournamentId) => {
+    setTournamentLoading(true);
     setLoading(true);
-    // Also reset the honor loading state to avoid conflicts
     setHonorLeaderboardLoading(false);
     try {
       const token = localStorage.getItem('authToken');
       
-      // First approach: Check if we have official leaderboard entries
-      /*
-      const leaderboardResponse = await fetch(`http://localhost:5000/api/leaderboard?tournament_id=${tournamentId}`, {
+      // Fetch tournament leaderboard data
+      const response = await fetch(`http://localhost:5000/api/leaderboard/top10ByTournament?tournament_id=${tournamentId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      */
-      // If we have official leaderboard entries, use them
-      if (leaderboardResponse.ok) {
-        const leaderboardResults = await leaderboardResponse.json();
-        
-        if (leaderboardResults && leaderboardResults.length > 0) {
-          // The leaderboard table already has position and username
-          setLeaderboardData(leaderboardResults.map(entry => ({
-            ...entry,
-            // Format to ensure we have all required fields
-            leaderboard_id: entry.leaderboard_id,
-            user_id: entry.user_id,
-            username: entry.username,
-            tournament_id: entry.tournament_id,
-            position: entry.position,
-            // These might need to come from user table if not in leaderboard
-            score: entry.score || 0,
-            achievements: entry.achievements || 0,
-            level: entry.level || 1,
-            xp: entry.xp || 0
-          })));
-          
-          setParticipants(leaderboardResults.length);
-          setLoading(false);
-          return;
-        }
+
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch tournament leaderboard');
       }
-      
-      // Second approach: If no official leaderboard, build from Tournament_Participation
-      /*
-      const participationResponse = await fetch(`http://localhost:5000/api/tournament-participation?tournament_id=${tournamentId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      */
-      if (!participationResponse.ok) {
-        throw new Error('Failed to fetch tournament participation data');
-      }
-      
-      const participationData = await participationResponse.json();
-      setParticipants(participationData.length);
-      
-      if (participationData.length === 0) {
-        setLeaderboardData([]);
-        setLoading(false);
-        return;
-      }
-      
-      // Get user details including username, level, xp
-      const usersResponse = await fetch('http://localhost:5000/api/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!usersResponse.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-      
-      const usersData = await usersResponse.json();
-      
-      // Get user achievements
-      const achievementsResponse = await fetch('http://localhost:5000/api/user-achievements', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      let achievementsData = [];
-      if (achievementsResponse.ok) {
-        achievementsData = await achievementsResponse.json();
-      }
-      
-      // Build the leaderboard by combining data
-      const combinedData = participationData.map(participant => {
-        const user = usersData.find(u => u.user_id === participant.user_id) || {};
-        const userAchievements = achievementsData.filter(a => a.user_id === participant.user_id) || [];
-        
-        return {
-          user_id: participant.user_id,
-          username: user.username || `User ${participant.user_id}`,
-          tournament_id: participant.tournament_id,
-          score: participant.score || 0,
-          // Include additional user info if available
-          level: user.level || 1,
-          xp: user.xp || 0,
-          achievements: userAchievements.length || 0,
-          team_id: user.team_id || null
-        };
-      });
-      
-      // Sort by score (descending)
-      combinedData.sort((a, b) => b.score - a.score);
-      
-      // Add position field after sorting
-      const rankedData = combinedData.map((item, index) => ({
-        ...item,
+
+      const data = await response.json();
+      console.log(data);
+      // Transform the data to match our format
+      const formattedData = data.map((entry, index) => ({
+        user_id: entry.user_id,
+        username: entry.username,
+        level: entry.level,
+        xp: entry.xp,
+        score: entry.score,
+        achievements: 0,
+        tournament_id: tournamentId,
         position: index + 1
       }));
-      
-      setLeaderboardData(rankedData);
+
+
+      setLeaderboardData(formattedData);
+      setParticipants(formattedData.length);
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching leaderboard data:', err);
-      setError('Failed to load leaderboard data');
+      console.error('Error fetching tournament leaderboard:', err);
+      setError('Failed to load tournament leaderboard');
       setLoading(false);
       
       // Fallback to mock data for development
@@ -340,7 +262,9 @@ const Leaderboard = () => {
         setLoading(false);
         setError(null);
       }
-    }
+    } finally {
+    setTournamentLoading(false);
+  }
   };
 
   const handleTournamentChange = (tournamentId) => {
@@ -377,58 +301,46 @@ const Leaderboard = () => {
 
   // Add a dedicated tab changing handler
   const handleTabChange = (tab) => {
-    // Set the selected tab
     setSelectedTab(tab);
-    
-    // The useEffect will handle the data loading based on selected tab
+
+    if (tab === 'honor') {
+      setLeaderboardData([]);
+      setTop10Leaderboard([]);
+      fetchHonorLeaderboard();
+    }
+
+    if (tab === 'all') {
+      setLeaderboardData([]); // clear tournament
+      fetchTop10Leaderboard();
+    }
+
+    if (tab === 'Tournaments') {
+      setTop10Leaderboard([]); // clear global
+      if (selectedTournament) {
+        fetchLeaderboardData(selectedTournament);
+      }
+    }
   };
 
+
   const filterLeaderboardData = () => {
-    // Filter data based on selected tab
     if (selectedTab === 'honor') {
-      return honorLeaderboardLoading ? [] : honorLeaderboard;
-    } else if (selectedTab === 'all') {
-    return top10Loading ? [] : top10Leaderboard.map((item, index) => ({
-      ...item,
-      position: index + 1
-    }));
-    } else if (selectedTab === 'Tournaments') {
-      // Group by team_id and sum scores
-      const teamScores = new Map();
-      
-      leaderboardData.forEach(user => {
-        if (user.team_id) {
-          if (!teamScores.has(user.team_id)) {
-            teamScores.set(user.team_id, {
-              team_id: user.team_id,
-              team_name: user.team_name || `Team ${user.team_id}`,
-              score: 0,
-              members: 0,
-              achievements: 0
-            });
-          }
-          
-          const team = teamScores.get(user.team_id);
-          team.score += user.score;
-          team.members += 1;
-          team.achievements += user.achievements || 0;
-        }
-      });
-      
-      // Convert to array and sort
-      const teamsArray = Array.from(teamScores.values());
-      teamsArray.sort((a, b) => b.score - a.score);
-      
-      // Add position
-      return teamsArray.map((team, index) => ({
-        ...team,
-        position: index + 1,
-        username: team.team_name // Use team name as username for display
-      }));
+      return honorLeaderboard;
     }
-    
-    return leaderboardData;
+
+    if (selectedTab === 'all') {
+      return top10Leaderboard;
+    }
+
+    if (selectedTab === 'Tournaments') {
+      return leaderboardData;
+    }
+
+    return [];
   };
+
+
+
 
   // Mock data for development fallback
   const mockLeaderboardData = [
@@ -494,9 +406,9 @@ const Leaderboard = () => {
   const displayData = filterLeaderboardData();
   const isHonorTab = selectedTab === 'honor';
   const isLoading = 
-  isHonorTab ? honorLeaderboardLoading : 
-  selectedTab === 'all' ? top10Loading : 
-  loading;
+    selectedTab === 'honor' ? honorLeaderboardLoading :
+    selectedTab === 'all' ? top10Loading :
+    tournamentLoading;
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -507,7 +419,8 @@ const Leaderboard = () => {
             <div>
               <h2 className="card-title text-2xl md:text-3xl font-bold text-primary">Leaderboard</h2>
               
-              {!isHonorTab && tournaments.length > 0 && (
+              {selectedTab === 'Tournaments' && tournaments.length > 0 && (
+
                 <div className="mt-2">
                   <div className="relative">
                     <select 
@@ -577,7 +490,7 @@ const Leaderboard = () => {
                 className={`px-4 py-2 rounded-md transition-colors ${selectedTab === 'all' ? 'bg-primary text-white' : 'hover:bg-base-200'}`}
                 onClick={() => handleTabChange('all')}
               >
-                All
+                Global
               </button>
               <button 
                 className={`px-4 py-2 rounded-md transition-colors ${selectedTab === 'Tournaments' ? 'bg-primary text-white' : 'hover:bg-base-200'}`}
@@ -613,7 +526,7 @@ const Leaderboard = () => {
                   <tr className="bg-primary text-white">
                     <th className="text-center">Position</th>
                     <th className="text-center">Avatar</th>
-                    <th>{selectedTab === 'Tournaments' ? 'Tournament' : 'Username'}</th>
+                    <th>Username</th>
                     <th>{isHonorTab ? 'Honor Points' : 'Level'}</th>
                     {!isHonorTab && <th>Achievements</th>}
                     <th className="text-right">
@@ -638,21 +551,20 @@ const Leaderboard = () => {
                       </td>
                       <td>{entry.username}</td>
                       <td>
-  {isHonorTab ? (
-    <span className="font-semibold">{entry.score} points</span>
-  ) : selectedTab === 'all' ? (
-    renderLevel(entry.xp)
-  ) : (
-    <>
-      {selectedTab !== 'Tournaments' && entry.xp && renderLevel(entry.xp)}
-      {selectedTab === 'Tournaments' && <span className="badge badge-secondary">{entry.members} members</span>}
-    </>
-  )}
-</td>
-                      {!isHonorTab && <td>{renderAchievements(entry.achievements || 0)}</td>}
-                      <td className="text-right font-bold text-primary">
-  {selectedTab === 'all' ? entry.xp : entry.score}
-</td>
+                        {isHonorTab ? (
+                          <span className="font-semibold">{entry.score} points</span>
+                        ) : selectedTab === 'all' ? (
+                          renderLevel(entry.xp)
+                        ) : (
+                          <>
+                            {selectedTab !== 'Tournaments' && entry.xp && renderLevel(entry.xp)}
+                          </>
+                        )}
+                      </td>
+                                            {!isHonorTab && <td>{renderAchievements(entry.achievements || 0)}</td>}
+                                            <td className="text-right font-bold text-primary">
+                        {selectedTab === 'all' ? entry.xp : entry.score}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
