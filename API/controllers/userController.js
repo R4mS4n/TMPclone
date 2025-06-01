@@ -1,6 +1,32 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { hasPermission } = require('../middleware/authMiddleware');
+
+//storage for caching profile pics
+const storage = multer.diskStorage({
+  destination: 'uploads/profile-pics/',
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const filename = `${req.user.sub}-${Date.now()}${ext}`;
+    cb(null, filename);
+  }
+});
+//upload pfps
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images are allowed'), false);
+    }
+  }
+});
 
 const getAllUsers = async (req, res) => {
   try {
@@ -81,8 +107,6 @@ const checkUserEnrollments = async (req, res) => {
     });
   }
 };
-
-const { hasPermission } = require('../middleware/authMiddleware');
 
 const updateUserByAdmin = async (req, res) => {
   const editor = req.user; // usuario autenticado
@@ -209,6 +233,187 @@ const getUserLevelStats = async (req, res) => {
   }
 };
 
+const uploadProfilePic = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const imageBuffer = fs.readFileSync(req.file.path);
+    
+    await db.promise().query(
+      'UPDATE User SET profile_pic = ? WHERE user_id = ?',
+      [imageBuffer, req.user.sub]
+    );
+
+    fs.unlinkSync(req.file.path); // Clean up temp file
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload profile picture' });
+  }
+};
+
+// Get MY Profile Picture
+const getMyProfilePic = async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      'SELECT profile_pic FROM User WHERE user_id = ?',
+      [req.user.sub]
+    );
+
+    if (!rows[0]?.profile_pic) {
+      return res.status(404).json({ error: 'Profile picture not found' });
+    }
+
+    // Set proper content-type and send raw image data
+    res.set('Content-Type', 'image/jpeg');
+    res.send(rows[0].profile_pic);
+  } catch (error) {
+    console.error('Error fetching profile picture:', error);
+    res.status(500).json({ error: 'Failed to fetch profile picture' });
+  }
+};
+
+//username change (self)
+const changeUsername = async (req, res) => {
+  try {
+    const { newUsername } = req.body;
+    const userId = req.user.sub; // From JWT
+
+    // Validate input
+    if (!newUsername || newUsername.trim().length < 3) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Username must be at least 3 characters long'
+      });
+    }
+
+    // Check if username already exists (case-insensitive)
+    const [existingUser] = await db.promise().query(
+      'SELECT user_id FROM User WHERE LOWER(username) = LOWER(?) AND user_id != ?',
+      [newUsername, userId]
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Username already taken'
+      });
+    }
+
+    // Update username
+    await db.promise().query(
+      'UPDATE User SET username = ? WHERE user_id = ?',
+      [newUsername.trim(), userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Username updated successfully',
+      newUsername
+    });
+
+  } catch (error) {
+    console.error('changeUsername error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update username'
+    });
+  }
+};
+
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.sub; // From JWT
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Both current and new password are required'
+      });
+    }
+
+    // Get user's current password hash from DB
+    const [users] = await db.promise().query(
+      'SELECT password FROM User WHERE user_id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isValid = await bcrypt.compare(currentPassword, users[0].password);
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const newHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password in DB
+    await db.promise().query(
+      'UPDATE User SET password = ? WHERE user_id = ?',
+      [newHash, userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+
+  } catch (error) {
+    console.error('changePassword error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update password'
+    });
+  }
+};
+
+const getUserLeaderboardPosition = async (req, res) => {
+  try {
+    const userId = req.user.sub; // Get from JWT
+    
+    // Using RANK() approach (MySQL 8.0+)
+    const [results] = await db.promise().query(`
+      SELECT user_rank
+      FROM (
+        SELECT 
+          user_id,
+          RANK() OVER (ORDER BY xp DESC, level DESC) AS user_rank
+        FROM User
+      ) AS ranked_users
+      WHERE user_id = ?
+    `, [userId]);
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      position: results[0].user_rank
+    });
+    
+  } catch (error) {
+    console.error("Error fetching leaderboard position:", error);
+    res.status(500).json({ error: "Failed to get leaderboard position" });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getHonorLeaderboard,
@@ -216,5 +421,11 @@ module.exports = {
   updateUserByAdmin,
   updateUserRole,
   deleteUserByAdmin,
-  getUserLevelStats
+  getUserLevelStats,
+  uploadProfilePic,
+  getMyProfilePic,
+  changeUsername,
+  changePassword,
+  getUserLeaderboardPosition,
+  upload
 };

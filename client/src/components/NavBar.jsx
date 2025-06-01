@@ -5,6 +5,7 @@ import fondo from "../cimages/TMw-logo.png";
 import { useTheme } from "../contexts/ThemeContext";
 import { verifyAdminStatus } from "../utils/adminHelper";
 import { AuthContext } from "../contexts/AuthContext";
+import MyProfilePicture from './MyProfilePicture';
 
 const NavBar = () => {
   // Si AuthContext es undefined, le asignamos un objeto vacío para no romper el destructuring
@@ -42,10 +43,11 @@ const NavBar = () => {
   };
 
   // URL del avatar (puedes reemplazar por currentUser.profile_pic si lo guardas)
-  const avatarUrl =
+  
+  /*const avatarUrl =
     currentUser?.profile_pic ||
     "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp";
-
+  */
   return (
     <div
       className={`navbar ${isDark ? "bg-red-900" : "bg-primary"} shadow-lg transition-colors duration-300`}
@@ -155,10 +157,8 @@ const NavBar = () => {
         </button>
         <div className="dropdown dropdown-end">
           <div tabIndex={0} className="flex items-center space-x-2 btn btn-ghost">
-            <div className="avatar">
-              <div className="w-10 rounded-full">
-                <img alt="Profile" src={avatarUrl} />
-              </div>
+            <div className="w-10 h-10"> {/* Container with same dimensions as before */}
+              <MyProfilePicture className="w-full h-full" />
             </div>
             <span className="hidden lg:inline text-white">
               {currentUser?.username || "Guest"}
@@ -173,6 +173,15 @@ const NavBar = () => {
             <li className="font-medium text-base mb-1">
               {currentUser?.username || "Guest"}
             </li>
+            <li>
+              <button
+                onClick={() => navigate('/user-settings')}
+                className="w-full text-left hover:bg-gray-700 p-2 rounded"
+              >
+                Settings
+              </button>
+            </li>
+            {/* Existing Logout Button */}
             <li className="font-medium text-base">
               <button
                 onClick={handleLogout}

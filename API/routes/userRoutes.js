@@ -8,7 +8,13 @@ const {
   updateUserByAdmin,
   updateUserRole,
   deleteUserByAdmin,
-  getUserLevelStats
+  getUserLevelStats,
+  uploadProfilePic,
+  getMyProfilePic,
+  changeUsername,
+  changePassword,
+  getUserLeaderboardPosition,
+  upload
 } = require('../controllers/userController.js');
 
 const { getUser } = require('../controllers/authController.js');
@@ -19,7 +25,24 @@ router.get('/level-stats', verifyToken, getUserLevelStats)
 router.get('/me', verifyToken, getUser);
 router.get('/enrollments', verifyToken, checkUserEnrollments);
 router.get('/honor-leaderboard', getHonorLeaderboard);
-router.get('/', verifyToken, getAllUsers); 
+router.get('/', verifyToken, getAllUsers);
+
+router.get('/leaderboard-position', verifyToken, getUserLeaderboardPosition);
+
+router.put('/change-username', verifyToken, (req, res, next) => {
+  changeUsername(req, res).catch(next);
+});
+
+router.put('/change-password', verifyToken, changePassword);
+
+// Profile picture routes
+router.get('/profile-pic', verifyToken, getMyProfilePic);
+router.post(
+  '/upload-profile-pic',
+  verifyToken,
+  upload.single('profilePic'),
+  uploadProfilePic
+);
 
 // Edición y eliminación
 router.put('/:id', verifyToken, updateUserByAdmin);
@@ -27,5 +50,7 @@ router.delete('/:id', verifyToken, deleteUserByAdmin);
 
 // Cambio de rol por superadmin
 router.put('/:id/role', verifyToken, updateUserRole);
+
+
 
 module.exports = router;

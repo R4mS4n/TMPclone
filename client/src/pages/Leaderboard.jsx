@@ -196,7 +196,12 @@ const Leaderboard = () => {
     if (!response.ok) throw new Error('Failed to fetch top 10 leaderboard');
     
     const data = await response.json();
-    setTop10Leaderboard(data);
+    // Add positions to the data
+    const dataWithPositions = data.map((item, index) => ({
+      ...item,
+      position: index + 1
+    }));
+    setTop10Leaderboard(dataWithPositions);
   } catch (err) {
     console.error('Error fetching top 10 leaderboard:', err);
     setError('Failed to load top 10 leaderboard');
@@ -379,8 +384,11 @@ const Leaderboard = () => {
     // Filter data based on selected tab
     if (selectedTab === 'honor') {
       return honorLeaderboardLoading ? [] : honorLeaderboard;
-    } else if (selectedTab === 'all'  ) {
-      return top10Loading ? [] : top10Leaderboard;
+    } else if (selectedTab === 'all') {
+    return top10Loading ? [] : top10Leaderboard.map((item, index) => ({
+      ...item,
+      position: index + 1
+    }));
     } else if (selectedTab === 'teams') {
       // Group by team_id and sum scores
       const teamScores = new Map();

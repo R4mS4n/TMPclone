@@ -19,6 +19,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import { verifyAdminStatus } from "./utils/adminHelper";
 import { AuthProvider } from './contexts/AuthContext';
+import UserSettings from "./pages/UserSettings";
 
 const AdminRoute = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -53,15 +54,45 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+
+
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const location = useLocation();
+  const [authState, setAuthState] = useState({
+    isAuthenticated: false,
+    isLoading: true
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      setIsAuthenticated(true);
-    }
+    const verifyAuth = async () => {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        setAuthState({ isAuthenticated: false, isLoading: false });
+        return;
+      }
+
+      try {
+        // Optimistically set as authenticated while we verify
+        setAuthState({ isAuthenticated: true, isLoading: true });
+        
+        const response = await fetch('http://localhost:5000/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        setAuthState({
+          isAuthenticated: response.ok,
+          isLoading: false
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem("authToken");
+        }
+      } catch (error) {
+        console.error("Auth verification failed:", error);
+        setAuthState({ isAuthenticated: false, isLoading: false });
+      }
+    };
+
+    verifyAuth();
   }, []);
 
   // Add theme transition class after initial mount
@@ -73,7 +104,7 @@ const App = () => {
   }, []);
 
   const handleLogin = () => {
-    setIsAuthenticated(true);
+    setAuthState({ isAuthenticated: true, isLoading: false });
   };
 
   return (
@@ -87,7 +118,7 @@ const App = () => {
       {/* Protected routes with Layout */}
       <Route
         element={
-          <ProtectedRoute isAuthenticated={isAuthenticated}>
+          <ProtectedRoute isAuthenticated={authState.isAuthenticated} isLoading={authState.isLoading}>
             <Layout />
           </ProtectedRoute>
         }
@@ -99,6 +130,7 @@ const App = () => {
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/challenges/:challengeId/:questionId" element={<ChallengeQuestion />} />
+        <Route path="/user-settings" element={<UserSettings />} />
         <Route
           path="/admin/*"
           element={

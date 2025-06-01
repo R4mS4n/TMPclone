@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import ThemeTest from "../components/ThemeTest";
 import NotificationTest from '../components/NotificationTest';
 import { useNotification } from '../contexts/NotificationContext';
+import MyProfilePicture from '../components/MyProfilePicture';
+
 
 const Home = () => {
   const [userProfile, setUserProfile] = useState(null);
@@ -10,6 +12,8 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isBadgesModalOpen, setBadgesModalOpen] = useState(false);
+  const [challengesCount, setChallengesCount] = useState(0);
+  const [leaderboardPosition, setLeaderboardPosition] = useState(null);
   const navigate = useNavigate();
   const { notifyError } = useNotification();
 
@@ -45,6 +49,23 @@ const Home = () => {
       navigate('/login');
     }
   };
+  
+  const fetchLeaderboardPosition = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:5000/api/users/leaderboard-position', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setLeaderboardPosition(data.position);
+      }
+    } catch (err) {
+      console.error('Error fetching leaderboard position:', err);
+    }
+  };
 
   const fetchEnrollments = async () => {
     try {
@@ -56,6 +77,23 @@ const Home = () => {
       setEnrollments(data.enrollments || []);
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const fetchChallengesCount = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:5000/api/tournaments/enrolled-count', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setChallengesCount(data.count);
+      }
+    } catch (err) {
+      console.error('Error fetching challenges count:', err);
     }
   };
 
@@ -80,7 +118,9 @@ const Home = () => {
   Promise.all([
     fetchProfile(),
     fetchEnrollments(),
-    fetchLevelStats()
+    fetchLevelStats(),
+    fetchChallengesCount(),
+    fetchLeaderboardPosition()
   ]).finally(() => setLoading(false));
 }, [navigate]);
     
@@ -126,16 +166,8 @@ const Home = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-4rem)]">
           {/* Profile Card */}
           <div className="bg-base-100 p-6 rounded-lg shadow-lg row-span-2 h-full flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden mb-4">
-              {/* Si tu BD trae profile_pic, úsala aquí: */}
-              {userProfile?.profile_pic
-                ? <img src={userProfile.profile_pic} alt="Profile" className="object-cover w-full h-full" />
-                : <img
-                    src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-                    alt="Profile"
-                    className="object-cover w-full h-full"
-                  />
-              }
+            <div className="mb-4">
+              <MyProfilePicture className="w-24 h-24 border-2 border-white" />
             </div>
             <h2 className="text-2xl font-bold text-center mb-2">
               {userProfile.username}
@@ -176,12 +208,14 @@ const Home = () => {
             <div className="grid grid-cols-2 gap-4 w-full mb-4">
               <div className="bg-base-100 rounded-lg p-3 shadow flex flex-col items-center justify-center">
                 <div className="text-2xl">⚡</div>
-                <div className="font-semibold">55</div>
+                <div className="font-semibold">{challengesCount}</div>
                 <div className="text-xs text-gray-500">Challenges</div>
               </div>
               <div className="bg-base-100 rounded-lg p-3 shadow flex flex-col items-center justify-center">
                 <div className="text-2xl">📈</div>
-                <div className="font-semibold">#17</div>
+                <div className="font-semibold">
+                  {leaderboardPosition ? `#${leaderboardPosition}` : 'Loading...'}
+                </div>
                 <div className="text-xs text-gray-500">Leaderboard</div>
               </div>
             </div>

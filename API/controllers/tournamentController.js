@@ -201,6 +201,31 @@ const createTournament = async (req, res) => {
   }
 };
 
+const getUserEnrolledChallengesCount = async (req, res) => {
+  try {
+    const userId = req.user.sub; // Get user ID from JWT
+    
+    const [results] = await db.promise().query(
+      `SELECT COUNT(*) AS challenge_count 
+       FROM Tournament_Participation 
+       WHERE user_id = ?`,
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      count: results[0].challenge_count
+    });
+    
+  } catch (error) {
+    console.error("Error fetching enrolled challenges count:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to get challenge count" 
+    });
+  }
+};
+
 module.exports = {
   getAllTournaments,
   getCurrentTournaments,
@@ -210,5 +235,6 @@ module.exports = {
   quitTournament,
   deleteTournament,
   updateTournament,
-  createTournament
+  createTournament,
+  getUserEnrolledChallengesCount
 };
