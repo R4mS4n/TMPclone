@@ -1,6 +1,32 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { hasPermission } = require('../middleware/authMiddleware');
+
+//storage for caching profile pics
+const storage = multer.diskStorage({
+  destination: 'uploads/profile-pics/',
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const filename = `${req.user.sub}-${Date.now()}${ext}`;
+    cb(null, filename);
+  }
+});
+//upload pfps
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images are allowed'), false);
+    }
+  }
+});
 
 const getAllUsers = async (req, res) => {
   try {
@@ -81,8 +107,6 @@ const checkUserEnrollments = async (req, res) => {
     });
   }
 };
-
-const { hasPermission } = require('../middleware/authMiddleware');
 
 const updateUserByAdmin = async (req, res) => {
   const editor = req.user; // usuario autenticado
@@ -209,6 +233,49 @@ const getUserLevelStats = async (req, res) => {
   }
 };
 
+const uploadProfilePic = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const imageBuffer = fs.readFileSync(req.file.path);
+    
+    await db.promise().query(
+      'UPDATE User SET profile_pic = ? WHERE user_id = ?',
+      [imageBuffer, req.user.sub]
+    );
+
+    fs.unlinkSync(req.file.path); // Clean up temp file
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload profile picture' });
+  }
+};
+
+// Get MY Profile Picture
+const getMyProfilePic = async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      'SELECT profile_pic FROM User WHERE user_id = ?',
+      [req.user.sub]
+    );
+
+    if (!rows[0]?.profile_pic) {
+      return res.status(404).json({ error: 'Profile picture not found' });
+    }
+
+    // Set proper content-type and send raw image data
+    res.set('Content-Type', 'image/jpeg');
+    res.send(rows[0].profile_pic);
+  } catch (error) {
+    console.error('Error fetching profile picture:', error);
+    res.status(500).json({ error: 'Failed to fetch profile picture' });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getHonorLeaderboard,
@@ -216,5 +283,8 @@ module.exports = {
   updateUserByAdmin,
   updateUserRole,
   deleteUserByAdmin,
-  getUserLevelStats
+  getUserLevelStats,
+  uploadProfilePic,
+  getMyProfilePic,
+  upload
 };

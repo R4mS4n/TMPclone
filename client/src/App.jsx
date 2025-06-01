@@ -19,6 +19,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import { verifyAdminStatus } from "./utils/adminHelper";
 import { AuthProvider } from './contexts/AuthContext';
+import UserSettings from "./pages/UserSettings";
 
 const AdminRoute = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -99,6 +100,7 @@ const App = () => {
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/challenges/:challengeId/:questionId" element={<ChallengeQuestion />} />
+        <Route path="/user-settings" element={<UserSettings />} />
         <Route
           path="/admin/*"
           element={

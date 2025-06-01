@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import ThemeTest from "../components/ThemeTest";
 import NotificationTest from '../components/NotificationTest';
 import { useNotification } from '../contexts/NotificationContext';
+import MyProfilePicture from '../components/MyProfilePicture';
 
 const Home = () => {
   const [userProfile, setUserProfile] = useState(null);
@@ -126,16 +127,8 @@ const Home = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-4rem)]">
           {/* Profile Card */}
           <div className="bg-base-100 p-6 rounded-lg shadow-lg row-span-2 h-full flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden mb-4">
-              {/* Si tu BD trae profile_pic, úsala aquí: */}
-              {userProfile?.profile_pic
-                ? <img src={userProfile.profile_pic} alt="Profile" className="object-cover w-full h-full" />
-                : <img
-                    src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-                    alt="Profile"
-                    className="object-cover w-full h-full"
-                  />
-              }
+            <div className="mb-4">
+              <MyProfilePicture className="w-24 h-24 border-2 border-white" />
             </div>
             <h2 className="text-2xl font-bold text-center mb-2">
               {userProfile.username}

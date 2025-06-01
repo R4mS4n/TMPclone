@@ -8,7 +8,10 @@ const {
   updateUserByAdmin,
   updateUserRole,
   deleteUserByAdmin,
-  getUserLevelStats
+  getUserLevelStats,
+  uploadProfilePic,
+  getMyProfilePic,
+  upload
 } = require('../controllers/userController.js');
 
 const { getUser } = require('../controllers/authController.js');
@@ -20,6 +23,15 @@ router.get('/me', verifyToken, getUser);
 router.get('/enrollments', verifyToken, checkUserEnrollments);
 router.get('/honor-leaderboard', getHonorLeaderboard);
 router.get('/', verifyToken, getAllUsers); 
+
+// Profile picture routes
+router.get('/profile-pic', verifyToken, getMyProfilePic);
+router.post(
+  '/upload-profile-pic',
+  verifyToken,
+  upload.single('profilePic'),
+  uploadProfilePic
+);
 
 // Edición y eliminación
 router.put('/:id', verifyToken, updateUserByAdmin);
