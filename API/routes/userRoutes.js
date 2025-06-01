@@ -12,6 +12,7 @@ const {
   uploadProfilePic,
   getMyProfilePic,
   changeUsername,
+  changePassword,
   upload
 } = require('../controllers/userController.js');
 
@@ -28,6 +29,8 @@ router.get('/', verifyToken, getAllUsers);
 router.put('/change-username', verifyToken, (req, res, next) => {
   changeUsername(req, res).catch(next);
 });
+
+router.put('/change-password', verifyToken, changePassword);
 
 // Profile picture routes
 router.get('/profile-pic', verifyToken, getMyProfilePic);

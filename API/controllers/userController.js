@@ -324,6 +324,65 @@ const changeUsername = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.sub; // From JWT
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Both current and new password are required'
+      });
+    }
+
+    // Get user's current password hash from DB
+    const [users] = await db.promise().query(
+      'SELECT password FROM User WHERE user_id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isValid = await bcrypt.compare(currentPassword, users[0].password);
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const newHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password in DB
+    await db.promise().query(
+      'UPDATE User SET password = ? WHERE user_id = ?',
+      [newHash, userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+
+  } catch (error) {
+    console.error('changePassword error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update password'
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getHonorLeaderboard,
@@ -335,5 +394,6 @@ module.exports = {
   uploadProfilePic,
   getMyProfilePic,
   changeUsername,
+  changePassword,
   upload
 };

@@ -8,6 +8,10 @@ const UserSettings = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Username change state
   const [newUsername, setNewUsername] = useState('');
@@ -154,6 +158,58 @@ const UserSettings = () => {
         }
     };
 
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        
+        // Frontend validation
+        if (newPassword !== confirmPassword) {
+            notifyError("New passwords don't match");
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            notifyError("Password must be at least 8 characters");
+            return;
+        }
+
+        setIsChangingPassword(true);
+        const token = localStorage.getItem('authToken');
+
+        try {
+            const response = await fetch('http://localhost:5000/api/users/change-password', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ currentPassword, newPassword })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+            throw new Error(data.error || 'Failed to change password');
+            }
+
+            notifySuccess('Password changed successfully!');
+            // Clear form
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+
+        } catch (error) {
+            console.error('Password change error:', error);
+            notifyError(error.message);
+            
+            if (error.message.includes('Unauthorized')) {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login';
+            }
+        } finally {
+            setIsChangingPassword(false);
+        }
+    };
+
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-4">Profile Picture</h2>
@@ -260,6 +316,60 @@ const UserSettings = () => {
           </button>
         </form>
       </div>
+
+            <div className="mt-8">
+        <h2 className="text-xl font-bold mb-4">Change Password</h2>
+        <form onSubmit={handlePasswordChange} className="max-w-md space-y-4">
+            <div className="form-control">
+            <label className="label">
+                <span className="label-text">Current Password</span>
+            </label>
+            <input
+                type="password"
+                className="input input-bordered w-full"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+            />
+            </div>
+
+            <div className="form-control">
+            <label className="label">
+                <span className="label-text">New Password</span>
+            </label>
+            <input
+                type="password"
+                className="input input-bordered w-full"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                minLength="8"
+                required
+            />
+            </div>
+
+            <div className="form-control">
+            <label className="label">
+                <span className="label-text">Confirm New Password</span>
+            </label>
+            <input
+                type="password"
+                className="input input-bordered w-full"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                minLength="8"
+                required
+            />
+            </div>
+
+            <button
+            type="submit"
+            className={`btn btn-primary w-full ${isChangingPassword ? 'loading' : ''}`}
+            disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+            >
+            {isChangingPassword ? 'Updating...' : 'Change Password'}
+            </button>
+        </form>
+        </div>
 
     </div>
   );
