@@ -1,11 +1,45 @@
 const db = require('../config/db');
 
 // GET /leaderboard
+const getMyLeaderboardEntry = async (req, res) => {
+  const userId = req.user?.user_id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+
+  try {
+    const [rows] = await db.promise().query(`
+      SELECT 
+        user_id,
+        username,
+        xp,
+        level,
+        ROW_NUMBER() OVER (ORDER BY xp DESC) AS position
+      FROM User
+    `);
+
+    const userRow = rows.find(row => row.user_id === userId);
+
+    if (!userRow) {
+      return res.status(404).json({ success: false, message: 'User not found in leaderboard' });
+    }
+
+    res.json({
+      success: true,
+      user: userRow
+    });
+  } catch (err) {
+    console.error('Error fetching user leaderboard data:', err);
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
+  }
+};
+
 const top5Leaderboard = async (req, res) => {
   try {
     const [rows] = await db.promise().query(`
       SELECT 
-        RANK() OVER (ORDER BY xp DESC) AS position,
+        ROW_NUMBER() OVER (ORDER BY xp DESC) AS position,
         level,
         username,
         xp
@@ -25,7 +59,7 @@ const top10Leaderboard = async (req, res) => {
   try {
     const [rows] = await db.promise().query(`
       SELECT 
-        RANK() OVER (ORDER BY xp DESC) AS position,
+        ROW_NUMBER() OVER (ORDER BY xp DESC) AS position,
         user_id,
         level,
         username,
@@ -46,7 +80,7 @@ const top20Leaderboard = async (req, res) => {
   try {
     const [rows] = await db.promise().query(`
       SELECT 
-        RANK() OVER (ORDER BY xp DESC) AS position,
+        ROW_NUMBER() OVER (ORDER BY xp DESC) AS position,
         level,
         username,
         xp
@@ -77,7 +111,7 @@ const top10ByTournament = async (req, res) => {
         u.level,
         u.xp,
         tp.score,
-        RANK() OVER (ORDER BY tp.score DESC) AS position
+        ROW_NUMBER() OVER (ORDER BY xp DESC) AS position
       FROM Tournament_Participation tp
       JOIN User u ON tp.user_id = u.user_id
       WHERE tp.tournament_id = ?
@@ -94,5 +128,6 @@ const top10ByTournament = async (req, res) => {
 
 
 module.exports = {
-  top5Leaderboard, top10Leaderboard, top20Leaderboard, top10ByTournament
+  top5Leaderboard, top10Leaderboard, top20Leaderboard, top10ByTournament, getMyLeaderboardEntry
+
 };

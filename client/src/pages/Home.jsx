@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import ThemeTest from "../components/ThemeTest";
 import NotificationTest from '../components/NotificationTest';
 import { useNotification } from '../contexts/NotificationContext';
 import MyProfilePicture from '../components/MyProfilePicture';
-
+import UserAvatar from '../components/UserAvatar';
 
 const Home = () => {
   const [userProfile, setUserProfile] = useState(null);
@@ -14,116 +13,147 @@ const Home = () => {
   const [isBadgesModalOpen, setBadgesModalOpen] = useState(false);
   const [challengesCount, setChallengesCount] = useState(0);
   const [leaderboardPosition, setLeaderboardPosition] = useState(null);
+  const [top5Leaderboard, setTop5Leaderboard] = useState([]);
+  const [levelStats, setLevelStats] = useState({ level: 1, remainder: 0, xp: 0 });
+
   const navigate = useNavigate();
   const { notifyError } = useNotification();
 
   const openBadgesModal = () => setBadgesModalOpen(true);
-  const closeBadgesModal=()=>setBadgesModalOpen(false);
-  const [levelStats, setLevelStats] = useState({
-    level: 1,
-    remainder: 0,
-    xp: 0
-  });
+  const closeBadgesModal = () => setBadgesModalOpen(false);
 
   useEffect(() => {
-  const token = localStorage.getItem('authToken');
-  if (!token) {
-    navigate('/login');
-    return;
-  }
-
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/auth/me', {
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        }
-      });
-      if (!res.ok) throw new Error('Unauthorized');
-      const data = await res.json();
-      setUserProfile(data);
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-      localStorage.removeItem('authToken');
+    const token = localStorage.getItem('authToken');
+    if (!token) {
       navigate('/login');
+      return;
     }
-  };
-  
-  const fetchLeaderboardPosition = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/users/leaderboard-position', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setLeaderboardPosition(data.position);
+
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/me', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!res.ok) throw new Error('Unauthorized');
+        const data = await res.json();
+        setUserProfile(data);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        localStorage.removeItem('authToken');
+        navigate('/login');
       }
-    } catch (err) {
-      console.error('Error fetching leaderboard position:', err);
-    }
-  };
+    };
 
-  const fetchEnrollments = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/users/enrollments', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch enrollments');
-      const data = await res.json();
-      setEnrollments(data.enrollments || []);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const fetchChallengesCount = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/tournaments/enrolled-count', {
-        headers: {
-          'Authorization': `Bearer ${token}`
+    const fetchLeaderboardPosition = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/users/leaderboard-position', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success && data.user?.position) {
+          setLeaderboardPosition(data.user.position); 
         }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setChallengesCount(data.count);
+      } catch (err) {
+        console.error('Error fetching leaderboard position:', err);
       }
-    } catch (err) {
-      console.error('Error fetching challenges count:', err);
-    }
-  };
+    };
 
-  const fetchLevelStats = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/users/level-stats', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+
+    // ✅ Modified
+    const fetchTop5Leaderboard = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/leaderboard/10leaderboard', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (Array.isArray(data)) {
+          const top5 = data.slice(0, 5);
+          const userInTop5 = top5.some(user => user.user_id === userProfile?.user_id);
+
+          if (leaderboardPosition && !userInTop5) {
+            const currentUser = {
+              user_id: userProfile.user_id,
+              username: userProfile.username,
+              xp: levelStats.xp,
+              position: leaderboardPosition
+            };
+
+            setTop5Leaderboard([...top5, currentUser]);
+          } else {
+            setTop5Leaderboard(top5);
+          }
+
         }
-      });
-      if (!res.ok) throw new Error('Failed to fetch level stats');
-      const data = await res.json();
-      setLevelStats(data);
-    } catch (err) {
-      console.error('Error fetching level stats:', err);
-      notifyError('Failed to load level information');
-    }
-  };
+      } catch (err) {
+        console.error('Error fetching top 5 leaderboard:', err);
+      }
+    };
 
-  // Run all fetches in parallel
-  Promise.all([
-    fetchProfile(),
-    fetchEnrollments(),
-    fetchLevelStats(),
-    fetchChallengesCount(),
-    fetchLeaderboardPosition()
-  ]).finally(() => setLoading(false));
-}, [navigate]);
+    const fetchEnrollments = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/users/enrollments', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch enrollments');
+        const data = await res.json();
+        setEnrollments(data.enrollments || []);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+
+    const fetchChallengesCount = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/tournaments/enrolled-count', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setChallengesCount(data.count);
+        }
+      } catch (err) {
+        console.error('Error fetching challenges count:', err);
+      }
+    };
+
+    const fetchLevelStats = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/users/level-stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!res.ok) throw new Error('Failed to fetch level stats');
+        const data = await res.json();
+        setLevelStats(data);
+      } catch (err) {
+        console.error('Error fetching level stats:', err);
+        notifyError('Failed to load level information');
+      }
+    };
     
+    const getRankIcon = (position) => {
+      if (position === 1) return '🥇';
+      if (position === 2) return '🥈';
+      if (position === 3) return '🥉';
+      return `#${position}`;
+    };
+
+
+    Promise.all([
+      fetchProfile(),
+      fetchEnrollments(),
+      fetchLevelStats(),
+      fetchChallengesCount(),
+      fetchLeaderboardPosition(),
+      fetchTop5Leaderboard()
+    ]).finally(() => setLoading(false));
+  }, [navigate]);
 
   const handleChallengeClick = async (challengeId) => {
     try {
@@ -159,6 +189,7 @@ const Home = () => {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-base-200">
@@ -294,11 +325,32 @@ const Home = () => {
             </div>
 
             {/* Leaderboard */}
-            <div className="bg-base-100 p-4 rounded-2xl shadow-lg flex flex-col h-[20rem]">
+            <div className="bg-base-100 p-4 rounded-2xl shadow-lg flex flex-col h-[20rem] overflow-y-auto">
               <h2 className="text-xl font-bold text-center mb-4 bg-primary text-base-200 py-2 rounded-md">
                 Leaderboard
               </h2>
-              {/* Tu lista de leaderboard aquí */}
+              <ul className="divide-y divide-base-300">
+                {top5Leaderboard.map((user) => (
+                  <li
+                    key={user.user_id}
+                    className={`flex justify-between items-center px-2 py-2 ${
+                      user.user_id === userProfile?.user_id ? 'bg-primary text-white rounded-md font-bold' : ''
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-6 text-center">
+                        {user.position === 1 && '🥇'}
+                        {user.position === 2 && '🥈'}
+                        {user.position === 3 && '🥉'}
+                        {user.position > 3 && `#${user.position}`}
+
+                      </span>
+                      <span>{user.username}</span>
+                    </span>
+                    <span className="text-sm">{user.xp} XP</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             {/* Daily Challenge */}
