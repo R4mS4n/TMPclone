@@ -489,6 +489,91 @@ const deleteUserSelf = async (req, res) => {
   }
 };
 
+const getUserStats = async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    // 1. Get basic user info (level, xp)
+    const [userRows] = await db.promise().query(
+      'SELECT level, xp FROM User WHERE user_id = ?',
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const user = userRows[0];
+
+    // 2. Get post count
+    const [postCount] = await db.promise().query(
+      'SELECT COUNT(*) as total_posts FROM Post WHERE user_id = ?',
+      [userId]
+    );
+
+    // 3. Get comment count
+    const [commentCount] = await db.promise().query(
+      'SELECT COUNT(*) as total_comments FROM Comment WHERE user_id = ? AND status = "active"',
+      [userId]
+    );
+
+    // 4. Get tournament participations
+    const [tournamentCount] = await db.promise().query(
+      'SELECT COUNT(*) as total_tournaments, SUM(score) as total_score FROM Tournament_Participation WHERE user_id = ?',
+      [userId]
+    );
+
+    // 5. Get global rank
+    const [rankRows] = await db.promise().query(`
+      SELECT position FROM (
+        SELECT 
+          user_id,
+          ROW_NUMBER() OVER (ORDER BY xp DESC) AS position
+        FROM User
+      ) AS ranked_users
+      WHERE user_id = ?
+    `, [userId]);
+
+    //6. total submissions
+    const [totalSubmissions] = await db.promise().query(
+      'SELECT COUNT(*) as total_submissions FROM Submission WHERE user_id = ?',
+      [userId]
+    );
+
+    // 7. Get correct submissions count
+    const [correctSubmissions] = await db.promise().query(
+      'SELECT COUNT(*) as correct_submissions FROM Submission WHERE user_id = ? AND status = 1',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      stats: {
+        level: user.level,
+        xp: user.xp,
+        posts: postCount[0].total_posts,
+        comments: commentCount[0].total_comments,
+        tournaments: {
+          count: tournamentCount[0].total_tournaments,
+          total_score: tournamentCount[0].total_score || 0
+        },
+        global_rank: rankRows[0]?.position || 'Unranked',
+        submissions: {
+          total: totalSubmissions[0].total_submissions,
+          correct: correctSubmissions[0].correct_submissions
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user statistics'
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getHonorLeaderboard,
@@ -504,5 +589,6 @@ module.exports = {
   getUserLeaderboardPosition,
   getUserProfilePicById,
   deleteUserSelf,
+  getUserStats,
   upload
 };

@@ -53,8 +53,9 @@ const Home = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        if (data.success && data.user?.position) {
-          setLeaderboardPosition(data.user.position); 
+        //console.log('Leaderboard position response:', data);
+        if (data.success && data.position) {
+          setLeaderboardPosition(data.position); 
         }
       } catch (err) {
         console.error('Error fetching leaderboard position:', err);
