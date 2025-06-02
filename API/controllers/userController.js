@@ -90,7 +90,8 @@ const checkUserEnrollments = async (req, res) => {
            tp.score
          FROM Tournament_Participation tp
          JOIN Tournament t ON tp.tournament_id = t.tournament_id
-         WHERE tp.user_id = ?`,
+         WHERE tp.user_id = ?
+          AND t.date_limit > NOW()`,
         [userId]
       );
 
