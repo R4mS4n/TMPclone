@@ -11,7 +11,9 @@ root.render(
   <Router>
     <ThemeProvider>
       <NotificationProvider>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </NotificationProvider>
     </ThemeProvider>
   </Router>
