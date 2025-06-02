@@ -1,5 +1,6 @@
 // src/pages/Login.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import fondo from "../cimages/TechM.jpg";
 import ThemeToggle from "../components/ThemeToggle";
@@ -22,6 +23,8 @@ export default function Login({ onLogin }) {
     localStorage.removeItem("authToken");
   }, []);
 
+  const { setCurrentUser } = useContext(AuthContext);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -40,9 +43,14 @@ export default function Login({ onLogin }) {
       if (response.ok) {
         // guardamos el token y notificamos al padre
         localStorage.setItem("authToken", data.token);
-        onLogin();
+        const meRes = await fetch("http://localhost:5000/api/auth/me", {
+          headers: { Authorization: `Bearer ${data.token}` }
+        });
+        const userData = await meRes.json();
+        setCurrentUser(userData);
+        onLogin?.();
         navigate("/home");
-        console.log("Login successful:", data);
+        console.log("Login successful:", userData);
       } else {
         // leemos data.error (según tu backend) o data.message
         setError(data.error || data.message || "Login failed. Please try again.");
