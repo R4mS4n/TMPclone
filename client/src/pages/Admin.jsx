@@ -13,6 +13,7 @@ import TournamentManagement     from '../components/TournamentManagement';
 import UserManagement           from '../components/UserManagement';     
 import AdminReportsView         from '../components/admin/AdminReportsView';
 import { verifyAdminStatus }    from '../utils/adminHelper';
+import UserStats from '../components/UserStats';
 
 const Admin = () => {
   const [isAdmin, setIsAdmin]       = useState(false);
@@ -75,7 +76,7 @@ const Admin = () => {
               <Route path="/tournaments" element={<TournamentManagement />} />
               <Route path="/users"       element={<UserManagement />} />
               <Route path="/reports"     element={<AdminReportsView />} />
-              <Route path="/stats"       element={<div className="text-base-content/60">User stats coming soon...</div>} />
+              <Route path="/stats" element={<UserStats />} />
               <Route path="/notifications" element={<div className="text-base-content/60">Notifications coming soon...</div>} />
               <Route path="/settings"    element={<div className="text-base-content/60">Settings coming soon...</div>} />
             </Routes>

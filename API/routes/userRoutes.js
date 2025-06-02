@@ -16,20 +16,23 @@ const {
   getUserLeaderboardPosition,
   getUserProfilePicById,
   deleteUserSelf,
+  getUserStats,
   upload
 } = require('../controllers/userController.js');
 
-const { getUser } = require('../controllers/authController.js');
+const { getUser, endpointAdminFilter} = require('../controllers/authController.js');
 const { verifyToken } = require('../middleware/authMiddleware.js');
 
 // Rutas protegidas
 router.get('/level-stats', verifyToken, getUserLevelStats)
 router.get('/me', verifyToken, getUser);
 router.get('/enrollments', verifyToken, checkUserEnrollments);
+router.get('/stats/:userId', verifyToken, getUserStats);
 router.get('/honor-leaderboard', getHonorLeaderboard);
+router.get('/leaderboard-position', verifyToken, getUserLeaderboardPosition);
 router.get('/', verifyToken, getAllUsers);
 
-router.get('/leaderboard-position', verifyToken, getUserLeaderboardPosition);
+
 
 router.put('/change-username', verifyToken, (req, res, next) => {
   changeUsername(req, res).catch(next);
@@ -55,7 +58,7 @@ router.put('/:id', verifyToken, updateUserByAdmin);
 router.delete('/:id', verifyToken, deleteUserByAdmin);
 
 // Cambio de rol por superadmin
-router.put('/:id/role', verifyToken, updateUserRole);
+router.put('/:id/role', verifyToken, endpointAdminFilter, updateUserRole);
 
 
 
