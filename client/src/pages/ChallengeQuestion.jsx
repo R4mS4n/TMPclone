@@ -14,6 +14,12 @@ export default function ChallengeQuestion() {
   const [feedback, setFeedback] = useState(null);
   const navigate = useNavigate();
   const { isDark } = useTheme();
+  const [solvedInSessionMap, setSolvedInSessionMap] = useState({});
+
+  // Reset feedback when questionId changes
+  useEffect(() => {
+    setFeedback(null);
+  }, [questionId]);
 
   // Fetch challenge info
   useEffect(() => {
@@ -248,13 +254,14 @@ export default function ChallengeQuestion() {
                 passed: true, 
                 output: 'Expected output matched (after whitespace normalization)' 
               },
-              { 
-                test: 'Performance', 
-                passed: true, 
-                output: `Memory: ${result.memory || 0}KB, Time: ${result.time || 0}s` 
+              {
+                test: 'Performance',
+                passed: true,
+                output: `Memory: ${result.memory || 'N/A'}KB, Time: ${result.time || 'N/A'}s`
               }
             ]
           });
+          setSolvedInSessionMap(prev => ({ ...prev, [questionId]: true }));
           return;
         }
 
@@ -278,6 +285,7 @@ export default function ChallengeQuestion() {
                 }
               ]
             });
+            setSolvedInSessionMap(prev => ({ ...prev, [questionId]: true }));
             break;
           
           // Compilation Error
@@ -435,9 +443,28 @@ export default function ChallengeQuestion() {
               <div className="card-body p-6">
                 <h2 className="card-title text-xl mb-4">Question Details</h2>
 
+                {/* Question Status Display - For Issue 3 & 4 */}
+                <div className={`mb-3 p-2 rounded-md text-sm font-semibold ${solvedInSessionMap[questionId] ? 'bg-success text-success-content' : 'bg-warning text-warning-content'}`}>
+                  Status: {solvedInSessionMap[questionId] ? 'Question answered!' : 'Question Pending'}
+                </div>
+
                 <div className="space-y-3">
                   <div><span className="text-sm opacity-70">ID:</span><div className="font-medium">{question.question_id}</div></div>
                   <div><span className="text-sm opacity-70">Content:</span><div>{question.content}</div></div>
+                  
+                  {/* Display Test Inputs */}
+                  {question.test_inputs && (
+                    <div>
+                      <span className="text-sm opacity-70">Example Test Inputs:</span>
+                      <div 
+                        className="mt-1 p-2 bg-base-200 border border-base-300 rounded-md text-sm font-mono whitespace-pre-wrap break-all"
+                      >
+                        {/* Assuming test_inputs is a string. If it's an array, might need JSON.stringify or .join(', ') */}
+                        {typeof question.test_inputs === 'string' ? question.test_inputs : JSON.stringify(question.test_inputs)}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-2">
                     <div className="badge badge-primary">{question.language}</div>
                     <div className="badge badge-secondary">{question.topic}</div>
@@ -465,6 +492,16 @@ export default function ChallengeQuestion() {
                     </div>
                   </div>
                 )}
+
+                {/* New Informational Message */}
+                <div className="alert alert-info mt-6 rounded-md shadow-md">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <div>
+                    <h3 className="font-bold">Remember!</h3>
+                    <div className="text-xs">Code is only ran once for each submission, make sure that you're formatting correctly.</div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>

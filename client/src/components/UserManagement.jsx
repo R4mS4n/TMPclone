@@ -13,6 +13,7 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState({ user_id: null, username: '', mail: '' });
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const { notifySuccess, notifyError, confirm } = useNotification();
 
   // State for the new Manage User Penalties Sidebar
@@ -148,10 +149,30 @@ const UserManagement = () => {
     }
   };
 
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const filteredUsers = users.filter(user => 
+    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.mail.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-base-100 p-6 text-base-content">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-primary">User Management</h1>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-6 p-4 bg-neutral text-neutral-content rounded-md shadow">
+        <input 
+          type="text"
+          placeholder="Search by username or email..."
+          className="input input-bordered w-full max-w-sm bg-base-100 text-base-content placeholder-base-content placeholder-opacity-60 h-12"
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
       </div>
 
       <div className="overflow-x-auto shadow-lg rounded-md">
@@ -220,9 +241,61 @@ const UserManagement = () => {
                   </td>
                 </tr>
               ))
+            ) : filteredUsers && filteredUsers.length > 0 ? (
+              filteredUsers.map((u) => (
+                <tr key={u.user_id} className="hover:bg-base-200">
+                  <td className="px-4 py-2 font-semibold">{u.user_id}</td>
+                  <td className="px-4 py-2">{u.username}</td>
+                  <td className="px-4 py-2">{u.mail}</td>
+                  <td className="px-4 py-2">
+                    {/* Role Change UI commented out 
+                    currentUser?.role === 2 && u.role !== 2 && currentUser?.user_id !== u.user_id ? (
+                      <select
+                        value={u.role}
+                        onChange={(e) => handleRoleChange(u.user_id, parseInt(e.target.value))}
+                        className="select select-bordered select-sm rounded-md h-10"
+                        disabled // Disabled until backend support is confirmed
+                      >
+                        <option value={0}>User</option>
+                        <option value={1}>Admin</option>
+                      </select>
+                    ) : */ getRoleBadge(u.role)}
+                  </td>
+                  <td className="px-4 py-2 flex flex-wrap gap-1">
+                    { (currentUser?.user_id !== u.user_id) && (
+                      <>
+                        <button 
+                          onClick={() => handleEdit(u)} 
+                          className="btn btn-xs btn-outline btn-info rounded-md"
+                          disabled={u.role !== 0} 
+                        >
+                          Edit Username
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(u.user_id)} 
+                          className="btn btn-xs btn-outline btn-error rounded-md"
+                          disabled={u.role !== 0} 
+                        >
+                          Delete User
+                        </button>
+                        <button 
+                          onClick={() => openManagePenaltiesSidebar(u)} 
+                          className="btn btn-xs btn-outline btn-warning rounded-md"
+                          // This button should ideally be enabled for all non-self users
+                          // regardless of role, as penalties can apply to admins too.
+                        >
+                          Manage Penalties
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))
             ) : (
               <tr>
-                <td colSpan="5" className="p-4 text-center">No users found or failed to load users.</td>
+                <td colSpan="5" className="p-4 text-center">
+                  {searchTerm ? `No users found matching "${searchTerm}".` : 'No users found or failed to load users.'}
+                </td>
               </tr>
             )}
           </tbody>

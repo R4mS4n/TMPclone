@@ -1,16 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { formatTimeAgo } from '../utils/timeUtils';
+import { jwtDecode } from "jwt-decode";
 
 const API_BASE_URL = 'http://localhost:5000';
-
-// Function to decode JWT token
-const parseJwt = (token) => {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (e) {
-    return null;
-  }
-};
 
 const PostDetailModal = ({ isOpen, onClose, postId, handleOpenReportModal }) => {
   const [post, setPost] = useState(null);
@@ -34,28 +26,37 @@ const PostDetailModal = ({ isOpen, onClose, postId, handleOpenReportModal }) => 
       
       const token = localStorage.getItem('authToken');
       if (token) {
-        const decodedToken = parseJwt(token);
-        if (decodedToken) {
-          let userIdFromToken = null;
-          if (decodedToken.id) {
-            userIdFromToken = decodedToken.id;
-          } else if (decodedToken.sub) { // Check for 'sub' claim
-            userIdFromToken = decodedToken.sub;
-          }
-          
-          if (userIdFromToken !== null) {
-            const numericUserId = parseInt(userIdFromToken, 10);
-            if (!isNaN(numericUserId)) {
-              setCurrentUserId(numericUserId);
+        try {
+          const decodedToken = jwtDecode(token);
+          if (decodedToken) {
+            let userIdFromToken = null;
+            if (decodedToken.id) {
+              userIdFromToken = decodedToken.id;
+            } else if (decodedToken.sub) { // Check for 'sub' claim
+              userIdFromToken = decodedToken.sub;
+            }
+            
+            if (userIdFromToken !== null) {
+              const numericUserId = parseInt(userIdFromToken, 10);
+              if (!isNaN(numericUserId)) {
+                setCurrentUserId(numericUserId);
+              } else {
+                console.error("User ID from token is not a valid number:", userIdFromToken);
+                setCurrentUserId(null); 
+              }
             } else {
-              console.error("User ID from token is not a valid number:", userIdFromToken);
-              // Optionally set to null or handle error appropriately
-              setCurrentUserId(null); 
+              setCurrentUserId(null);
             }
           } else {
             setCurrentUserId(null);
           }
-        } else {
+        } catch (error) {
+          console.error("Error decoding token in PostDetailModal:", error);
+          if (error.name === 'InvalidTokenError' || (error.message && error.message.includes('expired'))) {
+            setError('Token expired, please log in again.');
+          } else {
+            setError('Error decoding token. Please try logging in again.');
+          }
           setCurrentUserId(null);
         }
       } else {
@@ -627,8 +628,8 @@ const PostDetailModal = ({ isOpen, onClose, postId, handleOpenReportModal }) => 
                                   title="Report Comment"
                                   className="p-1 rounded-full hover:bg-base-300 dark:hover:bg-base-200 text-gray-500 dark:text-gray-400 transition-colors"
                                 >
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                                    <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h1a1 1 0 001-1V9.707l4.707 4.707a1 1 0 001.414-1.414L6.828 9.707H12.5A2.5 2.5 0 0015 7.207V6.5A2.5 2.5 0 0012.5 4H3zm13 1h-1.586A1 1 0 0013.707 6H16v1.293A1 1 0 0016.707 8H17a1 1 0 001-1V5a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                    <path fillRule="evenodd" d="M3 2.25a.75.75 0 0 1 .75.75v.54l1.838-.46a9.75 9.75 0 0 1 6.725.738l.108.054A8.25 8.25 0 0 0 18 4.524l3.11-.732a.75.75 0 0 1 .917.81 47.784 47.784 0 0 0 .005 10.337.75.75 0 0 1-.574.812l-3.114.733a9.75 9.75 0 0 1-6.594-.77l-.108-.054a8.25 8.25 0 0 0-5.69-.625l-2.202.55V21a.75.75 0 0 1-1.5 0V3A.75.75 0 0 1 3 2.25Z" clipRule="evenodd" />
                                   </svg>
                                 </button>
                               )}

@@ -47,6 +47,14 @@ const Blog = () => {
       }
     } catch (error) {
       console.error("Error decoding token:", error);
+      // Check if the error is due to token expiration
+      if (error.name === 'InvalidTokenError' || (error.message && error.message.includes('expired'))) {
+        setError('Token expired, please log in again.');
+      } else {
+        setError('Error decoding token. Please try logging in again.');
+      }
+      // It might be good to also clear the invalid token from localStorage here
+      // localStorage.removeItem('authToken'); 
     }
   }
 
@@ -468,7 +476,7 @@ const Blog = () => {
       ));
       // If the active tab is 'closed' and we just activated a post, or vice versa,
       // it might disappear from the current view. Consider fetching posts again or
-      // conditionally removing from list if it no longer matches activeTab.
+      // conditionally removing from list if it doesn't match activeTab.
       if ((activeTab === 'closed' && newStatus !== 'closed') || (activeTab !== 'closed' && newStatus === 'closed')) {
         // Optionally, remove from current list if it doesn't match the active filter
         setPosts(prevPosts => prevPosts.filter(p => p.post_id !== postId)); 
@@ -588,8 +596,8 @@ const Blog = () => {
                                 onClick={(e) => { handleOpenReportModal('post', post.post_id); }}
                                 className="flex items-center w-full text-left px-4 py-2 text-sm text-base-content hover:bg-base-200 dark:hover:bg-base-100"
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h1a1 1 0 001-1V9.707l4.707 4.707a1 1 0 001.414-1.414L6.828 9.707H12.5A2.5 2.5 0 0015 7.207V6.5A2.5 2.5 0 0012.5 4H3zm13 1h-1.586A1 1 0 0013.707 6H16v1.293A1 1 0 0016.707 8H17a1 1 0 001-1V5a1 1 0 00-1-1z" clipRule="evenodd" />
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 mr-2">
+                                  <path fillRule="evenodd" d="M3 2.25a.75.75 0 0 1 .75.75v.54l1.838-.46a9.75 9.75 0 0 1 6.725.738l.108.054A8.25 8.25 0 0 0 18 4.524l3.11-.732a.75.75 0 0 1 .917.81 47.784 47.784 0 0 0 .005 10.337.75.75 0 0 1-.574.812l-3.114.733a9.75 9.75 0 0 1-6.594-.77l-.108-.054a8.25 8.25 0 0 0-5.69-.625l-2.202.55V21a.75.75 0 0 1-1.5 0V3A.75.75 0 0 1 3 2.25Z" clipRule="evenodd" />
                                 </svg>
                                 Report Post
                               </button>
