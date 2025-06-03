@@ -38,7 +38,7 @@ const NavBar = () => {
 
   // Logout: borramos el token y redirigimos a /login
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
     navigate("/login");
   };
 

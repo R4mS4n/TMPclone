@@ -77,8 +77,6 @@ const Admin = () => {
               <Route path="/users"       element={<UserManagement />} />
               <Route path="/reports"     element={<AdminReportsView />} />
               <Route path="/stats" element={<UserStats />} />
-              <Route path="/notifications" element={<div className="text-base-content/60">Notifications coming soon...</div>} />
-              <Route path="/settings"    element={<div className="text-base-content/60">Settings coming soon...</div>} />
             </Routes>
           </motion.div>
         </AnimatePresence>

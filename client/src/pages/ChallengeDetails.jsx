@@ -11,6 +11,10 @@ const ChallengeDetails = () => {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const { isDark } = useTheme();
   
+  // Added state for the first question ID
+  const [firstQuestionId, setFirstQuestionId] = useState(null);
+  const [isFetchingQuestions, setIsFetchingQuestions] = useState(false);
+  
   /*
    Aqui abajo sacamos la info primordial para que jale chido la pagina esta, que son los datos del torneo y si el usuario esta participando o no
   */
@@ -116,6 +120,31 @@ const ChallengeDetails = () => {
     }
   };
   
+  const handleStartChallenge = async () => {
+    if (!challenge || !challenge.tournament_id) return;
+    setIsFetchingQuestions(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/questions/getAllQuestions?challenge_id=${challenge.tournament_id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions for the challenge.');
+      }
+      const questions = await response.json();
+      if (questions && questions.length > 0) {
+        // Assuming questions are sorted or we take the first one as is
+        const firstQId = questions[0].question_id;
+        navigate(`/challenges/${challenge.tournament_id}/${firstQId}`);
+      } else {
+        alert('No questions are currently available for this challenge.');
+        // Optionally, provide more user-friendly notification
+      }
+    } catch (err) {
+      console.error("Error fetching question list for challenge start:", err);
+      alert(err.message || 'Could not start the challenge. Please try again.');
+    } finally {
+      setIsFetchingQuestions(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -199,10 +228,11 @@ const ChallengeDetails = () => {
               {isEnrolled && (
                 <div className="card-actions justify-end mt-6">
                   <button 
-                    onClick={() => navigate(`/challenges/${id}/1`)} 
+                    onClick={handleStartChallenge}
                     className="btn btn-primary rounded-md min-w-[140px] px-6 font-normal h-10"
+                    disabled={isFetchingQuestions}
                   >
-                    Start Challenge
+                    {isFetchingQuestions ? 'Loading...' : 'Start Challenge'}
                   </button>
                 </div>
               )}
@@ -230,14 +260,13 @@ const ChallengeDetails = () => {
                 
                 <div className="stat px-6 py-4">
                   <div className="stat-title">Date Limit</div>
-                  <div className="stat-value text-primary">
+                  <div className="stat-value text-primary text-base">
                     {new Date(challenge.date_limit).toLocaleString('es-MX', {
                       year: 'numeric',
                       month: '2-digit',
                       day: '2-digit',
                       hour: '2-digit',
                       minute: '2-digit',
-                      second: '2-digit',
                       hour12: false,
                     })}
                   </div>

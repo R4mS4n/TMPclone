@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import UserAvatar from '../components/UserAvatar';
+import SearchableDropdown from '../components/SearchableDropdown';
 
 const Leaderboard = () => {
   const { isDark } = useTheme();
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedTab, setSelectedTab] = useState('honor');
+  const [selectedTab, setSelectedTab] = useState('all');
   const [timeRemaining, setTimeRemaining] = useState('');
   const [tournaments, setTournaments] = useState([]);
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [participants, setParticipants] = useState(0);
-  const [honorLeaderboard, setHonorLeaderboard] = useState([]);
-  const [honorLeaderboardLoading, setHonorLeaderboardLoading] = useState(true);
   const [top10Leaderboard, setTop10Leaderboard] = useState([]);
   const [top10Loading, setTop10Loading] = useState(true);
   const [tournamentLeaderboard, setTournamentLeaderboard] = useState([]);
@@ -109,114 +108,95 @@ const Leaderboard = () => {
     const timer = setInterval(() => {
       setTimeRemaining(prevTime => {
         if (!prevTime) return prevTime;
+
+        let currentTotalSeconds = 0;
+
+        if (prevTime.includes('d ')) { // Ensure space after 'd' for reliable split
+            const mainParts = prevTime.split('d ');
+            if (mainParts.length < 2 || !mainParts[1] || !mainParts[1].includes(':')) {
+                clearInterval(timer);
+                return '00:00:00'; 
+            }
+            const d = parseInt(mainParts[0], 10);
+            const timeStr = mainParts[1];
+            const timeParts = timeStr.split(':').map(Number);
+
+            if (isNaN(d) || timeParts.length !== 3 || timeParts.some(isNaN)) {
+                clearInterval(timer);
+                return '00:00:00';
+            }
+            currentTotalSeconds = d * 86400 + timeParts[0] * 3600 + timeParts[1] * 60 + timeParts[2];
+        } else if (prevTime.includes(':')) { // Assumes HH:MM:SS or 00:00:00
+            const timeParts = prevTime.split(':').map(Number);
+            if (timeParts.length === 3 && !timeParts.some(isNaN)) {
+                currentTotalSeconds = timeParts[0] * 3600 + timeParts[1] * 60 + timeParts[2];
+            } else { 
+                clearInterval(timer);
+                return '00:00:00';
+            }
+        } else { 
+            clearInterval(timer);
+            return '00:00:00';
+        }
         
-        const [hours, minutes, seconds] = prevTime.split(':').map(Number);
-        let totalSeconds = hours * 3600 + minutes * 60 + seconds;
-        
-        if (totalSeconds <= 0) {
-          clearInterval(timer);
+        if (isNaN(currentTotalSeconds)) { 
+            clearInterval(timer);
+            return '00:00:00';
+        }
+
+        if (currentTotalSeconds <= 0) {
+          // clearInterval(timer); // Removed: Do not stop the interval, just display 0
           return '00:00:00';
         }
         
-        totalSeconds -= 1;
-        const newHours = Math.floor(totalSeconds / 3600);
-        const newMinutes = Math.floor((totalSeconds % 3600) / 60);
-        const newSeconds = totalSeconds % 60;
+        currentTotalSeconds -= 1;
         
-        return `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}:${newSeconds.toString().padStart(2, '0')}`;
+        const newDays = Math.floor(currentTotalSeconds / 86400);
+        const remainingSecondsAfterDays = currentTotalSeconds % 86400;
+        const newHours = Math.floor(remainingSecondsAfterDays / 3600);
+        const remainingSecondsAfterHours = remainingSecondsAfterDays % 3600;
+        const newMinutes = Math.floor(remainingSecondsAfterHours / 60);
+        const newSeconds = remainingSecondsAfterHours % 60;
+        
+        if (newDays > 0) {
+          return `${newDays}d ${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}:${newSeconds.toString().padStart(2, '0')}`;
+        } else {
+          return `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}:${newSeconds.toString().padStart(2, '0')}`;
+        }
       });
     }, 1000);
     
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch honor leaderboard data
-  useEffect(() => {
-    if (selectedTab === 'honor') {
-      fetchHonorLeaderboard();
-    } else if (selectedTab === 'all' || selectedTab === 'Tournaments') {
-      // When switching to non-honor tabs, make sure to fetch data if we have a selected tournament
-      if (selectedTournament) {
-        fetchLeaderboardData(selectedTournament);
-      }
-    }
-  }, [selectedTab]);
-
-  const fetchHonorLeaderboard = async () => {
+  const fetchTop10Leaderboard = async () => {
     try {
-      setHonorLeaderboardLoading(true);
-      // Also set the regular loading state to false to avoid loading spinner conflicts
-      setLoading(false);
+      setTop10Loading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/users/honor-leaderboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetch('http://localhost:5000/api/leaderboard/10leaderboard', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch honor leaderboard');
-      }
+      if (!response.ok) throw new Error('Failed to fetch top 10 leaderboard');
       
       const data = await response.json();
-      console.log('Honor leaderboard data:', data);
-      
-      if (data.success && data.leaderboard) {
-        // Transform the data to match the leaderboard format
-        const formattedData = data.leaderboard.map((user, index) => ({
-          user_id: user.user_id,
-          username: user.username,
-          profile_pic: user.profile_pic,
-          score: user.honor_points, // Use honor_points as the score
-          position: index + 1,
-          // Add default values for other fields
-          level: 1,
-          xp: 0,
-          achievements: 0
-        }));
-        
-        setHonorLeaderboard(formattedData);
-        setParticipants(formattedData.length);
-      } else {
-        setHonorLeaderboard([]);
-      }
+      // Add positions to the data
+      const dataWithPositions = data.map((item, index) => ({
+        ...item,
+        position: index + 1
+      }));
+      setTop10Leaderboard(dataWithPositions);
     } catch (err) {
-      console.error('Error fetching honor leaderboard:', err);
-      setError('Failed to fetch honor leaderboard');
+      console.error('Error fetching top 10 leaderboard:', err);
+      setError('Failed to load top 10 leaderboard');
     } finally {
-      setHonorLeaderboardLoading(false);
+      setTop10Loading(false);
     }
   };
-
-  const fetchTop10Leaderboard = async () => {
-  try {
-    setTop10Loading(true);
-    const token = localStorage.getItem('authToken');
-    const response = await fetch('http://localhost:5000/api/leaderboard/10leaderboard', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (!response.ok) throw new Error('Failed to fetch top 10 leaderboard');
-    
-    const data = await response.json();
-    // Add positions to the data
-    const dataWithPositions = data.map((item, index) => ({
-      ...item,
-      position: index + 1
-    }));
-    setTop10Leaderboard(dataWithPositions);
-  } catch (err) {
-    console.error('Error fetching top 10 leaderboard:', err);
-    setError('Failed to load top 10 leaderboard');
-  } finally {
-    setTop10Loading(false);
-  }
-};
 
   const fetchLeaderboardData = async (tournamentId) => {
     setTournamentLoading(true);
     setLoading(true);
-    setHonorLeaderboardLoading(false);
     try {
       const token = localStorage.getItem('authToken');
       
@@ -303,12 +283,6 @@ const Leaderboard = () => {
   const handleTabChange = (tab) => {
     setSelectedTab(tab);
 
-    if (tab === 'honor') {
-      setLeaderboardData([]);
-      setTop10Leaderboard([]);
-      fetchHonorLeaderboard();
-    }
-
     if (tab === 'all') {
       setLeaderboardData([]); // clear tournament
       fetchTop10Leaderboard();
@@ -324,10 +298,6 @@ const Leaderboard = () => {
 
 
   const filterLeaderboardData = () => {
-    if (selectedTab === 'honor') {
-      return honorLeaderboard;
-    }
-
     if (selectedTab === 'all') {
       return top10Leaderboard;
     }
@@ -404,9 +374,7 @@ const Leaderboard = () => {
 
   // Get filtered and processed data to display
   const displayData = filterLeaderboardData();
-  const isHonorTab = selectedTab === 'honor';
   const isLoading = 
-    selectedTab === 'honor' ? honorLeaderboardLoading :
     selectedTab === 'all' ? top10Loading :
     tournamentLoading;
 
@@ -422,26 +390,12 @@ const Leaderboard = () => {
               {selectedTab === 'Tournaments' && tournaments.length > 0 && (
 
                 <div className="mt-2">
-                  <div className="relative">
-                    <select 
-                      className="w-full max-w-xs px-4 py-2 h-12 bg-base-300 rounded-md border-none appearance-none cursor-pointer text-base-content"
-                      style={{ 
-                        backgroundImage: "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E\")",
-                        backgroundPosition: "right 0.5rem center",
-                        backgroundRepeat: "no-repeat",
-                        backgroundSize: "1.5em 1.5em",
-                        paddingRight: "2.5rem"
-                      }}
-                      value={selectedTournament || ''}
-                      onChange={(e) => handleTournamentChange(e.target.value)}
-                    >
-                      {tournaments.map(tournament => (
-                        <option key={tournament.tournament_id} value={tournament.tournament_id}>
-                          {tournament.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <SearchableDropdown
+                    options={tournaments.map(tournament => ({ label: tournament.name, value: tournament.tournament_id }))}
+                    value={selectedTournament}
+                    onChange={(value) => handleTournamentChange(value)}
+                    placeholder="Search Tournaments..."
+                  />
                 </div>
               )}
             </div>
@@ -452,7 +406,7 @@ const Leaderboard = () => {
                 <span className="font-bold text-lg text-primary">{participants}</span>
               </div>
               
-              {timeRemaining && !isHonorTab && (
+              {selectedTab === 'Tournaments' && timeRemaining && (
                 <div className="flex flex-col items-center">
                   <span className="text-sm text-gray-500">Time Remaining</span>
                   <span className="text-xl md:text-2xl font-bold text-primary">{timeRemaining}</span>
@@ -481,12 +435,6 @@ const Leaderboard = () => {
           <div className="flex justify-center mb-6">
             <div className="bg-base-300 rounded-lg p-1 inline-flex">
               <button 
-                className={`px-4 py-2 rounded-md transition-colors ${selectedTab === 'honor' ? 'bg-primary text-white' : 'hover:bg-base-200'}`}
-                onClick={() => handleTabChange('honor')}
-              >
-                Honor
-              </button>
-              <button 
                 className={`px-4 py-2 rounded-md transition-colors ${selectedTab === 'all' ? 'bg-primary text-white' : 'hover:bg-base-200'}`}
                 onClick={() => handleTabChange('all')}
               >
@@ -505,7 +453,7 @@ const Leaderboard = () => {
           {!isLoading && !error && displayData.length === 0 && (
             <div className="alert alert-info rounded-md">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <span>{isHonorTab ? 'No honor data available yet.' : 'No participants found for this tournament yet.'}</span>
+              <span>{'No participants found for this tournament yet.'}</span>
             </div>
           )}
 
@@ -527,17 +475,17 @@ const Leaderboard = () => {
                     <th className="text-center">Position</th>
                     <th className="text-center">Avatar</th>
                     <th>Username</th>
-                    <th>{isHonorTab ? 'Honor Points' : 'Level'}</th>
-                    {!isHonorTab && <th>Achievements</th>}
+                    <th>{'Level'}</th>
+                    <th>Achievements</th>
                     <th className="text-right">
-  {isHonorTab ? 'Honor' : selectedTab === 'all' ? 'Score' : 'Score'}
-</th>
+                      {selectedTab === 'all' ? 'Score' : 'Score'}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayData.map((entry) => (
                     <tr 
-                      key={selectedTab === 'Tournaments' ? `team-${entry.team_id}` : `user-${entry.user_id}-${entry.tournament_id || 'honor'}`} 
+                      key={selectedTab === 'Tournaments' ? `team-${entry.team_id}` : `user-${entry.user_id}-${entry.tournament_id || 'global'}`}
                       className={`${entry.position <= 3 ? 'font-semibold' : ''}`}
                     >
                       <td className="text-center">{renderRank(entry.position)}</td>
@@ -551,9 +499,7 @@ const Leaderboard = () => {
                       </td>
                       <td>{entry.username}</td>
                       <td>
-                        {isHonorTab ? (
-                          <span className="font-semibold">{entry.score} points</span>
-                        ) : selectedTab === 'all' ? (
+                        {selectedTab === 'all' ? (
                           renderLevel(entry.xp)
                         ) : (
                           <>
@@ -561,8 +507,8 @@ const Leaderboard = () => {
                           </>
                         )}
                       </td>
-                                            {!isHonorTab && <td>{renderAchievements(entry.achievements || 0)}</td>}
-                                            <td className="text-right font-bold text-primary">
+                      <td>{renderAchievements(entry.achievements || 0)}</td>
+                      <td className="text-right font-bold text-primary">
                         {selectedTab === 'all' ? entry.xp : entry.score}
                       </td>
                     </tr>
