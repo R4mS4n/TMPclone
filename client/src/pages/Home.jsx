@@ -4,6 +4,7 @@ import NotificationTest from '../components/NotificationTest';
 import { useNotification } from '../contexts/NotificationContext';
 import MyProfilePicture from '../components/MyProfilePicture';
 import UserAvatar from '../components/UserAvatar';
+import { getUnlockedBadges} from '../utils/badgeUtils';
 
 const Home = () => {
   const [userProfile, setUserProfile] = useState(null);
@@ -15,6 +16,7 @@ const Home = () => {
   const [leaderboardPosition, setLeaderboardPosition] = useState(null);
   const [top5Leaderboard, setTop5Leaderboard] = useState([]);
   const [levelStats, setLevelStats] = useState({ level: 1, remainder: 0, xp: 0 });
+  const [unlockedBadges, setUnlockedBadges] = useState([]);
 
   const navigate = useNavigate();
   const { notifyError } = useNotification();
@@ -145,6 +147,28 @@ const Home = () => {
       return `#${position}`;
     };
 
+    const fetchUserStats = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!userProfile) return; 
+        
+        const response = await fetch(`http://localhost:5000/api/users/stats/${userProfile.user_id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch user stats owo');
+        const statsData = await response.json();
+        console.log('✨ User stats data:', statsData);
+        
+        setUnlockedBadges(getUnlockedBadges(statsData.stats));
+
+      } catch (error) {
+        console.error('Oh noes! Error fetching user stats ;w;', error);
+      }
+    };
+
 
     Promise.all([
       fetchProfile(),
@@ -152,9 +176,10 @@ const Home = () => {
       fetchLevelStats(),
       fetchChallengesCount(),
       fetchLeaderboardPosition(),
-      fetchTop5Leaderboard()
+      fetchTop5Leaderboard(),
+      fetchUserStats()
     ]).finally(() => setLoading(false));
-  }, [navigate]);
+  }, [navigate, notifyError, userProfile?.user_id, levelStats.xp, leaderboardPosition]);
 
   const handleChallengeClick = async (challengeId) => {
     try {
@@ -252,20 +277,7 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Badges */}
-            <div className="w-full">
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-bold text-gray-400">My Badges</h2>
-                <button onClick={openBadgesModal} className="text-primary hover:underline text-sm font-semibold">
-                  More &gt;
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-base-100 rounded-lg h-16"></div>
-                <div className="bg-base-100 rounded-lg h-16"></div>
-                <div className="bg-base-100 rounded-lg h-16"></div>
-              </div>
-            </div>
+            
           </div>
 
           {/* Badges Modal */}
@@ -354,35 +366,43 @@ const Home = () => {
               </ul>
             </div>
 
-            {/* Daily Challenge */}
-            {/* <div className="col-span-3 bg-base-100 p-6 rounded-lg shadow-lg flex flex-col items-center gap-4 min-h-[16rem]">
-              <h2 className="text-xl font-bold">Daily Challenge</h2>
-              <div className="grid grid-cols-3 gap-4 w-full">
-                {[
-                  { day: "Today", status: "Completed" },
-                  { day: "Yesterday", status: "Incomplete" },
-                  { day: "Monday", status: "Completed" },
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-base-100 rounded-lg p-4 flex flex-col items-center justify-center"
-                  >
-                    <div className="font-semibold">{item.day}</div>
-                    <div
-                      className={`text-xs mt-1 ${
-                        item.status === "Completed" ? "text-green-500" : "text-red-500"
-                      }`}
+           {/* Badges Display */}
+              <div className="col-span-3 bg-base-100 p-6 rounded-lg shadow-lg">
+                <h2 className="text-xl font-bold mb-4">Your Badges</h2>
+                
+                {unlockedBadges.length === 0 ? (
+                  <div className="text-center p-8">
+                    <p className="text-gray-500 mb-4">No badges yet! Complete challenges to earn some~</p>
+                    <button 
+                      onClick={() => navigate('/challenges')}
+                      className="btn btn-primary"
                     >
-                      {item.status}
-                    </div>
+                      Start Earning Badges!
+                    </button>
                   </div>
-                ))}
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {unlockedBadges.map((badge, index) => (
+                      <div 
+                        key={index}
+                        className="tooltip tooltip-bottom hover:scale-105 transition-transform"
+                        data-tip={`${badge.name}: ${badge.description}`}
+                      >
+                        <div className="badge badge-lg p-4 flex flex-col items-center gap-2 w-full h-full">
+                          <span className="text-3xl">{badge.emoji}</span>
+                          <span className="text-xs font-bold text-center line-clamp-2">
+                            {badge.name}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div> */}
+            </div>
           </div>
         </div>
       </div>
-    </div>
   );
 };
 
