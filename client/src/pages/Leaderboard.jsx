@@ -236,12 +236,12 @@ const Leaderboard = () => {
       setLoading(false);
       
       // Fallback to mock data for development
-      if (process.env.NODE_ENV === 'development') {
-        setLeaderboardData(mockLeaderboardData);
-        setParticipants(mockLeaderboardData.length);
-        setLoading(false);
-        setError(null);
-      }
+      // if (process.env.NODE_ENV === 'development') {
+      //   setLeaderboardData(mockLeaderboardData);
+      //   setParticipants(mockLeaderboardData.length);
+      //   setLoading(false);
+      //   setError(null);
+      // }
     } finally {
     setTournamentLoading(false);
   }
@@ -313,18 +313,18 @@ const Leaderboard = () => {
 
 
   // Mock data for development fallback
-  const mockLeaderboardData = [
-    { user_id: 101, username: 'Jake Peralta', tournament_id: 20, score: 1098, position: 1, level: 5, xp: 570, achievements: 8, team_id: 1, team_name: 'Brooklyn 99' },
-    { user_id: 102, username: 'Monica C. Geller', tournament_id: 20, score: 1036, position: 2, level: 4, xp: 490, achievements: 7, team_id: 2, team_name: 'Friends' },
-    { user_id: 103, username: 'Anette F. Lerroy', tournament_id: 20, score: 967, position: 3, level: 4, xp: 420, achievements: 6, team_id: 3, team_name: 'CodeMasters' },
-    { user_id: 104, username: 'Luke S. Anderson', tournament_id: 20, score: 885, position: 4, level: 3, xp: 380, achievements: 5, team_id: 3, team_name: 'CodeMasters' },
-    { user_id: 105, username: 'Robin Scherbatsky', tournament_id: 20, score: 872, position: 5, level: 3, xp: 350, achievements: 5, team_id: 4, team_name: 'HIMYM' },
-    { user_id: 106, username: 'Ted Mosby', tournament_id: 20, score: 843, position: 6, level: 3, xp: 320, achievements: 4, team_id: 4, team_name: 'HIMYM' },
-    { user_id: 107, username: 'Marshall Eriksen', tournament_id: 20, score: 791, position: 7, level: 3, xp: 290, achievements: 4, team_id: 4, team_name: 'HIMYM' },
-    { user_id: 108, username: 'Lily Aldrin', tournament_id: 20, score: 768, position: 8, level: 2, xp: 260, achievements: 3, team_id: 4, team_name: 'HIMYM' },
-    { user_id: 109, username: 'Barney Stinson', tournament_id: 20, score: 720, position: 9, level: 2, xp: 230, achievements: 3, team_id: 4, team_name: 'HIMYM' },
-    { user_id: 110, username: 'Rachel Green', tournament_id: 20, score: 695, position: 10, level: 2, xp: 200, achievements: 2, team_id: 2, team_name: 'Friends' },
-  ];
+  // const mockLeaderboardData = [
+  //   { user_id: 101, username: 'Jake Peralta', tournament_id: 20, score: 1098, position: 1, level: 5, xp: 570, achievements: 8 },
+  //   { user_id: 102, username: 'Monica C. Geller', tournament_id: 20, score: 1036, position: 2, level: 4, xp: 490, achievements: 7 },
+  //   { user_id: 103, username: 'Anette F. Lerroy', tournament_id: 20, score: 967, position: 3, level: 4, xp: 420, achievements: 6 },
+  //   { user_id: 104, username: 'Luke S. Anderson', tournament_id: 20, score: 885, position: 4, level: 3, xp: 380, achievements: 5 },
+  //   { user_id: 105, username: 'Robin Scherbatsky', tournament_id: 20, score: 872, position: 5, level: 3, xp: 350, achievements: 5 },
+  //   { user_id: 106, username: 'Ted Mosby', tournament_id: 20, score: 843, position: 6, level: 3, xp: 320, achievements: 4 },
+  //   { user_id: 107, username: 'Marshall Eriksen', tournament_id: 20, score: 791, position: 7, level: 3, xp: 290, achievements: 4 },
+  //   { user_id: 108, username: 'Lily Aldrin', tournament_id: 20, score: 768, position: 8, level: 2, xp: 260, achievements: 3 },
+  //   { user_id: 109, username: 'Barney Stinson', tournament_id: 20, score: 720, position: 9, level: 2, xp: 230, achievements: 3 },
+  //   { user_id: 110, username: 'Rachel Green', tournament_id: 20, score: 695, position: 10, level: 2, xp: 200, achievements: 2 },
+  // ];
 
   // Badge rendering helper
   const renderAchievements = (count) => {
@@ -415,22 +415,6 @@ const Leaderboard = () => {
             </div>
           </div>
           
-          {/* Prizes section - show for all tabs */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="flex flex-col items-center">
-              <div className="text-sm text-gray-500">1st Prize</div>
-              <div className={`h-20 w-20 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-lg shadow-inner`}></div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-sm text-gray-500">2nd Prize</div>
-              <div className={`h-20 w-20 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-lg shadow-inner`}></div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-sm text-gray-500">3rd Prize</div>
-              <div className={`h-20 w-20 ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-lg shadow-inner`}></div>
-            </div>
-          </div>
-
           {/* Filter tabs in a rounded rectangle box */}
           <div className="flex justify-center mb-6">
             <div className="bg-base-300 rounded-lg p-1 inline-flex">
@@ -484,8 +468,8 @@ const Leaderboard = () => {
                 </thead>
                 <tbody>
                   {displayData.map((entry) => (
-                    <tr 
-                      key={selectedTab === 'Tournaments' ? `team-${entry.team_id}` : `user-${entry.user_id}-${entry.tournament_id || 'global'}`}
+                    <tr
+                      key={`user-${entry.user_id}-tournament-${entry.tournament_id || (selectedTournament || 'global')}`}
                       className={`${entry.position <= 3 ? 'font-semibold' : ''}`}
                     >
                       <td className="text-center">{renderRank(entry.position)}</td>

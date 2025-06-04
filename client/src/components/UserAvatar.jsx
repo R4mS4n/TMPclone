@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 
-const UserAvatar = ({ userId, className = '', size = 'md' }) => {
+const UserAvatarComponent = ({ userId, className = '', size = 'md' }) => {
   console.log("uid:", userId);
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(true);
@@ -78,4 +78,4 @@ const UserAvatar = ({ userId, className = '', size = 'md' }) => {
   );
 };
 
-export default UserAvatar;
+export default memo(UserAvatarComponent);

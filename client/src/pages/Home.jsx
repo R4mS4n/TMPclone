@@ -195,7 +195,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-base-200">
       <div className="p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[calc(100vh-4rem)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[calc(100vh-4rem)]">
           {/* Profile Card */}
           <div className="bg-base-100 p-6 rounded-lg shadow-lg row-span-2 h-full flex flex-col items-center">
             <div className="mb-4">
@@ -296,9 +296,9 @@ const Home = () => {
           )}
 
           {/* Right Side */}
-          <div className="col-span-2 grid grid-cols-3 gap-6">
+          <div className="lg:col-span-1 row-span-2 grid grid-cols-2 gap-6">
             {/* Done Recently */}
-            <div className="bg-base-100 p-6 rounded-lg shadow-lg col-span-2 flex flex-col gap-4 h-[20rem]">
+            <div className="bg-base-100 p-6 rounded-lg shadow-lg col-span-1 flex flex-col gap-4 h-full">
               <h2 className="text-xl font-bold">Done Recently...</h2>
               {enrollments.slice(0, 5).map((ch, idx) => (
                 <div
@@ -326,7 +326,7 @@ const Home = () => {
             </div>
 
             {/* Leaderboard */}
-            <div className="bg-base-100 p-4 rounded-2xl shadow-lg flex flex-col h-[20rem] overflow-y-auto">
+            <div className="bg-base-100 p-4 rounded-2xl shadow-lg flex flex-col h-full overflow-y-auto">
               <h2 className="text-xl font-bold text-center mb-4 bg-primary text-base-200 py-2 rounded-md">
                 Leaderboard
               </h2>
@@ -355,7 +355,7 @@ const Home = () => {
             </div>
 
             {/* Daily Challenge */}
-            <div className="col-span-3 bg-base-100 p-6 rounded-lg shadow-lg flex flex-col items-center gap-4 min-h-[16rem]">
+            {/* <div className="col-span-3 bg-base-100 p-6 rounded-lg shadow-lg flex flex-col items-center gap-4 min-h-[16rem]">
               <h2 className="text-xl font-bold">Daily Challenge</h2>
               <div className="grid grid-cols-3 gap-4 w-full">
                 {[
@@ -378,7 +378,7 @@ const Home = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
