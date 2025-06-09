@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
+import apiClient from "../utils/api";
 
 const Challenges = () => {
   const [challenges, setChallenges] = useState([]);
@@ -12,11 +13,8 @@ const Challenges = () => {
   useEffect(() => {
     const fetchChallenges = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/tournaments/current");
-        if (!response.ok) throw new Error("Failed to fetch challenges");
-
-        const data = await response.json();
-        setChallenges(data);
+        const response = await apiClient.get("/tournaments/current");
+        setChallenges(response.data);
       } catch (err) {
         setError(err.message);
       } finally {

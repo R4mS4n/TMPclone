@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from "../contexts/ThemeContext";
 import CodeForm from '../components/CodeForm';
 import languages from '../utils/languages';
+import apiClient from '../utils/api';
 
 export default function ChallengeQuestion() {
   const { challengeId, questionId } = useParams();
@@ -24,9 +25,8 @@ export default function ChallengeQuestion() {
   // Fetch challenge info
   useEffect(() => {
     if (challengeId) {
-      fetch(`http://localhost:5000/api/tournaments/${challengeId}`)
-        .then(res => res.json())
-        .then(data => setChallengeInfo(data))
+      apiClient.get(`/tournaments/${challengeId}`)
+        .then(res => setChallengeInfo(res.data))
         .catch(err => {
           console.error("Challenge fetch error", err);
           setFeedback({
@@ -41,11 +41,10 @@ export default function ChallengeQuestion() {
   // Fetch question data
   useEffect(() => {
     if (questionId) {
-      fetch(`http://localhost:5000/api/questions/${questionId}`)
-        .then(res => res.json())
-        .then(data => {
-          setQuestion(data);
-          if (data.template) setTemplate(data.template);
+      apiClient.get(`/questions/${questionId}`)
+        .then(res => {
+          setQuestion(res.data);
+          if (res.data.template) setTemplate(res.data.template);
         })
         .catch(err => {
           console.error("Failed to fetch question:", err);
@@ -62,10 +61,8 @@ export default function ChallengeQuestion() {
   useEffect(() => {
     const fetchQuestionIds = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/questions/getAllQuestions?challenge_id=${challengeId}`);
-        if (!response.ok) throw new Error('Failed to fetch questions');
-        const data = await response.json();
-        setQuestionIds(data.map(q => q.question_id));
+        const response = await apiClient.get(`/questions/getAllQuestions?challenge_id=${challengeId}`);
+        setQuestionIds(response.data.map(q => q.question_id));
       } catch (err) {
         console.error("Error fetching question IDs:", err);
       }
@@ -155,25 +152,13 @@ export default function ChallengeQuestion() {
 
       // Call the backend API to evaluate with Judge0
       console.log('[CODE SUBMISSION] Sending request to backend');
-      const response = await fetch('http://localhost:5000/api/questions/review', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-        },
-        body: JSON.stringify({
-          questionId,
-          code,
-          languageId,
-        }),
+      const response = await apiClient.post('/questions/review', {
+        questionId,
+        code,
+        languageId,
       });
 
-      if (!response.ok) {
-        console.error('[CODE SUBMISSION] API Error:', response.status);
-        throw new Error(`API Error: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       console.log('[CODE SUBMISSION] Received response from backend:', result);
       
       // Process Judge0 response

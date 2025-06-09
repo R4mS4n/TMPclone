@@ -1,4 +1,5 @@
 import React, { useState, useEffect, memo } from 'react';
+import apiClient from '../utils/api';
 
 const UserAvatarComponent = ({ userId, className = '', size = 'md' }) => {
   console.log("uid:", userId);
@@ -21,16 +22,12 @@ const UserAvatarComponent = ({ userId, className = '', size = 'md' }) => {
           return;
         }
 
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`http://localhost:5000/api/users/profile-pic/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await apiClient.get(`/users/profile-pic/${userId}`, {
+          responseType: 'blob',
         });
         
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
+        if (response.data) {
+          const url = URL.createObjectURL(response.data);
           setImageUrl(url);
         }
       } catch (error) {

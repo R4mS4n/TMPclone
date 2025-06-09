@@ -5,6 +5,8 @@ import { useNotification } from '../contexts/NotificationContext';
 import MyProfilePicture from '../components/MyProfilePicture';
 import UserAvatar from '../components/UserAvatar';
 import { getUnlockedBadges} from '../utils/badgeUtils';
+import '../styles/badges.css';
+import apiClient from '../utils/api';
 
 const Home = () => {
   const [userProfile, setUserProfile] = useState(null);
@@ -24,6 +26,124 @@ const Home = () => {
   const openBadgesModal = () => setBadgesModalOpen(true);
   const closeBadgesModal = () => setBadgesModalOpen(false);
 
+  const NewbieCoderIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+    </svg>
+  );
+  
+  const FirstChallengeIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345h5.518a.562.562 0 01.321.988l-4.204 3.055a.563.563 0 00-.182.557l1.285 5.022a.562.562 0 01-.84.622l-4.48-3.262a.563.563 0 00-.652 0l-4.48 3.262a.562.562 0 01-.84-.622l1.285-5.022a.562.562 0 00-.182-.557l-4.204-3.055a.562.562 0 01.321-.988h5.518a.563.563 0 00.475-.345L11.48 3.5z" />
+    </svg>
+  );
+  
+  const FirstCorrectAnswerIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+
+  const TrophyIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9a9 9 0 119 0zM16.5 18.75a9 9 0 00-9 0h9zM12 14.25a3 3 0 100-6 3 3 0 000 6z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 14.25L12 18.75" />
+    </svg>
+  )
+
+  const AcademicCapIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path d="M12 14.25L12 18.75" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9a9 9 0 119 0zM16.5 18.75a9 9 0 00-9 0h9zM12 14.25a3 3 0 100-6 3 3 0 000 6z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 9.75l-7.5 4.5-7.5-4.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 8.25v6m13.5-6v6" />
+    </svg>
+  )
+
+  const FireIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.362-3.797z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 12.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" />
+    </svg>
+  )
+
+  const HeartIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+    </svg>
+  )
+
+  const CrownIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.452-2.452L14.25 6l1.036-.259a3.375 3.375 0 002.452-2.452L18 2.25l.259 1.036a3.375 3.375 0 002.452 2.452L21.75 6l-1.035.259a3.375 3.375 0 00-2.452 2.452zM12 21a8.25 8.25 0 005.25-2.083l-1.12-1.12a6.75 6.75 0 01-8.26 0l-1.12 1.12A8.25 8.25 0 0012 21z" />
+    </svg>
+  )
+  const BoltIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+    </svg>
+  )
+
+  const PencilIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+    </svg>
+  );
+
+  const LightBulbIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.311a14.994 14.994 0 01-4.5 0M9.75 10.364c.606-.06.936-.342 1.255-.634.318-.29.635-.634.635-1.064 0-.43-.317-.774-.635-1.064a3.003 3.003 0 00-1.255-.634m5.25 0c-.606.06-.936.342-1.255.634a3.003 3.003 0 01-.635 1.064c0 .43.317.774.635 1.064.319.29.636.634 1.255.634m-3.75 2.311a9.04 9.04 0 01-4.5 0" />
+    </svg>
+  );
+
+  const ShieldCheckIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3.75 3.75a3.75 3.75 0 10-5.303-5.303A3.75 3.75 0 009 12.75zm12-3.75a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+
+  const CommandLineIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H2.25A2.25 2.25 0 000 6v12a2.25 2.25 0 002.25 2.25z" />
+    </svg>
+  );
+
+  const BugAntIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 12.75c0 .414-.168.75-.375.75S9 13.164 9 12.75s.168-.75.375-.75.375.336.375.75zM14.25 12.75c0 .414-.168.75-.375.75S13.5 13.164 13.5 12.75s.168-.75.375-.75.375.336.375.75zM12 15.75c-3.443 0-6.25-1.007-6.25-2.25s2.807-2.25 6.25-2.25 6.25 1.007 6.25 2.25-2.807 2.25-6.25 2.25z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15.75v3M10.125 15.75L6.937 18.25M13.875 15.75l3.188 2.5M12 8.25v-3m-3.375-.375L6.937 2.75m6.125 2.125L17.063 2.75" />
+    </svg>
+  )
+
+  const RocketLaunchIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.875 14.25l-4.5-4.5 4.5-4.5m4.5 9l4.5-4.5-4.5-4.5M12 3v18" />
+    </svg>
+  )
+
+  const badgeIcons = {
+    "Newbie Coder": NewbieCoderIcon,
+    "Code Pup": NewbieCoderIcon,
+    "Junior Dev": AcademicCapIcon,
+    "Senior Dev": AcademicCapIcon,
+    "Code Wizard": FireIcon,
+    "Legendary Hacker": FireIcon,
+    "First Challenge": FirstChallengeIcon,
+    "Regular Player": TrophyIcon,
+    "Challenge Lover": HeartIcon,
+    "Tournament Master": CrownIcon,
+    "Ultimate Champion": CrownIcon,
+    "Challenge God": BoltIcon,
+    "First Post": PencilIcon,
+    "First Correct Answer": FirstCorrectAnswerIcon,
+    "Problem Solver": LightBulbIcon,
+    "Code Ninja": ShieldCheckIcon,
+    "Algorithm Master": CommandLineIcon,
+    "Debugging King": BugAntIcon,
+    "IT Wizard": RocketLaunchIcon,
+    "Absolute Unit": RocketLaunchIcon,
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -33,15 +153,8 @@ const Home = () => {
 
     const fetchProfile = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/auth/me', {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (!res.ok) throw new Error('Unauthorized');
-        const data = await res.json();
-        setUserProfile(data);
+        const res = await apiClient.get('/auth/me');
+        setUserProfile(res.data);
       } catch (err) {
         console.error('Error fetching profile:', err);
         localStorage.removeItem('authToken');
@@ -51,10 +164,8 @@ const Home = () => {
 
     const fetchLeaderboardPosition = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/users/leaderboard-position', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
+        const response = await apiClient.get('/users/leaderboard-position');
+        const data = response.data;
         //console.log('Leaderboard position response:', data);
         if (data.success && data.position) {
           setLeaderboardPosition(data.position); 
@@ -68,10 +179,8 @@ const Home = () => {
     // ✅ Modified
     const fetchTop5Leaderboard = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/leaderboard/10leaderboard', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
+        const response = await apiClient.get('/leaderboard/10leaderboard');
+        const data = response.data;
 
         if (Array.isArray(data)) {
           const top5 = data.slice(0, 5);
@@ -98,12 +207,8 @@ const Home = () => {
 
     const fetchEnrollments = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/users/enrollments', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('Failed to fetch enrollments');
-        const data = await res.json();
-        setEnrollments(data.enrollments || []);
+        const res = await apiClient.get('/users/enrollments');
+        setEnrollments(res.data.enrollments || []);
       } catch (err) {
         setError(err.message);
       }
@@ -111,10 +216,8 @@ const Home = () => {
 
     const fetchChallengesCount = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/tournaments/enrolled-count', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
+        const response = await apiClient.get('/tournaments/enrolled-count');
+        const data = response.data;
         if (data.success) {
           setChallengesCount(data.count);
         }
@@ -125,18 +228,11 @@ const Home = () => {
 
     const fetchLevelStats = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/users/level-stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!res.ok) throw new Error('Failed to fetch level stats');
-        const data = await res.json();
-        setLevelStats(data);
+        const res = await apiClient.get('/users/level-stats');
+        setLevelStats(res.data);
       } catch (err) {
         console.error('Error fetching level stats:', err);
-        notifyError('Failed to load level information');
+        setError(err.message);
       }
     };
     
@@ -148,54 +244,53 @@ const Home = () => {
     };
 
     const fetchUserStats = async () => {
+      if (!userProfile) return;
       try {
-        const token = localStorage.getItem('authToken');
-        if (!userProfile) return; 
-        
-        const response = await fetch(`http://localhost:5000/api/users/stats/${userProfile.user_id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch user stats owo');
-        const statsData = await response.json();
-        console.log('✨ User stats data:', statsData);
-        
-        setUnlockedBadges(getUnlockedBadges(statsData.stats));
-
+        const response = await apiClient.get(`/users/stats/${userProfile.user_id}`);
+        const data = response.data;
+        if (data.success) {
+          setUnlockedBadges(getUnlockedBadges(data.stats));
+        } else {
+          notifyError('Failed to fetch user stats');
+        }
       } catch (error) {
-        console.error('Oh noes! Error fetching user stats ;w;', error);
+        console.error('Error fetching user stats:', error);
+        notifyError('An error occurred while fetching user stats');
       }
     };
 
+    const loadData = async () => {
+      try {
+        await fetchProfile();
+        await fetchEnrollments();
+        await fetchLevelStats();
+        await fetchChallengesCount();
+        await fetchLeaderboardPosition();
+        await fetchTop5Leaderboard();
+        await fetchUserStats();
+      } catch (err) {
+        console.error('Error loading data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    Promise.all([
-      fetchProfile(),
-      fetchEnrollments(),
-      fetchLevelStats(),
-      fetchChallengesCount(),
-      fetchLeaderboardPosition(),
-      fetchTop5Leaderboard(),
-      fetchUserStats()
-    ]).finally(() => setLoading(false));
+    loadData();
   }, [navigate, notifyError, userProfile?.user_id, levelStats.xp, leaderboardPosition]);
 
   const handleChallengeClick = async (challengeId) => {
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/questions/getAllQuestions?challenge_id=${challengeId}`
-      );
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const firstQuestionId = data[0].question_id;
-        navigate(`/challenges/${challengeId}/${firstQuestionId}`);
+      const response = await apiClient.get(`/questions/getAllQuestions?challenge_id=${challengeId}`);
+      const questions = response.data;
+      if (questions.length > 0) {
+        navigate(`/challenges/${challengeId}/${questions[0].question_id}`);
       } else {
-        notifyError('No questions found for this challenge.');
+        notifyError("No questions found for this challenge.");
       }
     } catch (err) {
-      console.error('Failed to fetch questions:', err);
-      notifyError('Error loading challenge.');
+      console.error("Error fetching questions:", err);
+      notifyError("Failed to load questions for the challenge.");
     }
   };
 
@@ -382,20 +477,25 @@ const Home = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {unlockedBadges.map((badge, index) => (
-                      <div 
-                        key={index}
-                        className="tooltip tooltip-bottom hover:scale-105 transition-transform"
-                        data-tip={`${badge.name}: ${badge.description}`}
-                      >
-                        <div className="badge badge-lg p-4 flex flex-col items-center gap-2 w-full h-full">
-                          <span className="text-3xl">{badge.emoji}</span>
-                          <span className="text-xs font-bold text-center line-clamp-2">
-                            {badge.name}
-                          </span>
+                    {unlockedBadges.map((badge, index) => {
+                      const Icon = badgeIcons[badge.name];
+                      return (
+                        <div
+                          key={index}
+                          className="tooltip tooltip-bottom"
+                          data-tip={`${badge.name}: ${badge.description}`}
+                        >
+                          <div className="badge-container">
+                            <div className="badge-item">
+                              <div className="badge-icon">
+                                  {Icon ? <Icon /> : <span className="text-3xl">{badge.emoji}</span>}
+                              </div>
+                            </div>
+                            <div className="badge-name">{badge.name}</div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

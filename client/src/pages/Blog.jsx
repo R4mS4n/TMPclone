@@ -6,8 +6,7 @@ import { jwtDecode } from "jwt-decode";
 import '../styles/blog.css';
 import { useTheme } from '../contexts/ThemeContext';
 import { formatTimeAgo } from '../utils/timeUtils';
-
-const API_BASE_URL = 'http://localhost:5000';
+import apiClient from '../utils/api';
 
 const Blog = () => {
   console.log('Blog component rendering');
@@ -65,41 +64,29 @@ const Blog = () => {
         setLoading(true);
         console.log('Fetching posts for tab:', activeTab);
         
-        let endpoint = `${API_BASE_URL}/api/posts`;
-        const queryParams = new URLSearchParams();
+        const params = new URLSearchParams();
 
         switch(activeTab) {
           case 'new':
-            queryParams.set('sort_by', 'created_at');
+            params.set('sort_by', 'created_at');
             break;
           case 'top':
-            queryParams.set('sort_by', 'likes');
+            params.set('sort_by', 'likes');
             break;
           case 'hot':
-            queryParams.set('sort_by', 'comments'); // Changed from 'views' to 'comments'
+            params.set('sort_by', 'comments'); // Changed from 'views' to 'comments'
             break;
           case 'closed':
-            queryParams.set('filter_status', 'closed');
+            params.set('filter_status', 'closed');
             break;
           default:
-            queryParams.set('sort_by', 'created_at'); // Default to 'new'
-        }
-        endpoint += `?${queryParams.toString()}`;
-
-        const headers = {};
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
+            params.set('sort_by', 'created_at'); // Default to 'new'
         }
 
-        const response = await fetch(endpoint, { headers });
-        if (!response.ok) {
-          throw new Error('Failed to fetch posts');
-        }
-        const data = await response.json();
+        const response = await apiClient.get('/posts', { params });
         
-        // Remove client-side sorting, rely on server for correct order
-        console.log('Fetched posts (server-sorted):', data);
-        setPosts(data);
+        console.log('Fetched posts (server-sorted):', response.data);
+        setPosts(response.data);
         setError(null);
       } catch (err) {
         console.error('Error fetching posts:', err);
@@ -135,13 +122,9 @@ const Blog = () => {
     const fetchLeaderboard = async () => {
       try {
         setLeaderboardLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/users/honor-leaderboard`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch leaderboard');
-        }
-        const data = await response.json();
-        console.log('Leaderboard data:', data);
-        setLeaderboard(data.leaderboard || []);
+        const response = await apiClient.get('/users/honor-leaderboard');
+        console.log('Leaderboard data:', response.data);
+        setLeaderboard(response.data.leaderboard || []);
       } catch (err) {
         console.error('Error fetching honor leaderboard:', err);
       } finally {
@@ -212,17 +195,8 @@ const Blog = () => {
         return;
       }
       
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/view`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await apiClient.post(`/posts/${postId}/view`);
 
-      if (!response.ok) {
-        throw new Error('Failed to record view');
-      }
     } catch (err) {
       console.error('Error recording view:', err);
     }
@@ -245,31 +219,18 @@ const Blog = () => {
         return;
       }
       
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/like`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await apiClient.post(`/posts/${postId}/like`);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to like post');
-      }
-
-      const data = await response.json();
-      
       // Update local state with new like count and status from API response
       setPosts(prevPosts =>
         prevPosts.map(p => 
           p.post_id === postId
             ? { 
                 ...p, 
-                currentUserHasLiked: data.currentUserHasLiked, // Use status from API
+                currentUserHasLiked: true,
                 interactions: { 
                   ...p.interactions, 
-                  likes: data.count // Use count from API
+                  likes: p.interactions.likes + 1
                 } 
               }
             : p
@@ -281,8 +242,8 @@ const Blog = () => {
       window.dispatchEvent(new CustomEvent('post-like-changed', {
         detail: {
           postId: postId,
-          likes: data.count,
-          currentUserHasLiked: data.currentUserHasLiked,
+          likes: p.interactions.likes,
+          currentUserHasLiked: true,
         }
       }));
 
@@ -374,41 +335,24 @@ const Blog = () => {
   };
 
   const submitReportToApi = async (targetType, targetId, reasonCategory, customReasonText) => {
-    console.log('[submitReportToApi] Called with:', { targetType, targetId, reasonCategory, customReasonText }); // Log inputs
-    const authToken = localStorage.getItem('authToken');
-    if (!authToken) {
-      throw new Error('Authentication required to submit a report.');
-    }
-
-    const body = {
-      action_type: targetType === 'comment' ? 'REPORT_COMMENT' : 'REPORT_POST',
-      reason_category: reasonCategory, // Use the selected category
-      custom_reason_text: customReasonText // Pass the custom text (can be empty or null)
-    };
-
-    if (targetType === 'comment') {
-      body.target_comment_id = targetId;
-    } else { // 'post'
-      body.target_post_id = targetId;
-    }
-
     try {
-      const response = await fetch(`${API_BASE_URL}/api/reports`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `Failed to submit report (${response.status})`);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('User not authenticated for reporting.');
       }
+      const payload = {
+        target_type: targetType,
+        target_id: targetId,
+        reason_category: reasonCategory,
+        custom_reason: customReasonText
+      };
       
-      console.log('Report submitted successfully:', data);
+      await apiClient.post('/reports/create', payload);
+
+      setIsReportModalOpen(false);
+      setReportingTarget(null);
+      
+      console.log('Report submitted successfully');
       // Success message handled by ReportModal
     } catch (error) {
       console.error('Error submitting report:', error);
@@ -423,74 +367,48 @@ const Blog = () => {
   };
 
   const executeDeletePost = async () => {
-    if (!postToDeleteId) return;
-    const authToken = localStorage.getItem('authToken');
-    if (!authToken) {
-      setError('Authentication required to delete posts.');
-      setShowDeletePostConfirmModal(false);
-      return;
-    }
     try {
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postToDeleteId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-        },
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to delete post');
-      }
-      setPosts(prevPosts => prevPosts.filter(p => p.post_id !== postToDeleteId));
-      setError(null);
+      const token = localStorage.getItem('authToken');
+      if (!token || !postToDeleteId) return;
+
+      await apiClient.delete(`/posts/${postToDeleteId}`);
+
+      setPosts(posts.filter(p => p.post_id !== postToDeleteId));
+      setShowDeletePostConfirmModal(false);
+      setPostToDeleteId(null);
     } catch (err) {
       console.error('Error deleting post:', err);
       setError(err.message || 'Could not delete post.');
     }
-    setShowDeletePostConfirmModal(false);
-    setPostToDeleteId(null);
   };
 
   const handleChangePostStatus = async (postId, newStatus) => {
-    const authToken = localStorage.getItem('authToken');
-    if (!authToken) {
-      setError('Authentication required.');
+    // Check user roles before allowing status change
+    if (!currentUserIsAdmin) { // Using the boolean admin flag
+      console.error("Permission denied: Only admins can change post status.");
+      setError("You do not have permission to change post status.");
       return;
     }
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || `Failed to update post status to ${newStatus}`);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('User not authenticated for changing post status.');
       }
-      // Update post in local state
-      setPosts(prevPosts => prevPosts.map(p => 
-        p.post_id === postId ? { ...p, status: newStatus } : p
-      ));
-      // If the active tab is 'closed' and we just activated a post, or vice versa,
-      // it might disappear from the current view. Consider fetching posts again or
-      // conditionally removing from list if it doesn't match activeTab.
+      
+      await apiClient.put(`/posts/${postId}/status`, { status: newStatus });
+
+      setPosts(posts.map(p => p.post_id === postId ? { ...p, status: newStatus } : p));
+      setActivePostMenu(null); // Close menu after action
+      
       if ((activeTab === 'closed' && newStatus !== 'closed') || (activeTab !== 'closed' && newStatus === 'closed')) {
-        // Optionally, remove from current list if it doesn't match the active filter
-        setPosts(prevPosts => prevPosts.filter(p => p.post_id !== postId)); 
-      } else {
-         setPosts(prevPosts => prevPosts.map(p => 
-           p.post_id === postId ? { ...p, status: newStatus } : p
-         ));
+        setPosts(posts.filter(p => p.post_id !== postId));
       }
       setError(null);
     } catch (err) {
       console.error(`Error updating post status to ${newStatus}:`, err);
       setError(err.message || `Could not update post status.`);
     }
-    setActivePostMenu(null); // Close three-dots menu
   };
 
   const handleEditPost = (post) => {

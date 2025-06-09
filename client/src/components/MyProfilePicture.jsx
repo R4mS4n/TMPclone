@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import apiClient from '../utils/api';
 
 const MyProfilePicture = ({ className = '' }) => {
   const [imageUrl, setImageUrl] = useState('');
@@ -7,25 +8,12 @@ const MyProfilePicture = ({ className = '' }) => {
   useEffect(() => {
     const fetchProfilePic = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch('http://localhost:5000/api/users/profile-pic', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const response = await apiClient.get('/users/profile-pic', {
+          responseType: 'blob',
         });
         
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          setImageUrl(url);
-        } else {
-          console.error('Failed to fetch profile picture:', response.status);
-        }
+        const url = URL.createObjectURL(response.data);
+        setImageUrl(url);
       } catch (error) {
         console.error('Fetch error:', error);
       } finally {

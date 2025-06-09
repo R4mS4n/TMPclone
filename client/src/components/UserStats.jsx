@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../contexts/NotificationContext';
 import SearchableDropdown from './SearchableDropdown';
+import apiClient from '../utils/api';
 
 const UserStats = () => {
   const [users, setUsers] = useState([]);
@@ -18,22 +19,11 @@ const UserStats = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch('http://localhost:5000/api/users', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch users');
-        }
-
-        const data = await response.json();
-        setUsers(data.users);
+        const response = await apiClient.get('/users');
+        setUsers(response.data.users);
       } catch (error) {
         console.error('Error fetching users:', error);
-        notifyError(error.message);
+        notifyError(error.response?.data?.message || 'Failed to fetch users');
       } finally {
         setLoading(false);
       }
@@ -48,19 +38,12 @@ const UserStats = () => {
     const fetchUserStats = async () => {
       setStatsLoading(true);
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`http://localhost:5000/api/users/stats/${selectedUserId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch stats');
-        const statsData = await response.json();
+        const response = await apiClient.get(`/users/stats/${selectedUserId}`);
+        const statsData = response.data;
         console.log(statsData);
         setUserStats(statsData.stats);
       } catch (error) {
-        notifyError(error.message);
+        notifyError(error.response?.data?.message || 'Failed to fetch stats');
       } finally {
         setStatsLoading(false);
       }

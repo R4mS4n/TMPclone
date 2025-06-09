@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-
-// Set base URL for API requests if not already set
-if (!axios.defaults.baseURL) {
-  axios.defaults.baseURL = 'http://localhost:5000';
-}
+import apiClient from '../utils/api';
 
 const CreatePostModal = ({ isOpen, onClose, onPostCreated, postToEdit }) => {
   const [title, setTitle] = useState('');
@@ -47,35 +42,22 @@ const CreatePostModal = ({ isOpen, onClose, onPostCreated, postToEdit }) => {
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
       
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setError('You must be logged in');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      };
-
       let response;
       if (isEditMode) {
         console.log('Updating post:', postToEdit.post_id, { title, content, tags: tagArray });
-        response = await axios.put(`/api/posts/${postToEdit.post_id}`, {
+        response = await apiClient.put(`/posts/${postToEdit.post_id}`, {
           title,
           content,
           tags: tagArray
-        }, config);
+        });
         console.log('Post updated successfully:', response.data);
       } else {
         console.log('Creating new post:', { title, content, tags: tagArray });
-        response = await axios.post('/api/posts', {
+        response = await apiClient.post('/posts', {
           title,
           content,
           tags: tagArray
-        }, config);
+        });
         console.log('Post created successfully:', response.data);
       }
       

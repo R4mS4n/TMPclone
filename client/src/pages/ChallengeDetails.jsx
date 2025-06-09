@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
+import apiClient from "../utils/api";
 
 const ChallengeDetails = () => {
   const { id } = useParams();
@@ -21,21 +22,12 @@ const ChallengeDetails = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const challengeRes = await fetch(`http://localhost:5000/api/tournaments/${id}`);
-        if (!challengeRes.ok) throw new Error("Failed to fetch challenge");
-        const challengeData = await challengeRes.json();
+        const challengeRes = await apiClient.get(`/tournaments/${id}`);
+        const challengeData = challengeRes.data;
 
         if (localStorage.getItem("authToken")) {
-          const enrollmentRes = await fetch(
-            `http://localhost:5000/api/tournaments/enrollment/${id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-              },
-            }
-          );
-          const enrollmentData = await enrollmentRes.json();
-          setIsEnrolled(enrollmentData.enrolled);
+          const enrollmentRes = await apiClient.get(`/tournaments/enrollment/${id}`);
+          setIsEnrolled(enrollmentRes.data.enrolled);
         }
 
         setChallenge(challengeData);
@@ -56,24 +48,10 @@ const ChallengeDetails = () => {
       return;
     }
 
-    const endpoint = isEnrolled 
-      ? "http://localhost:5000/api/tournaments/quitTournament" 
-      : "http://localhost:5000/api/tournaments/participateInTournament";
+    const endpoint = isEnrolled ? "/tournaments/quitTournament" : "/tournaments/participateInTournament";
 
     try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-        body: JSON.stringify({ tournament_id: id }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Operation failed");
-      }
+      await apiClient.post(endpoint, { tournament_id: id });
 
       setIsEnrolled(!isEnrolled);
       
@@ -124,11 +102,8 @@ const ChallengeDetails = () => {
     if (!challenge || !challenge.tournament_id) return;
     setIsFetchingQuestions(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/questions/getAllQuestions?challenge_id=${challenge.tournament_id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch questions for the challenge.');
-      }
-      const questions = await response.json();
+      const response = await apiClient.get(`/questions/getAllQuestions?challenge_id=${challenge.tournament_id}`);
+      const questions = response.data;
       if (questions && questions.length > 0) {
         // Assuming questions are sorted or we take the first one as is
         const firstQId = questions[0].question_id;

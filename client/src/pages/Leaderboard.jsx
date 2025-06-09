@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import UserAvatar from '../components/UserAvatar';
 import SearchableDropdown from '../components/SearchableDropdown';
+import apiClient from '../utils/api';
 
 const Leaderboard = () => {
   const { isDark } = useTheme();
@@ -22,18 +23,9 @@ const Leaderboard = () => {
     // Fetch tournaments first
     const fetchTournaments = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch('http://localhost:5000/api/tournaments', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await apiClient.get('/tournaments');
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch tournaments');
-        }
-        
-        const data = await response.json();
+        const data = response.data;
         setTournaments(data);
         
         // Select the first tournament by default if available
@@ -172,14 +164,9 @@ const Leaderboard = () => {
   const fetchTop10Leaderboard = async () => {
     try {
       setTop10Loading(true);
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/leaderboard/10leaderboard', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await apiClient.get('/leaderboard/10leaderboard');
       
-      if (!response.ok) throw new Error('Failed to fetch top 10 leaderboard');
-      
-      const data = await response.json();
+      const data = response.data;
       // Add positions to the data
       const dataWithPositions = data.map((item, index) => ({
         ...item,
@@ -198,21 +185,9 @@ const Leaderboard = () => {
     setTournamentLoading(true);
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
-      
-      // Fetch tournament leaderboard data
-      const response = await fetch(`http://localhost:5000/api/leaderboard/top10ByTournament?tournament_id=${tournamentId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.get(`/leaderboard/top10ByTournament?tournament_id=${tournamentId}`);
 
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch tournament leaderboard');
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log(data);
       // Transform the data to match our format
       const formattedData = data.map((entry, index) => ({
@@ -225,7 +200,6 @@ const Leaderboard = () => {
         tournament_id: tournamentId,
         position: index + 1
       }));
-
 
       setLeaderboardData(formattedData);
       setParticipants(formattedData.length);

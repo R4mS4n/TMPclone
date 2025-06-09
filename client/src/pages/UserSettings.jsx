@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import MyProfilePicture from '../components/MyProfilePicture';
 import { useNotification } from '../contexts/NotificationContext';
+import apiClient from '../utils/api';
 
 const UserSettings = () => {
   const { notifySuccess, notifyError } = useNotification();
@@ -47,41 +48,19 @@ const UserSettings = () => {
       return;
     }
 
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      notifyError('You need to be logged in to upload a profile picture');
-      window.location.href = '/login';
-      return;
-    }
-
     setIsUploading(true);
     const formData = new FormData();
     formData.append('profilePic', file);
 
     try {
-      const response = await fetch('http://localhost:5000/api/users/upload-profile-pic', {
-        method: 'POST',
+      const response = await apiClient.post('/users/upload-profile-pic', formData, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'multipart/form-data',
         },
-        body: formData
       });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('authToken');
-          notifyError('Session expired. Please login again.');
-          window.location.href = '/login';
-          return;
-        }
-
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Upload failed');
-      }
-
-      const data = await response.json();
-      if (data.profilePicUrl) {
-        setPreviewUrl(data.profilePicUrl);
+      if (response.data.profilePicUrl) {
+        setPreviewUrl(response.data.profilePicUrl);
       }
 
       notifySuccess('Profile picture updated successfully!');
@@ -89,12 +68,7 @@ const UserSettings = () => {
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error) {
       console.error('Upload error:', error);
-      notifyError(error.message || 'Failed to upload profile picture');
-
-      if (error.name !== 'TypeError') {
-        localStorage.removeItem('authToken');
-        window.location.href = '/login';
-      }
+      notifyError(error.response?.data?.message || 'Failed to upload profile picture');
     } finally {
       setIsUploading(false);
     }
@@ -104,38 +78,14 @@ const UserSettings = () => {
     e.preventDefault();
     setIsChangingUsername(true);
 
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      notifyError('You need to be logged in to change your username');
-      window.location.href = '/login';
-      return;
-    }
-
     try {
-      const response = await fetch('http://localhost:5000/api/users/change-username', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ newUsername })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update username');
-      }
-
+      await apiClient.put('/users/change-username', { newUsername });
       notifySuccess('Username updated successfully!');
       setNewUsername('');
       window.location.reload();
     } catch (error) {
       console.error('Username change error:', error);
-      notifyError(error.message);
-      if (error.message.includes('Unauthorized')) {
-        localStorage.removeItem('authToken');
-        window.location.href = '/login';
-      }
+      notifyError(error.response?.data?.error || 'Failed to update username');
     } finally {
       setIsChangingUsername(false);
     }
@@ -155,22 +105,9 @@ const UserSettings = () => {
     }
 
     setIsChangingPassword(true);
-    const token = localStorage.getItem('authToken');
 
     try {
-      const response = await fetch('http://localhost:5000/api/users/change-password', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ currentPassword, newPassword })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to change password');
-      }
+      await apiClient.put('/users/change-password', { currentPassword, newPassword });
 
       notifySuccess('Password changed successfully!');
       setCurrentPassword('');
@@ -178,11 +115,7 @@ const UserSettings = () => {
       setConfirmPassword('');
     } catch (error) {
       console.error('Password change error:', error);
-      notifyError(error.message);
-      if (error.message.includes('Unauthorized')) {
-        localStorage.removeItem('authToken');
-        window.location.href = '/login';
-      }
+      notifyError(error.response?.data?.error || 'Failed to change password');
     } finally {
       setIsChangingPassword(false);
     }
@@ -195,33 +128,17 @@ const UserSettings = () => {
     }
 
     setIsDeleting(true);
-    const token = localStorage.getItem('authToken');
 
     try {
-      const response = await fetch('http://localhost:5000/api/users/delete-account', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ password: deletePassword })
+      await apiClient.delete('/users/delete-account', {
+        data: { password: deletePassword },
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete account');
-      }
-
       localStorage.removeItem('authToken');
       notifySuccess('Your account has been deleted');
       window.location.href = '/login';
     } catch (error) {
       console.error('Account deletion error:', error);
-      notifyError(error.message);
-      if (error.message.includes('Unauthorized')) {
-        localStorage.removeItem('authToken');
-        window.location.href = '/login';
-      }
+      notifyError(error.response?.data?.error || 'Failed to delete account');
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);

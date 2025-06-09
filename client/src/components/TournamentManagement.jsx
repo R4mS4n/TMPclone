@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotification } from '../contexts/NotificationContext';
+import apiClient from '../utils/api';
 
 const TournamentManagement = () => {
   const [tournaments, setTournaments] = useState([]);
@@ -29,14 +30,8 @@ const TournamentManagement = () => {
 
   const fetchTournaments = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/tournaments', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch tournaments');
-      const data = await response.json();
-      setTournaments(data);
+      const response = await apiClient.get('/tournaments');
+      setTournaments(response.data);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -55,21 +50,12 @@ const TournamentManagement = () => {
       'Are you sure you want to delete this tournament?', 
       async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/tournaments/${tournamentId}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to delete tournament');
-          }
+          await apiClient.delete(`/tournaments/${tournamentId}`);
 
           await fetchTournaments();
         } catch (error) {
           console.error('Error deleting tournament:', error);
-          notifyError(error.message);
+          notifyError(error.response?.data?.error || 'Failed to delete tournament');
         }
       }
     );
@@ -90,29 +76,17 @@ const TournamentManagement = () => {
     
     try {
       const url = isEditing 
-        ? `http://localhost:5000/api/tournaments/${currentTournament.tournament_id}` 
-        : 'http://localhost:5000/api/tournaments';
+        ? `/tournaments/${currentTournament.tournament_id}` 
+        : '/tournaments';
 
-      const method = isEditing ? 'PUT' : 'POST';
+      const method = isEditing ? 'put' : 'post';
       
       console.log(`Making ${method} request to ${url}`);
       
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify(currentTournament)
-      });
+      const response = await apiClient[method](url, currentTournament);
 
-      let responseData;
-      try {
-        responseData = await response.json();
-        console.log('Response:', responseData);
-      } catch (jsonError) {
-        console.error('Error parsing response:', jsonError);
-      }
+      let responseData = response.data;
+      console.log('Response:', responseData);
 
       if (!response.ok) {
         throw new Error(
@@ -135,24 +109,19 @@ const TournamentManagement = () => {
       setCurrentTournament({ name: '', description: '', date_limit: '' });
     } catch (error) {
       console.error('Error submitting tournament:', error);
-      notifyError(error.message);
+      notifyError(error.response?.data?.error || error.message);
     }
   };
 
   const fetchQuestions = async (tournamentId) => {
     setIsLoadingQuestions(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/questions/getAllQuestions?challenge_id=${tournamentId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
+      const response = await apiClient.get(`/questions/getAllQuestions?challenge_id=${tournamentId}`);
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to fetch questions');
+      const data = response.data;
       setQuestions(data);
     } catch (err) {
-      notifyError(err.message);
+      notifyError(err.response?.data?.error || 'Failed to fetch questions');
     } finally {
       setIsLoadingQuestions(false);
     }
@@ -160,47 +129,31 @@ const TournamentManagement = () => {
 
   const handleUpdateQuestion = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/questions/update/${currentTournament.question_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          content: currentTournament.content,
-          language: currentTournament.language,
-          topic: currentTournament.topic,
-          difficulty: currentTournament.difficulty,
-          test_inputs: currentTournament.test_inputs,
-          expected_outputs: currentTournament.expected_outputs
-        })
+      const response = await apiClient.put(`/questions/update/${currentTournament.question_id}`, {
+        content: currentTournament.content,
+        language: currentTournament.language,
+        topic: currentTournament.topic,
+        difficulty: currentTournament.difficulty,
+        test_inputs: currentTournament.test_inputs,
+        expected_outputs: currentTournament.expected_outputs
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update question');
+      const data = response.data;
       notifySuccess('Question updated successfully!');
       fetchQuestions(currentTournament.tournament_id);
     } catch (err) {
-      notifyError(err.message);
+      notifyError(err.response?.data?.error || 'Failed to update question');
     }
   };
 
   const handleDeleteQuestion = async (question_id) => {
     confirm('Are you sure you want to delete this question?', async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/questions/delete/${question_id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          }
-        });
-
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to delete question');
+        await apiClient.delete(`/questions/delete/${question_id}`);
         notifySuccess('Question deleted successfully!');
         fetchQuestions(currentTournament.tournament_id);
       } catch (err) {
-        notifyError(err.message);
+        notifyError(err.response?.data?.error || 'Failed to delete question');
       }
     });
   };
@@ -290,90 +243,47 @@ const TournamentManagement = () => {
             }
           />
         </div>
-        {currentTournament.question_id ? (
-        <button
-          type="button"
-          className="w-full bg-primary hover:bg-primary-focus text-primary-content px-4 py-2 rounded-md transition-colors"
-          onClick={handleUpdateQuestion}
-        >
-          Update Question
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="w-full bg-secondary hover:bg-secondary-focus text-secondary-content px-4 py-2 rounded-md transition-colors"
-          onClick={async () => {
-            try {
-              const response = await fetch('http://localhost:5000/api/questions/', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                },
-                body: JSON.stringify({
-                  content: currentTournament.content,
-                  language: currentTournament.language,
-                  topic: currentTournament.topic,
-                  difficulty: currentTournament.difficulty,
-                  test_inputs: currentTournament.test_inputs,
-                  expected_outputs: currentTournament.expected_outputs,
-                  tournament_id: currentTournament.tournament_id
-                })
-              });
-
-              const data = await response.json();
-
-              if (!response.ok) {
-                throw new Error(data.error || 'Failed to create question');
-              }
-
-              notifySuccess('Question created successfully!');
-              fetchQuestions(currentTournament.tournament_id);
-              setCurrentTournament(prev => ({
-                ...prev,
-                content: '',
-                language: '',
-                topic: '',
-                difficulty: '',
-                test_inputs: '',
-                expected_outputs: '',
-                question_id: null
-              }));
-            } catch (error) {
-              console.error('Error creating question:', error);
-              notifyError(error.message);
-            }
-          }}
-        >
-          Submit Question
-        </button>
-        
-      )}
-      {currentTournament.question_id && (
-        <button
-          type="button"
-          className="w-full mt-2 bg-base-300 hover:bg-base-200 text-base-content px-4 py-2 rounded-md transition-colors"
-          onClick={() => {
-            setCurrentTournament(prev => ({
-              ...prev,
-              content: '',
-              language: '',
-              topic: '',
-              difficulty: '',
-              test_inputs: '',
-              expected_outputs: '',
-              question_id: null
-            }));
-            notify("Edit cancelled. You're now creating a new question.");
-          }}
-        >
-          Cancel Edit
-        </button>
-      )}
+        <div>
+          <button
+            onClick={currentTournament.question_id ? handleUpdateQuestion : handleAddQuestion}
+            className={primaryButtonStyle}
+          >
+            {currentTournament.question_id ? 'Update Question' : 'Add Question'}
+          </button>
+        </div>
       </div>
     );
   };
 
+  const handleAddQuestion = async () => {
+    try {
+      const response = await apiClient.post('/questions/', {
+        tournament_id: currentTournament.tournament_id,
+        content: currentTournament.content,
+        language: currentTournament.language,
+        topic: currentTournament.topic,
+        difficulty: currentTournament.difficulty,
+        test_inputs: currentTournament.test_inputs,
+        expected_outputs: currentTournament.expected_outputs,
+      });
+
+      const data = response.data;
+      notifySuccess('Question added successfully!');
+      fetchQuestions(currentTournament.tournament_id);
+      // Reset question fields
+      setCurrentTournament({
+        ...currentTournament,
+        content: '',
+        language: '',
+        topic: '',
+        difficulty: '',
+        test_inputs: '',
+        expected_outputs: ''
+      });
+    } catch (err) {
+      notifyError(err.response?.data?.error || 'Failed to add question');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-base-100 p-6 text-base-content">

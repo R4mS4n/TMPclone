@@ -18,20 +18,20 @@ const analyzeCode = async (req, res) => {
     }
 
     const prompt = `
-Eres un experto en programación. Analiza el siguiente código y sugiere:
-- Mejoras de estilo
-- Buenas prácticas
-- Correcciones si hay errores
-- Sugerencias de código
+You are a programming expert. Analyze the following code and suggest:
+- Style improvements
+- Best practices
+- Corrections if there are errors
+- Code suggestions
 
-${questionContent ? `Contexto de la pregunta: ${questionContent}` : ''}
+${questionContent ? `Context of the question: ${questionContent}` : ''}
 
-Código:
-\u0060\u0060\u0060
+Code:
+\`\`\`
 ${code}
-\u0060\u0060\u0060
+\`\`\`
 
-  Sin negritas o cursiva.
+  No bold or italics.
 `;
 
     console.log('[ANALYZE] Prompt generado:', prompt);

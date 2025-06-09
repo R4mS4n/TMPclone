@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import fondo from "../cimages/TechM.jpg";
 import ThemeToggle from "../components/ThemeToggle";
 import { useTheme } from "../contexts/ThemeContext";
+import apiClient from "../utils/api";
 
 export default function Login({ onLogin }) {
   const [email, setEmail]       = useState("");
@@ -31,32 +32,18 @@ export default function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // 🔑 Aquí enviamos `{ email, password }`
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // guardamos el token y notificamos al padre
-        localStorage.setItem("authToken", data.token);
-        const meRes = await fetch("http://localhost:5000/api/auth/me", {
-          headers: { Authorization: `Bearer ${data.token}` }
-        });
-        const userData = await meRes.json();
-        setCurrentUser(userData);
-        onLogin?.();
-        navigate("/home");
-        console.log("Login successful:", userData);
-      } else {
-        // leemos data.error (según tu backend) o data.message
-        setError(data.error || data.message || "Login failed. Please try again.");
-      }
+      const response = await apiClient.post("/auth/login", { email, password });
+      
+      localStorage.setItem("authToken", response.data.token);
+      
+      const meRes = await apiClient.get("/auth/me");
+      
+      setCurrentUser(meRes.data);
+      onLogin?.();
+      navigate("/home");
+      console.log("Login successful:", meRes.data);
     } catch (err) {
-      setError(`Network error. Please try again. Details: ${err.message}`);
+      setError(err.response?.data?.error || err.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -152,7 +139,7 @@ export default function Login({ onLogin }) {
                   Remember me
                 </span>
               </label>
-              <a href="/forgotpassword" className={`font-medium underline ${theme === 'TMPdark' ? 'link link-error' : 'text-white hover:text-white'}`}>
+              <a href="/forgot-password" className={`font-medium underline ${theme === 'TMPdark' ? 'link link-error' : 'text-white hover:text-white'}`}>
                 Have you forgotten your password?
               </a>
             </div>

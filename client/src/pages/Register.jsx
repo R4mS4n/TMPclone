@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import fondo from "../cimages/Bg-geometry.jpg";
 import ThemeToggle from "../components/ThemeToggle";
 import { useTheme } from "../contexts/ThemeContext";
+import apiClient from "../utils/api";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -26,34 +27,21 @@ const Register = () => {
     setMessage({ text: "", isError: false });
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      const response = await apiClient.post("/auth/register", formData);
+
+      localStorage.setItem("authToken", response.data.token);
+      setMessage({
+        text: "Registration successful! Redirecting...",
+        isError: false,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem("authToken", data.token);
-        setMessage({
-          text: "Registration successful! Redirecting...",
-          isError: false,
-        });
-
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
-      } else {
-        setMessage({
-          text: data.message || "Registration failed",
-          isError: true,
-        });
-      }
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
     } catch (error) {
       console.error("Registration error:", error);
       setMessage({
-        text: "Network error. Please try again.",
+        text: error.response?.data?.message || "Registration failed",
         isError: true,
       });
     } finally {

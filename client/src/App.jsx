@@ -13,13 +13,14 @@ import ChallengeQuestion from "./pages/ChallengeQuestion";
 import Leaderboard from "./pages/Leaderboard";
 import Blog from "./pages/Blog";
 import Admin from "./pages/Admin";
-import ForgotPassword from "./pages/ForgotPassword";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import { verifyAdminStatus } from "./utils/adminHelper";
 import { AuthProvider } from './contexts/AuthContext';
 import UserSettings from "./pages/UserSettings";
+import apiClient from "./utils/api";
 
 const AdminRoute = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -54,8 +55,6 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-
-
 const App = () => {
   const [authState, setAuthState] = useState({
     isAuthenticated: false,
@@ -74,16 +73,14 @@ const App = () => {
         // Optimistically set as authenticated while we verify
         setAuthState({ isAuthenticated: true, isLoading: true });
         
-        const response = await fetch('http://localhost:5000/api/auth/me', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await apiClient.get('/auth/me');
 
         setAuthState({
-          isAuthenticated: response.ok,
+          isAuthenticated: response.status === 200,
           isLoading: false
         });
 
-        if (!response.ok) {
+        if (response.status !== 200) {
           localStorage.removeItem("authToken");
         }
       } catch (error) {
@@ -112,7 +109,7 @@ const App = () => {
       {/* Public routes */}
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login onLogin={handleLogin} />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Protected routes with Layout */}

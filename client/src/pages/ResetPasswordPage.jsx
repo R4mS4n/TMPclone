@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import apiClient from '../utils/api';
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
@@ -26,30 +27,17 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword: password }),
-      });
-
-      const data = await response.json();
+      await apiClient.post('/auth/reset-password', { token, newPassword: password });
       
-      if (response.ok) {
-        setMessage({ 
-          text: 'Password updated successfully! Redirecting to login...', 
-          isError: false 
-        });
-        setTimeout(() => navigate('/login'), 2000);
-      } else {
-        setMessage({ 
-          text: data.message || 'Password reset failed. The link may have expired.', 
-          isError: true 
-        });
-      }
+      setMessage({ 
+        text: 'Password updated successfully! Redirecting to login...', 
+        isError: false 
+      });
+      setTimeout(() => navigate('/login'), 2000);
     } catch (error) {
       console.log(error);
       setMessage({ 
-        text: 'Network error. Please try again.', 
+        text: error.response?.data?.message || 'Password reset failed. The link may have expired.', 
         isError: true 
       });
     } finally {

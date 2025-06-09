@@ -1,0 +1,65 @@
+/* Custom Badge Styles */
+.badge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  perspective: 1000px;
+}
+
+.badge-item {
+  position: relative;
+  width: 100px;
+  height: 115px; /* Aspect ratio for a hexagon */
+  background: linear-gradient(145deg, #383838, #202020);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.badge-item::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  z-index: 1;
+}
+
+.badge-item:hover {
+  transform: rotateY(10deg) rotateX(5deg) scale(1.1);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+}
+
+.badge-item:hover .badge-icon {
+  transform: scale(1.1);
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
+  color: #ff6b81; /* Even brighter on hover */
+}
+
+.badge-icon {
+  position: relative;
+  z-index: 2;
+  width: 45px; /* Slightly larger */
+  height: 45px; /* Slightly larger */
+  color: #FF4154; /* Brighter, theme-aligned red */
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+  transition: all 0.3s ease;
+}
+
+.badge-name {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #e2e8f0;
+  max-width: 100px;
+  line-height: 1.2;
+} 

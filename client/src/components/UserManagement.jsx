@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotification } from '../contexts/NotificationContext';
 import ManageUserPenaltiesSidebar from './admin/ManageUserPenaltiesSidebar';
-
-const API_ADMIN_BASE = "http://localhost:5000/api/admin/users";
-const API_USERS_BASE = "http://localhost:5000/api/users";
+import apiClient from '../utils/api';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -33,18 +31,11 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_ADMIN_BASE}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: 'Error listing users and failed to parse error response' }));
-        throw new Error(errorData.error || 'Error listing users');
-      }
-      const data = await res.json();
-      setUsers(data.users || []);
+      const res = await apiClient.get('/admin/users');
+      setUsers(res.data.users || []);
     } catch (err) {
       console.error('fetchUsers error:', err);
-      notifyError(err.message);
+      notifyError(err.response?.data?.error || 'Error listing users');
       setUsers([]);
     } finally {
       setLoading(false);
@@ -53,14 +44,8 @@ const UserManagement = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const res = await fetch(`${API_USERS_BASE}/me`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: 'Not authorized and failed to parse error response' }));
-        throw new Error(errorData.error || 'Not authorized to fetch current user details');
-      }
-      const data = await res.json();
+      const res = await apiClient.get('/users/me');
+      const data = res.data;
       if (data && data.user) {
         setCurrentUser(data.user);
       } else if (data && !data.user && Object.keys(data).length > 0 && data.user_id) {
@@ -70,7 +55,7 @@ const UserManagement = () => {
       }
     } catch (err) {
       console.error('fetchCurrentUser error:', err);
-      notifyError('Could not load your session details: ' + err.message);
+      notifyError('Could not load your session details: ' + (err.response?.data?.error || err.message));
       setCurrentUser(null);
     }
   };
