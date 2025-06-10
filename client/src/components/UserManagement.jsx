@@ -69,21 +69,12 @@ const UserManagement = () => {
   const handleDelete = async (id) => {
     confirm('Are you sure you want to delete this user? This action is irreversible.', async () => {
       try {
-        const res = await fetch(`${API_ADMIN_BASE}/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          }
-        });
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({error: 'Failed to delete user and parse error message'}));
-          throw new Error(errorData.error || 'Could not delete user');
-        }
+        await apiClient.delete(`/admin/users/${id}`);
         notifySuccess('User deleted successfully');
         await fetchUsers();
       } catch (err) {
         console.error('handleDelete error:', err);
-        notifyError(err.message);
+        notifyError(err.response?.data?.error || 'Could not delete user');
       }
     });
   };
@@ -94,28 +85,16 @@ const UserManagement = () => {
       return;
     }
     try {
-      const res = await fetch(`${API_ADMIN_BASE}/${editingUser.user_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          username: editingUser.username
-        })
+      await apiClient.put(`/admin/users/${editingUser.user_id}`, {
+        username: editingUser.username
       });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({error: 'Failed to save user and parse error message'}));
-        throw new Error(errData.error || 'Error saving user details');
-      }
 
       notifySuccess('User updated successfully');
       setShowUserModal(false);
       await fetchUsers();
     } catch (err) {
       console.error('handleSubmit error for user edit:', err);
-      notifyError(err.message);
+      notifyError(err.response?.data?.error || 'Error saving user details');
     }
   };
 
