@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { formatTimeAgo } from '../utils/timeUtils';
 import { jwtDecode } from "jwt-decode";
+import ProfilePicture from './ProfilePicture';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -524,18 +525,16 @@ const PostDetailModal = ({ isOpen, onClose, postId, handleOpenReportModal }) => 
               </div>
               
               <div className="flex items-center mb-4">
-                <div className="avatar">
-                  <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center mr-3 overflow-hidden">
-                    {post.user.profile_pic ? (
-                      <img src={post.user.profile_pic} alt={post.user.username} className="w-full h-full object-cover" />
-                    ) : (
-                      post.user.username.charAt(0).toUpperCase()
-                    )}
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center">
+                    <ProfilePicture userId={post?.user?.user_id} username={post?.user?.username} className="w-12 h-12" />
                   </div>
                 </div>
-                <div>
-                  <h3 className="font-medium text-base-content">{post.user.username}</h3>
-                  <p className="text-sm text-base-content/70">{formatTimeAgo(post.created_at)}</p>
+                <div className="flex-grow ml-4">
+                  <div className="flex items-center">
+                    <h3 className="font-medium text-base-content">{post.user.username}</h3>
+                    <p className="text-sm text-base-content/70">{formatTimeAgo(post.created_at)}</p>
+                  </div>
                 </div>
               </div>
               
@@ -600,17 +599,13 @@ const PostDetailModal = ({ isOpen, onClose, postId, handleOpenReportModal }) => 
                   return (
                   <div key={comment.comment_id} className="border-b border-base-200 pb-4">
                     <div className="flex items-start mb-2">
-                      <div className="avatar">
-                        <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center mr-3 overflow-hidden">
-                          {comment.user.profile_pic ? (
-                            <img src={comment.user.profile_pic} alt={comment.user.username} className="w-full h-full object-cover" />
-                          ) : (
-                            comment.user.username.charAt(0).toUpperCase()
-                          )}
+                      <div className="flex-shrink-0 mr-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
+                          <ProfilePicture userId={comment?.user?.user_id} username={comment?.user?.username} className="w-10 h-10" />
                         </div>
                       </div>
                       <div className="flex-1">
-                        <div className="flex justify-between items-start">
+                        <div className="flex items-center justify-between">
                           <div>
                             <h4 className="font-medium text-base-content">{comment.user.username}</h4>
                             <p className="text-xs text-base-content/70">

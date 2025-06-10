@@ -28,6 +28,29 @@ const TournamentManagement = () => {
     fetchTournaments();
   }, []);
 
+  const formatDateTimeForDB = (dateTimeStr) => {
+    if (!dateTimeStr) return null;
+    try {
+      // Create a date object. It will be in the local timezone.
+      const date = new Date(dateTimeStr);
+      // If the date is invalid, return null
+      if (isNaN(date.getTime())) return null;
+
+      // Manually build the 'YYYY-MM-DD HH:MM:SS' string
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    } catch (e) {
+      console.error("Could not format date:", dateTimeStr, e);
+      return null;
+    }
+  };
+
   const fetchTournaments = async () => {
     try {
       const response = await apiClient.get('/tournaments');
@@ -81,19 +104,17 @@ const TournamentManagement = () => {
 
       const method = isEditing ? 'put' : 'post';
       
+      const tournamentData = {
+        ...currentTournament,
+        date_limit: formatDateTimeForDB(currentTournament.date_limit)
+      };
+
       console.log(`Making ${method} request to ${url}`);
       
-      const response = await apiClient[method](url, currentTournament);
+      const response = await apiClient[method](url, tournamentData);
 
       let responseData = response.data;
       console.log('Response:', responseData);
-
-      if (!response.ok) {
-        throw new Error(
-          (responseData && responseData.error) || 
-          (isEditing ? 'Failed to update tournament' : 'Failed to create tournament')
-        );
-      }
       
       // Successfully saved, now update the UI
       console.log('Tournament saved successfully');

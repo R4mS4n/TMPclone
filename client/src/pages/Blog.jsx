@@ -7,6 +7,7 @@ import '../styles/blog.css';
 import { useTheme } from '../contexts/ThemeContext';
 import { formatTimeAgo } from '../utils/timeUtils';
 import apiClient from '../utils/api';
+import ProfilePicture from '../components/ProfilePicture';
 
 const Blog = () => {
   console.log('Blog component rendering');
@@ -221,16 +222,19 @@ const Blog = () => {
       
       await apiClient.post(`/posts/${postId}/like`);
 
+      const wasLiked = post.currentUserHasLiked;
+      const newLikesCount = wasLiked ? post.interactions.likes - 1 : post.interactions.likes + 1;
+
       // Update local state with new like count and status from API response
       setPosts(prevPosts =>
         prevPosts.map(p => 
           p.post_id === postId
             ? { 
                 ...p, 
-                currentUserHasLiked: true,
+                currentUserHasLiked: !wasLiked,
                 interactions: { 
                   ...p.interactions, 
-                  likes: p.interactions.likes + 1
+                  likes: newLikesCount
                 } 
               }
             : p
@@ -242,53 +246,36 @@ const Blog = () => {
       window.dispatchEvent(new CustomEvent('post-like-changed', {
         detail: {
           postId: postId,
-          likes: p.interactions.likes,
-          currentUserHasLiked: true,
+          likes: newLikesCount,
+          currentUserHasLiked: !wasLiked,
         }
       }));
 
     } catch (err) {
       console.error('Error liking post:', err);
-      setError(err.message || 'Failed to like post');
+      setError(err.message || 'Failed to like the post. Please try again.');
     }
   };
 
   // Create a function to close the post detail modal and refresh posts
   const handleClosePostDetail = () => {
     setIsPostDetailModalOpen(false);
+    setSelectedPostId(null);
     
-    // Refresh the posts to get updated view counts and like statuses
     const fetchPostsOnClose = async () => {
       try {
-        console.log('[BlogPage] handleClosePostDetail: Fetching posts with status:', activeTab);
-        let endpoint = `${API_BASE_URL}/api/posts`;
-        const queryParams = new URLSearchParams();
-        if (activeTab && activeTab !== 'all') { // Assuming 'all' is a default or handled by backend if no status
-            queryParams.set('status', activeTab);
+        const params = new URLSearchParams();
+        switch(activeTab) {
+          case 'new': params.set('sort_by', 'created_at'); break;
+          case 'top': params.set('sort_by', 'likes'); break;
+          case 'hot': params.set('sort_by', 'comments'); break;
+          case 'closed': params.set('filter_status', 'closed'); break;
+          default: params.set('sort_by', 'created_at');
         }
-        // Add other params like sort if needed, consistent with main fetch
-        // For simplicity, this example just uses status. Adjust if your main fetch uses more for the current activeTab.
-        endpoint += `?${queryParams.toString()}`;
-
-        const token = localStorage.getItem('authToken');
-        const headers = {};
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(endpoint, { headers });
-        if (!response.ok) {
-          throw new Error('Failed to fetch posts on modal close');
-        }
-        const data = await response.json();
-        // It might be better to merge this data or update based on activeTab sorting 
-        // as the main fetchPosts does, but for now, direct set to ensure fresh like status.
-        console.log('[BlogPage] handleClosePostDetail: Fetched posts:', data.length);
-        setPosts(data); 
-        setError(null);
+        const response = await apiClient.get('/posts', { params });
+        setPosts(response.data);
       } catch (err) {
-        console.error('Error fetching posts on modal close:', err);
-        // Potentially set an error state if needed
+        console.error('Error refetching posts on modal close:', err);
       }
     };
     
@@ -302,16 +289,10 @@ const Blog = () => {
 
   // Render badge rank for leaderboard
   const renderRankBadge = (index) => {
-    switch(index) {
-      case 0:
-        return <div className="text-yellow-500 mr-2 w-6 text-center">🏆</div>;
-      case 1:
-        return <div className="text-gray-400 mr-2 w-6 text-center">🥈</div>;
-      case 2:
-        return <div className="text-amber-700 mr-2 w-6 text-center">🥉</div>;
-      default:
-        return <div className="text-gray-300 mr-2 w-6 text-center">{index + 1}</div>;
-    }
+    if (index === 0) return '🥇';
+    if (index === 1) return '🥈';
+    if (index === 2) return '🥉';
+    return null;
   };
 
   // Render honor badge class based on rank
@@ -578,13 +559,7 @@ const Blog = () => {
                       <div className="flex items-center mb-2">
                           <div className="avatar">
                             <div className="w-10 h-10 rounded-full bg-primary text-primary-content overflow-hidden mr-3">
-                              {post.user.profile_pic ? (
-                                <img src={post.user.profile_pic} alt={post.user.username} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-primary-content">
-                                  {post.user.username.charAt(0).toUpperCase()}
-                                </div>
-                              )}
+                              <ProfilePicture userId={post.user.user_id} username={post.user.username} className="w-full h-full object-cover" />
                             </div>
                           </div>
                           <div>
@@ -682,13 +657,8 @@ const Blog = () => {
                 <div className="space-y-3">
                   {leaderboard.map((user, index) => (
                     <div key={user.user_id} className="flex items-center">
-                      {renderRankBadge(index)}
                       <div className={`${getHonorBadgeClass(index)} mr-2`}>
-                        {user.profile_pic ? (
-                          <img src={user.profile_pic} alt={user.username} className="w-full h-full object-cover" />
-                        ) : (
-                          getUserInitial(user.username)
-                        )}
+                        <ProfilePicture userId={user.user_id} username={user.username} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-base-content truncate block">{user.username}</span>
