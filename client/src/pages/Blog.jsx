@@ -195,8 +195,14 @@ const Blog = () => {
 
   console.log('Filtered posts:', filteredPosts);
 
-  const handlePostCreated = (newPost) => {
-    setPosts([newPost, ...posts]);
+  const handlePostCreated = (submittedPost) => {
+    const isUpdate = posts.some(p => p.post_id === submittedPost.post_id);
+
+    if (isUpdate) {
+      setPosts(posts.map(p => (p.post_id === submittedPost.post_id ? submittedPost : p)));
+    } else {
+      setPosts([submittedPost, ...posts]);
+    }
   };
 
   const openPostDetail = async (postId) => {
