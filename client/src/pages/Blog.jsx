@@ -30,6 +30,7 @@ const Blog = () => {
   const [showDeletePostConfirmModal, setShowDeletePostConfirmModal] = useState(false);
   const [postToDeleteId, setPostToDeleteId] = useState(null);
   const [postToEdit, setPostToEdit] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   
   useTheme();
 
@@ -336,29 +337,31 @@ const Blog = () => {
   };
 
   const submitReportToApi = async (targetType, targetId, reasonCategory, customReasonText) => {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('User not authenticated for reporting.');
-      }
-      const payload = {
-        target_type: targetType,
-        target_id: targetId,
-        reason_category: reasonCategory,
-        custom_reason: customReasonText
-      };
-      
-      // Explicitly pass payload as data
-      await apiClient.post('/reports/create', payload);
+    console.log('[submitReportToApi]', { targetType, targetId, reasonCategory, customReasonText });
 
+    // Construct the payload according to backend expectations
+    const payload = {
+      action_type: `REPORT_${targetType.toUpperCase()}`, // e.g., 'REPORT_POST'
+      reason_category: reasonCategory,
+      custom_reason_text: customReasonText
+    };
+
+    if (targetType === 'post') {
+      payload.target_post_id = targetId;
+    } else if (targetType === 'comment') {
+      payload.target_comment_id = targetId;
+    }
+
+    try {
+      // Corrected URL and payload structure
+      await apiClient.post('/reports', payload);
+      
+      setSuccessMessage('Report submitted successfully. Thank you for helping keep our community safe.');
       setIsReportModalOpen(false);
       setReportingTarget(null);
-      
-      console.log('Report submitted successfully');
-      // Success message handled by ReportModal
-    } catch (error) {
-      console.error('Error submitting report:', error);
-      throw error; // Re-throw to be caught by ReportModal
+    } catch (err) {
+      console.error('Error submitting report:', err);
+      setError(err.message || 'Failed to submit report. Please try again later.');
     }
   };
 
