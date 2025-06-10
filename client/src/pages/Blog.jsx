@@ -348,6 +348,7 @@ const Blog = () => {
         custom_reason: customReasonText
       };
       
+      // Explicitly pass payload as data
       await apiClient.post('/reports/create', payload);
 
       setIsReportModalOpen(false);
