@@ -21,7 +21,7 @@ const app = express();
 
 // Configuración CORS
 app.use(cors({
-  origin:      "https://tm-pclone.vercel.app/",
+  origin:      "https://tm-pclone.vercel.app",
   credentials: true,
   methods:     ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
