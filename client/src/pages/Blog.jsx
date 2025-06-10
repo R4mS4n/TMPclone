@@ -35,27 +35,40 @@ const Blog = () => {
 
   // Determine current user ID and roles from token
   let currentUserId = null;
-  let currentUserIsAdmin = false; // Changed from currentUserRoles to a boolean
+  let currentUserIsAdmin = false;
   const token = localStorage.getItem('authToken');
   if (token) {
     try {
       const decodedToken = jwtDecode(token);
-      currentUserId = decodedToken.sub; 
-      // Check the singular 'role' claim and assume role > 0 is admin
-      // Adjust this logic if your admin role has a different specific value (e.g., role === 1, or role === 'admin_role_value')
-      if (decodedToken.role && Number(decodedToken.role) > 0) { 
-        currentUserIsAdmin = true;
+      if (decodedToken) {
+        let userIdFromToken = null;
+        if (decodedToken.id) { // Check for 'id' claim
+          userIdFromToken = decodedToken.id;
+        } else if (decodedToken.sub) { // Check for 'sub' claim as a fallback
+          userIdFromToken = decodedToken.sub;
+        }
+
+        if (userIdFromToken !== null) {
+          const numericUserId = parseInt(userIdFromToken, 10);
+          if (!isNaN(numericUserId)) {
+            currentUserId = numericUserId;
+          } else {
+            console.error("User ID from token is not a valid number:", userIdFromToken);
+          }
+        }
+        
+        // Check for admin role
+        if (decodedToken.role && Number(decodedToken.role) > 0) { 
+          currentUserIsAdmin = true;
+        }
       }
     } catch (error) {
       console.error("Error decoding token:", error);
-      // Check if the error is due to token expiration
       if (error.name === 'InvalidTokenError' || (error.message && error.message.includes('expired'))) {
         setError('Token expired, please log in again.');
       } else {
         setError('Error decoding token. Please try logging in again.');
       }
-      // It might be good to also clear the invalid token from localStorage here
-      // localStorage.removeItem('authToken'); 
     }
   }
 
@@ -476,102 +489,65 @@ const Blog = () => {
                     onClick={() => openPostDetail(post.post_id)}
                   >
                     <div className="absolute top-2 right-2 z-20">
-                      <div className="relative">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setActivePostMenu(activePostMenu === post.post_id ? null : post.post_id); }}
-                          className="p-1.5 rounded-full hover:bg-base-300 dark:hover:bg-base-200 transition-colors text-base-content/70 hover:text-base-content"
-                          title="Post options"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                          </svg>
-                        </button>
-                        {activePostMenu === post.post_id && (
-                          <div 
-                            className="absolute right-0 mt-2 w-48 bg-base-100 rounded-md shadow-xl py-1 z-30 dark:bg-base-300 border dark:border-base-200 ring-1 ring-black ring-opacity-5"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {post.user_id !== currentUserId && (
-                              <button
-                                onClick={(e) => { handleOpenReportModal('post', post.post_id); }}
-                                className="flex items-center w-full text-left px-4 py-2 text-sm text-base-content hover:bg-base-200 dark:hover:bg-base-100"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 mr-2">
-                                  <path fillRule="evenodd" d="M3 2.25a.75.75 0 0 1 .75.75v.54l1.838-.46a9.75 9.75 0 0 1 6.725.738l.108.054A8.25 8.25 0 0 0 18 4.524l3.11-.732a.75.75 0 0 1 .917.81 47.784 47.784 0 0 0 .005 10.337.75.75 0 0 1-.574.812l-3.114.733a9.75 9.75 0 0 1-6.594-.77l-.108-.054a8.25 8.25 0 0 0-5.69-.625l-2.202.55V21a.75.75 0 0 1-1.5 0V3A.75.75 0 0 1 3 2.25Z" clipRule="evenodd" />
-                                </svg>
-                                Report Post
-                              </button>
-                            )}
-                            {post.user_id === currentUserId && (
-                              <button
-                                onClick={(e) => { handleEditPost(post); }}
-                                className="flex items-center w-full text-left px-4 py-2 text-sm text-base-content hover:bg-base-200 dark:hover:bg-base-100"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                  <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                                  <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
-                                </svg>
-                                Edit Post
-                              </button>
-                            )}
-                            {post.user_id === currentUserId && (
-                              <button
-                                onClick={(e) => { handleDeletePost(post.post_id); }}
-                                className="flex items-center w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-base-200 dark:hover:bg-base-100"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                                Delete Post
-                              </button>
-                            )}
-                            {/* Admin actions: Close/Reopen Post */}
-                            {currentUserIsAdmin && (
-                              <>
-                                <div className="my-1 border-t border-base-200 dark:border-base-100"></div> {/* Separator */}
-                                {post.status !== 'closed' ? (
-                                  <button
-                                    onClick={(e) => { handleChangePostStatus(post.post_id, 'closed'); }}
-                                    className="flex items-center w-full text-left px-4 py-2 text-sm text-orange-500 hover:bg-base-200 dark:hover:bg-base-100"
-                                  >
-                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                       <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                     </svg>
-                                    Close Post
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={(e) => { handleChangePostStatus(post.post_id, 'active'); }}
-                                    className="flex items-center w-full text-left px-4 py-2 text-sm text-green-500 hover:bg-base-200 dark:hover:bg-base-100"
-                                  >
-                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                       <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm0 5h.01M10 10a2 2 0 100 4 2 2 0 000-4z" />
-                                     </svg>
-                                    Reopen Post
-                                  </button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        )}
+                      <div className="flex-shrink-0 relative">
                       </div>
                     </div>
                     <div className="card-body p-4">
-                      <div className="flex items-center mb-2">
-                          <div className="avatar">
-                            <div className="w-10 h-10 rounded-full bg-primary text-primary-content overflow-hidden mr-3">
-                              <ProfilePicture userId={post.user.user_id} username={post.user.username} className="w-full h-full object-cover" />
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0 relative">
+                            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer">
+                               <ProfilePicture userId={post.user?.user_id} username={post.user?.username} className="w-12 h-12" />
                             </div>
+                            {post.user_role > 0 && (
+                              <div className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center border-2 border-base-100" title="Admin">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 1.944A1.944 1.944 0 008.056 0H2.944A1.944 1.944 0 001 1.944v5.112A1.944 1.944 0 002.944 9H8.056A1.944 1.944 0 0010 7.056V1.944zM18.056 0H12.944A1.944 1.944 0 0011 1.944v5.112A1.944 1.944 0 0012.944 9h5.112A1.944 1.944 0 0020 7.056V1.944A1.944 1.944 0 0018.056 0zM10 12.944A1.944 1.944 0 008.056 11H2.944A1.944 1.944 0 001 12.944v5.112A1.944 1.944 0 002.944 20h5.112A1.944 1.944 0 0010 18.056v-5.112zM18.056 11H12.944A1.944 1.944 0 0011 12.944v5.112A1.944 1.944 0 0012.944 20h5.112A1.944 1.944 0 0020 18.056v-5.112A1.944 1.944 0 0018.056 11z" clipRule="evenodd" /></svg>
+                              </div>
+                            )}
                           </div>
                           <div className="flex-grow min-w-0">
-                            <p className="font-semibold truncate">{post.user.username}</p>
+                            <p className="font-semibold truncate">{post.user?.username}</p>
                             <p className="text-sm text-base-content/70">{formatTimeAgo(post.created_at)}</p>
                           </div>
                         </div>
-                      
-                      <h2 className="text-xl font-bold text-base-content group-hover:text-primary transition-colors duration-200 mb-2">
-                        {post.title}
-                      </h2>
+                        <div className="relative">
+                          <button onClick={(e) => { e.stopPropagation(); setActivePostMenu(activePostMenu === post.post_id ? null : post.post_id); }} className="p-2 rounded-full hover:bg-base-300">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+                          </button>
+                          <AnimatePresence>
+                            {activePostMenu === post.post_id && (
+                              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute right-0 mt-2 w-48 bg-base-200 rounded-md shadow-lg z-20" onClick={(e) => e.stopPropagation()}>
+                                <ul className="py-1">
+                                  {currentUserId && Number(currentUserId) === post.user?.user_id && (
+                                    <>
+                                      <li>
+                                        <button onClick={() => { handleEditPost(post); setActivePostMenu(null); }} className="flex items-center w-full text-left px-4 py-2 text-sm hover:bg-base-300">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                                          Edit Post
+                                        </button>
+                                      </li>
+                                      <li>
+                                        <button onClick={() => { handleDeletePost(post.post_id); setActivePostMenu(null); }} className="flex items-center w-full text-left px-4 py-2 text-sm hover:bg-base-300 text-error">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                          Delete Post
+                                        </button>
+                                      </li>
+                                    </>
+                                  )}
+                                  <li>
+                                    <button onClick={() => { handleOpenReportModal('post', post.post_id); setActivePostMenu(null); }} className="flex items-center w-full text-left px-4 py-2 text-sm hover:bg-base-300">
+                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 mr-2"><path fillRule="evenodd" d="M3 2.25a.75.75 0 0 1 .75.75v.54l1.838-.46a9.75 9.75 0 0 1 6.725.738l.108.054A8.25 8.25 0 0 0 18 4.524l3.11-.732a.75.75 0 0 1 .917.81 47.784 47.784 0 0 0 .005 10.337.75.75 0 0 1-.574.812l-3.114.733a9.75 9.75 0 0 1-6.594-.77l-.108-.054a8.25 8.25 0 0 0-5.69-.625l-2.202.55V21a.75.75 0 0 1-1.5 0V3A.75.75 0 0 1 3 2.25Z" clipRule="evenodd"></path></svg>
+                                      Report Post
+                                    </button>
+                                  </li>
+                                </ul>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                      <h2 className="card-title">{post.title}</h2>
+                      <p className="truncate">{post.content}</p>
                       
                       <div className="flex flex-wrap gap-2 mb-4">
                         {post.tags.map((tag, index) => (
