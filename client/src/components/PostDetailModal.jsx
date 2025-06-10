@@ -3,7 +3,7 @@ import { formatTimeAgo } from '../utils/timeUtils';
 import { jwtDecode } from "jwt-decode";
 import ProfilePicture from './ProfilePicture';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://tmp-9643.onrender.com';
 
 const PostDetailModal = ({ isOpen, onClose, postId, handleOpenReportModal }) => {
   const [post, setPost] = useState(null);

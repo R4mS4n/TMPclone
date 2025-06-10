@@ -27,7 +27,7 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, questionContent
       if (!questionId) return;
       try {
         const response = await fetch(
-          `http://localhost:5000/api/questions/submissions?questionId=${questionId}`,
+          `https://tmp-9643.onrender.com/api/questions/submissions?questionId=${questionId}`,
           { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
         );
         const data = await response.json();
@@ -45,7 +45,7 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, questionContent
   const checkIfSolved = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/questions/submissions?questionId=${questionId}`,
+        `https://tmp-9643.onrender.com/api/questions/submissions?questionId=${questionId}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` } }
       );
       const data = await response.json();
@@ -133,7 +133,7 @@ const CodeForm = ({ initialCode, language, onSubmit, questionId, questionContent
     // Now, handle AI suggestion separately
     try {
       setIsGeneratingAiSuggestion(true);
-      const AIresponse = await fetch('http://localhost:5000/api/ai/analyzeCode', {
+      const AIresponse = await fetch('https://tmp-9643.onrender.com/api/ai/analyzeCode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, questionContent })

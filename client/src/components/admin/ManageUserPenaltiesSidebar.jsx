@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNotification } from '../../contexts/NotificationContext';
 import { XMarkIcon, PaperAirplaneIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; // Using heroicons
 
-const API_ADMIN_BASE = "http://localhost:5000/api/admin";
+const API_ADMIN_BASE = "https://tmp-9643.onrender.com/api/admin";
 
 const predefinedReasons = [
   { value: "SPAMMING", label: "Spamming or Flooding" },

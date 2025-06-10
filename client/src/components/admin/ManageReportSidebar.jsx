@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://tmp-9643.onrender.com';
 
 const ManageReportSidebar = ({ isOpen, onClose, report, onActionSuccess }) => {
   const [newReportStatus, setNewReportStatus] = useState('');

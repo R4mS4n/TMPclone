@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import ManageReportSidebar from './ManageReportSidebar'; // Import the new sidebar
 // import { useNotification } from '../../contexts/NotificationContext'; // If you have notifications
 
-const API_BASE_URL = 'http://localhost:5000'; // Ensure this is correct
+const API_BASE_URL = 'https://tmp-9643.onrender.com'; // Ensure this is correct
 
 const AdminReportsView = () => {
   const [reports, setReports] = useState([]);
