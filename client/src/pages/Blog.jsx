@@ -8,6 +8,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { formatTimeAgo } from '../utils/timeUtils';
 import apiClient from '../utils/api';
 import ProfilePicture from '../components/ProfilePicture';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const Blog = () => {
   console.log('Blog component rendering');
@@ -562,9 +563,9 @@ const Blog = () => {
                               <ProfilePicture userId={post.user.user_id} username={post.user.username} className="w-full h-full object-cover" />
                             </div>
                           </div>
-                          <div>
-                            <h3 className="font-medium text-base-content">{post.user.username}</h3>
-                            <span>{formatTimeAgo(post.created_at)}</span>
+                          <div className="flex-grow min-w-0">
+                            <p className="font-semibold truncate">{post.user.username}</p>
+                            <p className="text-sm text-base-content/70">{formatTimeAgo(post.created_at)}</p>
                           </div>
                         </div>
                       
